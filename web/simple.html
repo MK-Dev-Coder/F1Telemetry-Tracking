@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategy Replay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --surface: #f3f4f6;  --panel: #ffffff;  --ink: #16191d;  --muted: #5d6672;  --rule: #d8dce1;
+    --bar: #2f3a47;      --alert: #d9480f;  --up: #c2410c;  --down: #2f6db5;   --focus: #2f6db5;
+    --neutral-lap: #e9b500; --red-lap: #c92a2a;
+    --soft: #da291c; --medium: #f2c200; --hard: #8e959c; --inter: #3f9b2a; --wet: #0067ad;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #171a1f; --panel: #1f242b; --ink: #e8ebef; --muted: #9aa4b0; --rule: #333a44;
+      --bar: #c9d1db;     --alert: #ff8a3d; --up: #ff9a5c; --down: #6fa8e8;   --focus: #6fa8e8;
+      --neutral-lap: #e9b500; --red-lap: #ff6b6b; --hard: #e6e8ea;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--ink);
+         font: 400 16px/1.45 "Titillium Web", "Segoe UI", system-ui, sans-serif; }
+  button, select, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  header { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 24px; margin-bottom: 14px; }
+  h1 { margin: 0; font-size: 34px; line-height: 1.1; font-weight: 700; letter-spacing: -0.01em; }
+  .intro { margin: 2px 0 0; color: var(--muted); max-width: 62ch; }
+  .race-pick { margin-left: auto; display: flex; flex-direction: column; gap: 4px; }
+  .race-pick label { font-size: 14px; color: var(--muted); }
+  select { padding: 7px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); min-width: 300px; }
+  .seen { font-size: 14px; color: var(--muted); }
+
+  .controls { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 16px; align-items: center;
+              background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; }
+  .buttons { display: flex; gap: 6px; }
+  .buttons button { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  .buttons button.play { background: var(--ink); color: var(--panel); border-color: var(--ink); min-width: 84px; font-weight: 600; }
+  .lap-box { display: grid; gap: 2px; }
+  .lap-line { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
+  .lap-line strong { color: var(--ink); font-size: 18px; font-weight: 700; }
+  input[type=range] { width: 100%; accent-color: var(--ink); margin: 0; }
+  .strip { position: relative; height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+  .strip span { position: absolute; top: 0; bottom: 0; }
+  .options { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+  .options label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .options select { min-width: 0; padding: 3px 6px; }
+  .neutral-list { grid-column: 2; font-size: 13px; color: var(--muted); min-height: 18px; }
+
+  .status { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 13px; font-weight: 600; }
+  .status.GREEN { background: transparent; border: 1px solid var(--rule); color: var(--muted); }
+  .status.YELLOW, .status.VSC, .status.SAFETY { background: var(--neutral-lap); color: #16191d; }
+  .status.RED { background: var(--red-lap); color: #fff; }
+
+  main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; align-items: start; }
+  .tower, .detail { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  caption { text-align: left; padding: 12px 14px 8px; font-weight: 600; }
+  caption .status { margin-left: 8px; vertical-align: 1px; }
+  th { text-align: left; font-size: 13px; font-weight: 600; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--rule); }
+  td { padding: 5px 8px; border-bottom: 1px solid var(--rule); height: 38px; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: color-mix(in srgb, var(--surface) 60%, transparent); }
+  tbody tr.selected td { background: color-mix(in srgb, var(--focus) 12%, transparent); }
+  tbody tr:last-child td { border-bottom: 0; }
+  .pos { width: 38px; text-align: right; font-weight: 700; }
+  .drv { font-weight: 700; letter-spacing: 0.02em; }
+  .team { color: var(--muted); font-size: 13px; display: block; line-height: 1.1; font-weight: 400; letter-spacing: 0; }
+  .num { text-align: right; white-space: nowrap; }
+  .muted { color: var(--muted); }
+
+  .tyre { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+          border: 3px solid var(--hard); font-size: 12px; font-weight: 700; line-height: 1; vertical-align: middle; }
+  .tyre.SOFT { border-color: var(--soft); } .tyre.MEDIUM { border-color: var(--medium); }
+  .tyre.HARD { border-color: var(--hard); } .tyre.INTERMEDIATE, .tyre.INTER { border-color: var(--inter); }
+  .tyre.WET { border-color: var(--wet); }
+  .tyre-age { margin-left: 6px; }
+
+  .chance { display: flex; align-items: center; gap: 8px; min-width: 150px; }
+  .meter { position: relative; flex: 1; height: 8px; border-radius: 4px; background: var(--rule); }
+  .meter i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--bar); }
+  .meter b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: .45; }
+  .alert .meter i { background: var(--alert); }
+  .pct { width: 40px; text-align: right; font-weight: 600; }
+  .box { display: inline-block; min-width: 44px; padding: 0 6px; border-radius: 4px; font-size: 13px; font-weight: 700;
+         background: var(--alert); color: #fff; text-align: center; }
+  .pitting { font-weight: 600; }
+  .actual-yes { font-weight: 600; }
+
+  .detail { padding: 14px 16px 16px; position: sticky; top: 12px; }
+  .detail h2 { margin: 0; font-size: 22px; line-height: 1.2; }
+  .detail .sub { color: var(--muted); margin: 2px 0 12px; font-size: 14px; }
+  .big { font-size: 44px; font-weight: 700; line-height: 1; }
+  .big small { font-size: 16px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+  .reasons { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
+  .reasons li { display: grid; grid-template-columns: 1fr 120px 46px; gap: 8px; align-items: center; font-size: 14px; line-height: 1.25; }
+  .split { position: relative; height: 10px; }
+  .split::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--rule); }
+  .split i { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+  .split i.up { left: 50%; background: var(--up); } .split i.down { right: 50%; background: var(--down); }
+  .reasons .val { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  h3 { margin: 18px 0 4px; font-size: 16px; }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--panel); font-size: 13px;
+         padding: 3px 8px; border-radius: 4px; white-space: nowrap; transform: translate(-50%, -120%); display: none; }
+  details { margin-top: 8px; font-size: 14px; }
+  details table td, details table th { height: auto; padding: 2px 6px; }
+  .tyre-mix { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+  .empty { color: var(--muted); padding: 30px 6px; }
+  footer { margin-top: 14px; color: var(--muted); font-size: 13px; max-width: 90ch; }
+  .error { color: var(--alert); font-weight: 600; }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .detail { position: static; }
+    .controls { grid-template-columns: 1fr; }
+    .neutral-list { grid-column: 1; }
+    .race-pick { margin-left: 0; width: 100%; } select { min-width: 0; width: 100%; }
+    .col-team, .col-gap { display: none; }
+  }
+  @media (max-width: 560px) { .col-next { display: none; } .chance { min-width: 110px; } h1 { font-size: 28px; } }
+  @media (prefers-reduced-motion: no-preference) { .meter i { transition: width .35s ease; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Strategy replay</h1>
+      <p class="intro">Pick a race and step through it lap by lap. For every driver, the model gives the chance of a
+        pit stop in the next 3 laps, says why, and picks the tyre they would fit.</p>
+    </div>
+    <div class="race-pick">
+      <label for="race">Race</label>
+      <select id="race"></select>
+      <span class="seen" id="seen"></span>
+    </div>
+  </header>
+
+  <section class="controls" aria-label="Replay controls">
+    <div class="buttons">
+      <button id="prev" aria-label="Previous lap">Back</button>
+      <button id="play" class="play">Play</button>
+      <button id="next" aria-label="Next lap">Next</button>
+    </div>
+    <div class="lap-box">
+      <div class="lap-line"><label for="lap">Lap <strong id="lap-num">1</strong> of <span id="lap-max">-</span></label>
+        <span id="lap-status"></span></div>
+      <input type="range" id="lap" min="1" max="1" value="1">
+      <div class="strip" id="strip" aria-hidden="true"></div>
+    </div>
+    <div class="options">
+      <label><input type="checkbox" id="reveal"> Show what really happened</label>
+      <label>Speed <select id="speed"><option value="1">1 s per lap</option><option value="2" selected>2 s per lap</option>
+        <option value="4">4 s per lap</option></select></label>
+    </div>
+    <div class="neutral-list" id="neutral-list"></div>
+  </section>
+
+  <main>
+    <section class="tower" aria-live="polite">
+      <table>
+        <caption>Running order at the end of lap <span id="cap-lap">1</span><span class="status GREEN" id="cap-status">Green</span></caption>
+        <thead><tr>
+          <th class="pos">Pos</th><th>Driver</th><th>Tyre</th><th class="num col-gap">Gap</th>
+          <th>Pit stop in the next 3 laps</th><th class="col-next">If they pit now</th><th id="actual-head" hidden>What happened</th>
+        </tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty">Loading the race...</td></tr></tbody>
+      </table>
+    </section>
+    <aside class="detail" id="detail">
+      <p class="empty">Click a driver to see why the model gives that chance, and how it changed during the race.</p>
+    </aside>
+  </main>
+
+  <footer id="footer">The tick on each bar is the alert line: above it the model says "Box?" (pit soon).
+    The chance comes from the lap's data only, as it would be live.</footer>
+</div>
+
+<script>
+const TYRE_LETTER = { SOFT: "S", MEDIUM: "M", HARD: "H", INTERMEDIATE: "I", WET: "W", "INTER/WET": "I", UNKNOWN: "?" };
+const TYRE_NAME = { SOFT: "Soft", MEDIUM: "Medium", HARD: "Hard", INTERMEDIATE: "Intermediate", WET: "Wet",
+                    "INTER/WET": "Intermediate or wet", UNKNOWN: "Unknown" };
+const STATUS_NAME = { GREEN: "Green", YELLOW: "Yellow flag", VSC: "Virtual safety car", "SAFETY CAR": "Safety car", "RED FLAG": "Red flag" };
+const state = { race: null, info: null, lap: 1, reveal: false, driver: null, stream: null, snap: null, series: {} };
+const $ = (id) => document.getElementById(id);
+const pct = (v) => v == null ? "-" : Math.round(v * 100) + "%";
+const laps = (n) => n == null ? "-" : n === 1 ? "1 lap" : `${n} laps`;
+
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) { let msg = r.statusText; try { msg = (await r.json()).detail; } catch (e) {} throw new Error(msg); }
+  return r.json();
+}
+
+function el(tag, attrs = {}, ...kids) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") node.className = v; else if (k === "text") node.textContent = v; else node.setAttribute(k, v);
+  }
+  for (const kid of kids) if (kid != null) node.append(kid);
+  return node;
+}
+
+function tyre(compound) {
+  return el("span", { class: "tyre " + compound.replace("/", ""), title: TYRE_NAME[compound] || compound,
+                      "aria-label": TYRE_NAME[compound] || compound, text: TYRE_LETTER[compound] || "?" });
+}
+
+function statusPill(node, status) {
+  node.className = "status " + status.split(" ")[0];
+  node.textContent = STATUS_NAME[status] || status;
+}
+
+// ---- races -------------------------------------------------------------------------------------
+async function init() {
+  const races = await getJSON("/races");
+  const select = $("race");
+  const years = [...new Set(races.map(r => r.year))].sort((a, b) => b - a);
+  for (const year of years) {
+    const group = el("optgroup", { label: year === 2026 ? "2026 (the model never saw these races)" : `${year} (used in training)` });
+    races.filter(r => r.year === year).sort((a, b) => a.round - b.round).forEach(r =>
+      group.append(el("option", { value: r.race_id, text: `Round ${r.round}: ${r.name} (${r.circuit})` })));
+    select.append(group);
+  }
+  const wanted = new URLSearchParams(location.search).get("race");
+  select.value = races.some(r => r.race_id === wanted) ? wanted : (races.some(r => r.race_id === "2026_17") ? "2026_17" : races.at(-1).race_id);
+  select.addEventListener("change", () => loadRace(select.value));
+  $("lap").addEventListener("input", (e) => { stopPlay(); setLap(+e.target.value); });
+  $("prev").addEventListener("click", () => { stopPlay(); setLap(state.lap - 1); });
+  $("next").addEventListener("click", () => { stopPlay(); setLap(state.lap + 1); });
+  $("play").addEventListener("click", () => state.stream ? stopPlay() : play());
+  $("speed").addEventListener("change", () => { if (state.stream) { stopPlay(); play(); } });
+  $("reveal").addEventListener("change", (e) => { state.reveal = e.target.checked; setLap(state.lap); });
+  document.addEventListener("keydown", (e) => {
+    if (e.target.closest("select, input[type=range]")) return;
+    if (e.key === "ArrowRight") { stopPlay(); setLap(state.lap + 1); }
+    if (e.key === "ArrowLeft") { stopPlay(); setLap(state.lap - 1); }
+  });
+  await loadRace(select.value);
+}
+
+async function loadRace(raceId) {
+  stopPlay();
+  state.race = raceId; state.driver = null; state.series = {};
+  state.info = await getJSON(`/races/${raceId}`);
+  history.replaceState(null, "", `?race=${raceId}`);
+  $("seen").textContent = state.info.seen_in_training
+    ? "Used to train the model, so it knows this race already."
+    : "The model never saw this race: a fair test.";
+  $("lap").max = state.info.laps; $("lap-max").textContent = state.info.laps;
+  drawStrip();
+  $("detail").replaceChildren(el("p", { class: "empty", text: "Click a driver to see why the model gives that chance, and how it changed during the race." }));
+  await setLap(1);
+}
+
+function drawStrip() {
+  const strip = $("strip"), laps = state.info.laps;
+  strip.replaceChildren();
+  const runs = [];
+  for (const s of state.info.track_status) {
+    if (s.status === "YELLOW") continue;
+    const last = runs.at(-1);
+    if (last && last.status === s.status && last.to === s.lap - 1) last.to = s.lap; else runs.push({ status: s.status, from: s.lap, to: s.lap });
+  }
+  for (const r of runs) {
+    const span = el("span");
+    span.style.left = ((r.from - 1) / laps * 100) + "%";
+    span.style.width = ((r.to - r.from + 1) / laps * 100) + "%";
+    span.style.background = r.status === "RED FLAG" ? "var(--red-lap)" : "var(--neutral-lap)";
+    strip.append(span);
+  }
+  $("neutral-list").textContent = runs.length
+    ? "Neutralised laps: " + runs.map(r => `${STATUS_NAME[r.status]} ${r.from === r.to ? "lap " + r.from : "laps " + r.from + "-" + r.to}`).join(", ")
+    : "No safety car, virtual safety car or red flag in this race.";
+}
+
+// ---- laps --------------------------------------------------------------------------------------
+let lapRequest = 0;
+async function setLap(n) {
+  if (!state.info) return;
+  n = Math.max(1, Math.min(state.info.laps, n));
+  state.lap = n; $("lap").value = n; $("lap-num").textContent = n;
+  const ticket = ++lapRequest;
+  try {
+    const snap = await getJSON(`/races/${state.race}/laps/${n}?reveal=${state.reveal}`);
+    if (ticket === lapRequest) render(snap);
+  } catch (err) {
+    if (ticket === lapRequest) $("rows").replaceChildren(el("tr", {}, el("td", { colspan: 7, class: "empty error", text: `Lap ${n} has no data (${err.message}).` })));
+  }
+}
+
+function play() {
+  if (state.lap >= state.info.laps) setLap(1);
+  const speed = $("speed").value;
+  const stream = new EventSource(`/races/${state.race}/replay?start=${state.lap + 1}&seconds=${speed}&reveal=${state.reveal}`);
+  stream.onmessage = (e) => {
+    const snap = JSON.parse(e.data);
+    state.lap = snap.lap; $("lap").value = snap.lap; $("lap-num").textContent = snap.lap;
+    lapRequest++; render(snap);
+    if (snap.lap >= snap.total_laps) stopPlay();
+  };
+  stream.onerror = stopPlay;
+  state.stream = stream;
+  $("play").textContent = "Pause";
+}
+
+function stopPlay() {
+  if (state.stream) { state.stream.close(); state.stream = null; }
+  $("play").textContent = "Play";
+}
+
+function render(snap) {
+  state.snap = snap;
+  $("cap-lap").textContent = snap.lap;
+  statusPill($("cap-status"), snap.track_status);
+  statusPill($("lap-status"), snap.track_status);
+  $("actual-head").hidden = !state.reveal;
+  const rows = snap.drivers.map(d => driverRow(d, snap.alert_threshold));
+  $("rows").replaceChildren(...rows);
+  $("footer").textContent = `All ${snap.drivers.length} drivers predicted and explained in ${snap.model_ms} ms. ` +
+    `The tick on each bar is the alert line (${pct(snap.alert_threshold)}): above it the model says "Box?" (pit soon). ` +
+    `Each lap uses only what was known at the end of that lap, as it would be live.`;
+  if (state.driver) showDriver(state.driver);
+}
+
+function driverRow(d, threshold) {
+  const tr = el("tr", { tabindex: "0", "aria-label": `${d.driver}, position ${d.position ?? "unknown"}` });
+  if (d.driver === state.driver) tr.classList.add("selected");
+  if (d.alert) tr.classList.add("alert");
+  tr.addEventListener("click", () => selectDriver(d.driver));
+  tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectDriver(d.driver); } });
+
+  const gap = d.position === 1 ? "Leader" : d.gap_ahead == null ? "-" : "+" + d.gap_ahead.toFixed(1);
+  let chanceCell;
+  if (d.pitting_now) {
+    chanceCell = el("td", { class: "pitting", text: "In the pits this lap" });
+  } else {
+    const meter = el("span", { class: "meter" }, el("i"), el("b"));
+    meter.firstChild.style.width = (d.pit_chance * 100) + "%";
+    meter.lastChild.style.left = (threshold * 100) + "%";
+    chanceCell = el("td", {}, el("span", { class: "chance" }, meter, el("span", { class: "pct", text: pct(d.pit_chance) }),
+      d.alert ? el("span", { class: "box", title: "Likely to pit in the next 3 laps", text: "Box?" }) : el("span", { class: "box", style: "visibility:hidden" , text: "Box?"})));
+  }
+  const [best, second] = Object.entries(d.next_tyre).sort((a, b) => b[1] - a[1]);
+  const next = el("td", { class: "col-next", title: Object.entries(d.next_tyre).map(([c, p]) => `${TYRE_NAME[c]} ${pct(p)}`).join(", ") },
+    tyre(best[0]), el("span", { class: "tyre-age", text: pct(best[1]) }),
+    el("span", { class: "muted", text: `  or ${TYRE_LETTER[second[0]]} ${pct(second[1])}` }));
+  const cells = [
+    el("td", { class: "pos", text: d.position ?? "-" }),
+    el("td", { class: "drv" }, d.driver, el("span", { class: "team col-team", text: d.team || "" })),
+    el("td", {}, tyre(d.compound), el("span", { class: "tyre-age", text: d.tyre_age == null ? "" : laps(d.tyre_age) })),
+    el("td", { class: "num col-gap", text: gap }),
+    chanceCell, next,
+  ];
+  if (state.reveal && d.actual) {
+    cells.push(d.pitting_now
+      ? el("td", {}, "Fitted ", tyre(d.actual.fitted || "UNKNOWN"))
+      : el("td", { class: d.actual.pits_in_next_3_laps ? "actual-yes" : "muted", text: d.actual.pits_in_next_3_laps ? "Pits within 3 laps" : "No stop yet" }));
+  }
+  tr.append(...cells);
+  return tr;
+}
+
+// ---- one driver --------------------------------------------------------------------------------
+function selectDriver(code) {
+  state.driver = code;
+  document.querySelectorAll("#rows tr").forEach(tr => tr.classList.toggle("selected", tr.getAttribute("aria-label")?.startsWith(code + ",")));
+  showDriver(code);
+}
+
+let detailRequest = 0;
+async function showDriver(code) {
+  const ticket = ++detailRequest;
+  const row = state.snap?.drivers.find(d => d.driver === code);
+  if (!row) {
+    $("detail").replaceChildren(el("p", { class: "empty", text: `${code} has no lap ${state.lap} (out of the race or not started).` }));
+    return;
+  }
+  const key = `${state.race}/${code}`;
+  const [why, series] = await Promise.all([
+    row.pitting_now ? null : getJSON(`/races/${state.race}/laps/${state.lap}/drivers/${code}`),
+    state.series[key] || (state.series[key] = getJSON(`/races/${state.race}/drivers/${code}?reveal=true`)),
+  ]);
+  if (ticket !== detailRequest) return;
+
+  const box = [el("h2", { text: `${code}, lap ${state.lap}` }), el("p", { class: "sub", text: row.team || "" })];
+  if (row.pitting_now) {
+    box.push(el("p", { class: "big", text: "In the pits" }));
+    box.push(el("p", { class: "note", text: "Coming in at the end of this lap. The model's tyre pick for this stop:" }));
+  } else {
+    box.push(el("p", { class: "big" }, pct(why.pit_chance), el("small", { text: "chance of a pit stop in the next 3 laps" })));
+    const reasons = why.reasons.slice(0, 6);
+    const biggest = Math.max(...reasons.map(r => Math.abs(r.points)), 0.01);
+    const list = el("ul", { class: "reasons", "aria-label": "Biggest reasons" });
+    for (const r of reasons) {
+      const bar = el("i", { class: r.points >= 0 ? "up" : "down" });
+      bar.style.width = (Math.abs(r.points) / biggest * 50) + "%";
+      list.append(el("li", {}, el("span", { text: r.text }), el("span", { class: "split" }, bar), el("span", { class: "val", text: r.label })));
+    }
+    box.push(el("h3", { text: "Why" }), list);
+    box.push(el("p", { class: "note", text: `A typical lap starts at ${pct(why.typical_lap_chance)}. Orange pushes the chance up, blue pushes it down. ` +
+      `${why.reasons.length - reasons.length} smaller reasons are left out.` }));
+  }
+  const mix = el("div", { class: "tyre-mix" }, ...Object.entries(row.next_tyre).sort((a, b) => b[1] - a[1])
+    .map(([c, p]) => el("span", {}, tyre(c), el("span", { class: "tyre-age", text: pct(p) }))));
+  box.push(el("h3", { text: row.pitting_now ? "Tyre pick" : "If they pit now" }), mix);
+  if (state.reveal && row.pitting_now && row.actual) box.push(el("p", { class: "note" }, "They really fitted ", tyre(row.actual.fitted || "UNKNOWN"), "."));
+  box.push(el("h3", { text: "Pit stop chance, lap by lap" }), chart(series));
+  $("detail").replaceChildren(...box);
+}
+
+function chart(series) {
+  const W = 560, H = 190, L = 34, R = 10, T = 10, B = 24, total = state.info.laps;
+  const shown = series.laps.filter(p => state.reveal || p.lap <= state.lap);
+  const x = (lap) => L + (lap - 1) / Math.max(total - 1, 1) * (W - L - R);
+  const y = (v) => T + (1 - v) * (H - T - B);
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", `Pit stop chance for ${series.driver} on each lap`);
+  const add = (tag, attrs) => { const n = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); svg.append(n); return n; };
+  for (const v of [0, 0.5, 1]) {
+    add("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: "var(--rule)", "stroke-width": 1 });
+    add("text", { x: L - 6, y: y(v) + 4, "text-anchor": "end" }).textContent = pct(v);
+  }
+  for (const lap of [1, Math.round(total / 2), total]) add("text", { x: x(lap), y: H - 6, "text-anchor": "middle" }).textContent = `lap ${lap}`;
+  add("line", { x1: L, x2: W - R, y1: y(series.alert_threshold), y2: y(series.alert_threshold), stroke: "var(--alert)", "stroke-width": 1.5, "stroke-dasharray": "4 4" });
+  add("text", { x: W - R, y: y(series.alert_threshold) - 5, "text-anchor": "end" }).textContent = "alert line";
+  if (state.reveal) for (const p of series.laps.filter(p => p.pitted)) {
+    add("line", { x1: x(p.lap), x2: x(p.lap), y1: T, y2: H - B, stroke: "var(--ink)", "stroke-width": 1, opacity: 0.5 });
+    add("text", { x: x(p.lap) + 3, y: T + 10 }).textContent = "pit";
+  }
+  add("line", { x1: x(state.lap), x2: x(state.lap), y1: T, y2: H - B, stroke: "var(--focus)", "stroke-width": 2, opacity: 0.6 });
+  let d = "", pen = false;
+  for (const p of shown) {
+    if (p.pit_chance == null) { pen = false; continue; }                 // a gap on the pit lap itself
+    d += `${pen ? "L" : "M"}${x(p.lap).toFixed(1)},${y(p.pit_chance).toFixed(1)}`; pen = true;
+  }
+  add("path", { d, fill: "none", stroke: "var(--bar)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" });
+  const dot = add("circle", { r: 4, fill: "var(--bar)", stroke: "var(--panel)", "stroke-width": 2, visibility: "hidden" });
+  const cross = add("line", { y1: T, y2: H - B, stroke: "var(--muted)", "stroke-width": 1, visibility: "hidden" });
+  const hit = add("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" });
+
+  const wrap = el("div", { class: "chart" });
+  const tip = el("div", { class: "tip" });
+  wrap.append(svg, tip);
+  hit.addEventListener("mousemove", (e) => {
+    const box = svg.getBoundingClientRect();
+    const lap = Math.round(1 + ((e.clientX - box.left) / box.width * W - L) / (W - L - R) * (total - 1));
+    const p = shown.find(q => q.lap === lap);
+    if (!p) { tip.style.display = "none"; return; }
+    const px = x(p.lap), py = p.pit_chance == null ? y(0) : y(p.pit_chance);
+    cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.setAttribute("visibility", p.pit_chance == null ? "hidden" : "visible");
+    tip.textContent = p.pit_chance == null ? `Lap ${p.lap}: in the pits` : `Lap ${p.lap}: ${pct(p.pit_chance)}, ${TYRE_NAME[p.compound]} ${laps(p.tyre_age)}`;
+    tip.style.left = (px / W * box.width) + "px"; tip.style.top = (py / H * box.height) + "px"; tip.style.display = "block";
+  });
+  hit.addEventListener("mouseleave", () => { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); });
+
+  const table = el("table", {}, el("thead", {}, el("tr", {}, el("th", { text: "Lap" }), el("th", { text: "Chance" }), el("th", { text: "Tyre" }))),
+    el("tbody", {}, ...shown.map(p => el("tr", {}, el("td", { text: p.lap }), el("td", { text: p.pit_chance == null ? "in the pits" : pct(p.pit_chance) }),
+      el("td", { text: `${TYRE_NAME[p.compound]}, ${laps(p.tyre_age)}` })))));
+  wrap.append(el("details", {}, el("summary", { text: "Show as a table" }), table));
+  return wrap;
+}
+
+init().catch(err => $("rows").replaceChildren(el("tr", {}, el("td", { colspan: 7, class: "empty error",
+  text: `The app couldn't reach the server (${err.message}). Start it with: python api.py` }))));
+</script>
+</body>
+</html>

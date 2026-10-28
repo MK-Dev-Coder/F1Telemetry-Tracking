@@ -1,0 +1,24 @@
+,2024 Bahrain Grand Prix,2026 Singapore Grand Prix
+Laps FastF1,1129,1240
+Laps OpenF1,1129,1240
+Laps in both,1129,1240
+LapTime exact (%),98.2,98.2
+LapTime within 0.1 s (%),98.2,98.2
+LapTime biggest gap (s),0.51,0.477
+Team same (%),100.0,100.0
+Stint same (%),100.0,100.0
+Compound same (%),100.0,100.0
+TyreLife same (%),98.7,93.0
+FreshTyre same (%),98.7,93.0
+Position same (%),99.5,99.8
+TrackStatus same (%),100.0,99.8
+Rainfall same (%),100.0,100.0
+SC/VSC/red flag same (%),100.0,99.8
+AirTemp average gap,0.01,0.01
+TrackTemp average gap,0.03,0.26
+PitInTime laps FastF1 / OpenF1 / both,43 / 43 / 43,26 / 25 / 25
+PitInTime average gap (s),0.09,0.08
+PitOutTime laps FastF1 / OpenF1 / both,43 / 43 / 43,28 / 25 / 25
+PitOutTime average gap (s),0.11,0.14
+Time offset (s),-3377.4,-3144.2
+Time offset spread (s),0.113,0.108

@@ -1,0 +1,12 @@
+# Python
+.venv/
+__pycache__/
+
+# FastF1's downloads (big, and can't be downloaded again)
+fastf1_cache/
+
+# Our data files (kept on this PC only)
+data/
+
+# The F1 logo is a Formula 1 trademark, so it stays on this PC only
+web/f1-logo.png

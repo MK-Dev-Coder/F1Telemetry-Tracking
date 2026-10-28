@@ -1,0 +1,12 @@
+fastapi==0.150.0
+fastf1==3.8.3
+httpx==0.28.1
+lightgbm==4.7.0
+matplotlib==3.11.2
+pandas==2.3.3
+pyarrow==25.0.1
+pytest==9.1.1
+requests==2.34.2
+scikit-learn==1.9.1
+shap==0.54.1
+uvicorn==0.54.0

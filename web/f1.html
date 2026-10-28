@@ -1,0 +1,1422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pit Wall Live Timing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Pit-wall live timing, driven by the replay API. Single dark look on purpose: pit-wall software runs dark. */
+:root{
+  color-scheme: dark;
+  --bg:#0a0d12; --panel:#10151c; --panel-2:#151c26; --line:#212a36; --line-2:#2c3746;
+  --fg:#e7ecf3; --muted:#8a96a8; --dim:#5b6676;
+  --brand:#e10632; --cursor:#f4f7fb;
+  --purple:#b14cff; --green:#22d36b; --yellow:#ffd60a; --red:#ff3b3b;
+  --soft:#ff4d5e; --medium:#ffd60a; --hard:#eef1f5; --inter:#3bc46e; --wet:#2f7bff;
+  --shap-pos:#ff0051; --shap-neg:#008bfb;
+  --f-ui:"Titillium Web", "Segoe UI", system-ui, sans-serif;
+  --f-num:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-ui);font-size:14px;line-height:1.35;padding-inline:16px;padding-block:12px 24px}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cursor);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* ---------- Top bar ---------- */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-block:6px 12px;border-bottom:1px solid var(--line);margin-bottom:12px;max-width:1600px;margin-inline:auto}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;color:inherit;text-decoration:none}
+.mark{display:block;height:24px;width:auto;flex:none}
+.brand b{display:block;font-weight:900;font-size:17px;letter-spacing:.06em;line-height:1}
+.brand small{display:block;color:var(--muted);font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--line-2);border-radius:3px;background:var(--panel);font-size:13px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.chip .k{color:var(--muted)}
+.chip .v{font-family:var(--f-num);font-size:13px}
+.chip.flag{font-weight:700}
+.chip.flag::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+.chip.flag.green{background:#0f2a1a;border-color:#1d5c35;color:#7cf2a6}
+.chip.flag.yellow{background:#2e2806;border-color:#6b5a0b;color:var(--yellow)}
+.chip.flag.red{background:#330b0e;border-color:#7a1c22;color:#ff8a8a}
+.chip.note{border-style:dashed;color:var(--muted)}
+.chip.note.new{border-style:solid;border-color:#5c2b80;color:#d29bff}
+
+/* ---------- Live timing panel ---------- */
+.wrap{max-width:1600px;margin-inline:auto}
+.panel{border:1px solid var(--line);border-radius:4px;min-width:0;display:flex;flex-direction:column}
+.lt{overflow:clip;background:#15151e;border-color:#262833}    /* clip (not hidden): the bottom strip can stay pinned */
+.lt-top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:stretch;gap:0 16px;background:var(--brand);color:#fff;padding-inline:16px;min-height:54px}
+.lt-title{display:flex;flex-direction:column;justify-content:center;line-height:1.1;padding-block:6px;min-width:0}
+.lt-title b{font-weight:900;font-size:16px;letter-spacing:.06em}
+.lt-tabs{display:flex;gap:2px;justify-content:center;flex-wrap:wrap;min-width:0}
+.lt-tab{background:none;border:0;color:#fff;display:flex;align-items:center;gap:8px;padding:0 13px;min-height:54px;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;opacity:.85;white-space:nowrap}
+.lt-tab:hover{opacity:1}
+.lt-tab[aria-selected="true"]{opacity:1;border-bottom-color:#fff;background:rgba(0,0,0,.12)}
+.lt-ctl{display:flex;align-items:center}
+/* the replay controls: previous lap, play / pause, next lap and the speed, in one pill (like a video player) */
+.tp{position:relative;display:flex;align-items:center;gap:1px;padding:3px 4px 3px 3px;border-radius:999px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.3)}
+.tp-b{width:28px;height:28px;border-radius:50%;border:0;background:none;color:#fff;display:grid;place-items:center;cursor:pointer;opacity:.92}
+.tp-b:hover{background:rgba(255,255,255,.16);opacity:1}
+.tp-play{width:34px;height:34px;margin:0 2px;border-radius:50%;border:0;background:#fff;color:var(--brand);display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.28);transition:transform .12s}
+.tp-play:hover{transform:scale(1.06)} .tp-play:active{transform:scale(.95)}
+.tp-play .i-pause,.tp-play.on .i-play{display:none} .tp-play.on .i-pause{display:block}
+.tp-sep{width:1px;height:18px;margin:0 5px 0 3px;background:rgba(255,255,255,.3)}
+.tp-spd{position:relative}
+.tp-chip{display:flex;align-items:center;gap:5px;width:116px;height:28px;padding:0 8px 0 11px;border-radius:999px;border:0;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;white-space:nowrap}
+.tp-chip svg{margin-left:auto}
+.tp-chip:hover,.tp-chip[aria-expanded="true"]{background:rgba(255,255,255,.26)}
+.tp-chip b{font-family:var(--f-num);font-size:14px;font-weight:600}
+.tp-chip small{font-size:11px;letter-spacing:.07em;text-transform:uppercase;opacity:.88}
+.spd-menu{position:absolute;left:0;top:calc(100% + 10px);z-index:40;min-width:290px;background:#1d1f2b;border:1px solid #2c2f3d;border-radius:10px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.spd-menu h5{margin:4px 8px 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9aa0ae;font-weight:600}
+.spd-menu button{display:grid;grid-template-columns:44px minmax(0,1fr) 16px;align-items:center;gap:6px;width:100%;padding:8px 10px;border:0;background:none;color:#e9ecf2;border-radius:6px;cursor:pointer;text-align:left}
+.spd-menu button:hover,.spd-menu button:focus-visible{background:#2a2c3a}
+.spd-menu button[aria-selected="true"]{background:#2f3142}
+.spd-menu b{font-family:var(--f-num);font-size:14px} .spd-menu span{color:#9aa0ae;font-size:13px}
+.spd-menu svg{color:#22d36b}
+.tp-bar{position:absolute;left:18px;right:18px;bottom:-1px;height:2px;border-radius:2px;background:rgba(255,255,255,.2);overflow:hidden;opacity:0;transition:opacity .2s}
+.tp-bar i{position:absolute;top:0;bottom:0;left:0;width:0;background:#fff}
+.tp.playing .tp-bar{opacity:1}
+.lt-sub{display:flex;align-items:center;gap:12px;background:#f3f4f7;color:#15151e;padding-inline:16px;min-height:46px;flex-wrap:wrap}
+.lt-live{color:var(--brand);font-weight:700;font-size:14px;letter-spacing:.06em;display:flex;align-items:center;gap:8px;min-width:96px}
+.lt-live i{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 3px rgba(225,6,50,.2)}
+.lt-live.on i{animation:livepulse 1.6s infinite}
+@keyframes livepulse{50%{box-shadow:0 0 0 6px rgba(225,6,50,0)}}
+.lt-subtabs{display:flex;gap:4px;margin-inline:auto;flex-wrap:wrap}
+.lt-st{background:none;border:0;color:#3b3f4a;font-size:15px;padding:12px 18px 9px;cursor:pointer;border-bottom:3px solid transparent}
+.lt-st:hover{color:#15151e}
+.lt-st[aria-selected="true"]{font-weight:700;color:#15151e;border-bottom-color:var(--brand)}
+.lt-subr{min-width:96px;display:flex;justify-content:flex-end}
+.reveal{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;color:#3b3f4a;white-space:nowrap}
+.reveal input{accent-color:var(--brand)}
+.lt-body{background:#000;padding:10px 14px 0;min-height:420px}
+.lt-banner{display:flex;justify-content:center;align-items:center;gap:8px;color:#fff;font-weight:700;letter-spacing:.06em;font-size:15px;padding:6px 0 10px;text-transform:uppercase}
+.lt-banner.yellow{color:var(--yellow)} .lt-banner.red{color:#ff8a8a}
+
+/* leaderboard rows */
+.lb2-scroll{overflow-x:auto;background:#15151e;border-radius:3px}
+.lb2{min-width:1080px}
+.lb2-row{display:grid;align-items:center;gap:0 10px;height:40px;padding-inline:12px;font-family:var(--f-num);font-size:14px;font-variant-numeric:tabular-nums;color:#e9ecf2;cursor:pointer}
+.lb2-row:nth-child(even){background:#1c1d27}
+.lb2-row:not(.hd):hover{background:#262836}
+.lb2-row.sel{box-shadow:inset 3px 0 0 #fff}
+.lb2-row.gone{opacity:.45}
+.lb2-row.hd{height:40px;background:#1f202b;cursor:default;font-family:var(--f-ui);font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:#d7dae2}
+.lb2-row.hd > span:first-child{grid-column:span 3}
+.lb2-row.sgm{grid-template-columns:24px 4px minmax(180px,1fr) 88px 84px 84px repeat(3,minmax(146px,1.5fr)) 64px}
+.lb2-row.laps{grid-template-columns:24px 4px minmax(170px,1.4fr) repeat(6,minmax(90px,1fr))}
+.lb2-row.secs{grid-template-columns:24px 4px minmax(170px,1.4fr) repeat(7,minmax(90px,1fr))}
+.lb2-row.spd{grid-template-columns:24px 4px minmax(150px,1.2fr) repeat(3,minmax(130px,1.1fr)) repeat(3,minmax(70px,.7fr)) minmax(150px,1.3fr)}
+/* speed traps: each driver's best speed trap against the field (slowest to fastest best) */
+.topbar{display:flex;align-items:center;gap:8px}
+.topbar span{flex:1;height:8px;border-radius:4px;background:#2f3240;position:relative;overflow:hidden}
+.topbar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:#c9cfdb} .topbar i.p{background:var(--purple)}
+
+.lb2-row.tyres{grid-template-columns:24px 4px minmax(170px,1fr) 90px minmax(300px,3fr) 60px}
+.lb2-row.strat{grid-template-columns:24px 4px minmax(160px,1fr) 56px minmax(120px,1.1fr) minmax(0,2fr) 84px 104px}
+.lb2-row.strat.rv{grid-template-columns:24px 4px minmax(160px,1fr) 56px minmax(120px,1.1fr) minmax(0,2fr) 84px 104px 110px}
+.lb2-row.uct{grid-template-columns:24px 4px minmax(100px,1fr) 56px 56px minmax(110px,1fr) minmax(100px,1.2fr) 64px 64px;gap:0 8px}
+.lb2-row.bfc{grid-template-columns:24px 4px minmax(100px,1fr) 56px 56px minmax(120px,1fr) 80px 112px;gap:0 8px}
+.ahd{display:flex;align-items:center;gap:7px;font-family:var(--f-ui);font-weight:700;font-size:14px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.ahd i{width:3px;height:14px;border-radius:1px;flex:none} .ahd .nm{min-width:0;overflow:hidden;text-overflow:ellipsis} .ahd .ty{margin-left:auto}
+.du{padding:12px 16px 16px;font-family:var(--f-ui);color:#e9ecf2}
+.du h4{margin:16px 0 6px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#d7dae2}
+.du .note{color:#9aa0ae;font-size:13px;margin:6px 0 0}
+.lb2-row .r{text-align:right}
+.lb-pos{font-family:var(--f-ui);font-weight:700;font-size:14px;text-align:center}
+.lb-pos.first{background:#fff;color:#15151e;border-radius:2px;line-height:20px}
+.lb-bar{width:4px;height:16px;border-radius:1px}
+.lb-name{font-family:var(--f-ui);font-weight:900;font-size:15px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px;min-width:0}
+.boxtag{font-style:normal;font-size:11px;font-weight:900;letter-spacing:.08em;background:var(--yellow);color:#15151e;border-radius:3px;padding:0 5px;line-height:16px}
+.dpill{font-style:normal;background:#2c2e3b;border-radius:4px;padding:2px 8px;font-size:13px}
+.sh{display:flex;align-items:center;justify-content:space-between;border-left:1px solid #3a3c4a;padding-left:10px;height:100%}
+.pill-p{background:var(--purple);color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;padding:1px 9px;border-radius:10px}
+.sg{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;border-left:1px solid #3a3c4a;padding-left:10px;height:100%}
+.sg-bars{display:flex;gap:2px}
+.sg-bars i{width:7px;height:15px;border-radius:1px;background:#2f3240;opacity:.8}
+.sg-bars i.y{background:var(--yellow);opacity:1} .sg-bars i.g{background:var(--green);opacity:1} .sg-bars i.p{background:var(--purple);opacity:1}
+.sg-bars i.pit{background:#7fd3ff;opacity:.8}
+.sg-v{text-align:right;padding-right:8px}
+.dim,.sg-v.dim{color:#8b93a3}
+.t-p{color:var(--purple)} .t-g{color:var(--green)} .t-y{color:var(--yellow)}
+.st-pit{color:var(--yellow);font-family:var(--f-ui);font-weight:700;letter-spacing:.08em}
+.st-out{color:#7fd3ff;font-family:var(--f-ui);font-weight:700;letter-spacing:.08em}
+.st-gone{color:#6f7484;font-family:var(--f-ui);font-weight:700;letter-spacing:.08em}
+.ty{display:inline-flex;align-items:center;gap:7px}
+.ty-age{font-family:var(--f-num)}
+.ty b{width:20px;height:20px;border-radius:50%;border:2.5px solid currentColor;display:grid;place-items:center;font-family:var(--f-ui);font-size:11px;font-weight:900}
+.ty b span{color:#fff}
+.seg-info{color:#c9cfdb;font-size:14px;line-height:1.5;padding:10px 4px;max-width:90ch}
+.empty-note{color:#9aa0ae;padding:24px 14px;font-size:14px}
+
+/* strategy view */
+.strat-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:12px;align-items:start}
+.meter{position:relative;flex:1;height:8px;border-radius:4px;background:#2f3240}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:#c9cfdb}
+.meter b{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--yellow);opacity:.8}
+.alert .meter i{background:var(--yellow)}
+.chance{display:flex;align-items:center;gap:10px;font-family:var(--f-num)}
+.chance .pct{width:42px;text-align:right}
+.reason{font-family:var(--f-ui);font-size:14px;color:#c9cfdb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reason em{font-style:normal;font-family:var(--f-num);margin-right:6px}
+.reason em.up{color:#ff5c85} .reason em.down{color:#3fa4ff}      /* the SHAP colours, lighter for text (4.5:1) */
+.sp{background:#15151e;border-radius:3px;padding:14px 16px 16px;position:sticky;top:12px}
+.sp h3{margin:0;font-size:20px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}
+.sp .sub{color:#9aa0ae;font-size:13px;margin:2px 0 10px}
+.sp .big{font-family:var(--f-num);font-size:40px;font-weight:600;line-height:1}
+.sp .big small{font-family:var(--f-ui);font-size:14px;color:#9aa0ae;margin-left:8px;font-weight:400}
+.sp h4{margin:16px 0 6px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#d7dae2}
+.wf{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.wf li{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px;gap:8px;align-items:center;font-size:14px;line-height:1.2;color:#e9ecf2}
+.wf .split{position:relative;height:10px}
+.wf .split::before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:#3a3c4a}
+.wf .split i{position:absolute;top:0;bottom:0;border-radius:2px}
+.wf .split i.up{left:50%;background:var(--shap-pos)} .wf .split i.down{right:50%;background:var(--shap-neg)}
+.wf .v{text-align:right;font-family:var(--f-num);font-size:13px}
+.sp .note{color:#9aa0ae;font-size:13px;margin:8px 0 0}
+.mix{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--f-num);font-size:13px}
+.chart{position:relative;margin-top:4px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:#9aa0ae;font-size:11px;font-family:var(--f-num)}
+.tip{position:absolute;pointer-events:none;background:#fff;color:#15151e;font-size:13px;padding:3px 8px;border-radius:3px;white-space:nowrap;transform:translate(-50%,-125%);display:none;font-family:var(--f-num)}
+details{margin-top:8px;font-size:13px;color:#c9cfdb}
+/* race outcome: win (gold), podium (silver) and points (green) chances, the finishing position chances, the charts */
+.lb2-row.oc{grid-template-columns:24px 4px minmax(110px,1fr) repeat(3,minmax(92px,.7fr)) 64px minmax(0,2fr)}
+.lb2-row.oc.rv{grid-template-columns:24px 4px minmax(110px,1fr) repeat(3,minmax(92px,.7fr)) 64px minmax(0,2fr) 70px}
+.oc-c{display:flex;align-items:center;gap:8px}
+.oc-c .meter{height:6px}
+.oc-c .pct{width:40px;text-align:right}
+.oc-c.win .meter i,.oc-k.win{background:#e8c547} .oc-c.podium .meter i,.oc-k.podium{background:#c9cfdb} .oc-c.points .meter i,.oc-k.points{background:#3bc46e}
+.oc-c.on .pct{color:#fff;font-weight:600}
+.oc-f{text-align:right;white-space:nowrap}
+.oc-f small{margin-left:4px;font-size:11px} .oc-f .up{color:var(--green)} .oc-f .dn{color:#ff8a8a}
+.reason .for{font-family:var(--f-ui);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#9aa0ae;margin-right:6px;font-weight:600}
+.oc-big{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 2px}
+.oc-big button{background:#1d1f2b;border:1px solid #2c2f3d;border-radius:6px;padding:7px 10px;text-align:left;cursor:pointer}
+.oc-big button[aria-pressed="true"]{border-color:#e9ecf2;background:#262938}
+.oc-big b{display:block;font-family:var(--f-num);font-size:24px;font-weight:600;line-height:1.15}
+.oc-big small{display:flex;align-items:center;gap:6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#9aa0ae}
+.oc-k{display:inline-block;width:8px;height:8px;border-radius:2px}
+.spots{display:flex;align-items:flex-end;gap:2px;height:72px;margin-top:6px;border-bottom:1px solid #3a3c4a}
+.spots span{flex:1;background:#4a5060;border-radius:2px 2px 0 0;min-height:2px}
+.spots span.now{background:#e9ecf2} .spots span.fin{box-shadow:0 0 0 2px var(--green)}
+.spots-x{display:flex;gap:2px;font-family:var(--f-num);font-size:11px;color:#9aa0ae;margin-top:3px}
+.spots-x span{flex:1;text-align:center}
+.oc-chart{background:#15151e;border-radius:3px;padding:12px 16px 14px}
+.oc-chart h3{margin:0 0 2px;font-size:15px;letter-spacing:.06em;text-transform:uppercase}
+.oc-chart .note{color:#9aa0ae;font-size:13px;margin:6px 0 0}
+.chart path.ln{cursor:pointer} .chart text.end{font-size:12px;font-weight:600}
+.tip.multi{white-space:normal;transform:translate(10px,-50%);text-align:left;line-height:1.35;min-width:120px}
+/* race preview: the next race before the start, and what it said before a past race */
+.lb2-row.pv{grid-template-columns:24px 4px minmax(120px,1.2fr) repeat(3,minmax(92px,.7fr)) 60px minmax(0,2fr)}
+.lb2-row.pvp{grid-template-columns:24px 4px minmax(110px,1.2fr) repeat(3,minmax(96px,.8fr)) 56px 64px}
+.lb2-row.pvp.won{box-shadow:inset 0 0 0 1px var(--purple)}
+.pv-name{font-family:var(--f-ui);font-weight:900;letter-spacing:.03em;text-transform:uppercase;font-size:15px;line-height:1.05;overflow:hidden;display:flex;align-items:center;gap:8px;min-width:0} .pv-t{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pv-name small{display:block;font-size:11px;color:#9aa0ae;font-weight:400;letter-spacing:.04em;text-transform:none}
+.pv-head{padding:12px 14px;background:#1d1f2b;border-radius:4px;margin:0 0 8px}
+.pv-head b{display:block;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.pv-head span{color:#d7dae2;font-size:14px} .pv-head small{display:block;color:#9aa0ae;font-size:13px;margin-top:6px;line-height:1.45}
+details table{border-collapse:collapse;width:100%;font-family:var(--f-num)}
+details td,details th{padding:2px 6px;border-top:1px solid #2a2c38;text-align:left}
+
+/* driver tracker */
+.trk{display:grid;grid-template-columns:112px 340px minmax(0,1fr);height:620px;background:#15151e;border-radius:3px;overflow:hidden}
+.trk.field{grid-template-columns:112px minmax(0,1fr)} .trk.field .trk-h2h{display:none}
+.trk-pos{background:#2a2c38;overflow-y:auto}
+.tp-h{font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:#e9ecf2;padding:8px 12px;border-bottom:1px solid #3a3c4a}
+.tp-r{display:grid;grid-template-columns:22px 4px minmax(0,1fr);gap:0 7px;align-items:center;height:26.5px;padding-inline:10px;cursor:pointer;font-size:14px;color:#e9ecf2;position:relative}
+.tp-r:hover{background:#353849}
+.tp-r.sel{background:#e9ecf2;color:#15151e}
+.tp-r.pit{opacity:.55}
+.tp-r b{font-weight:900;letter-spacing:.04em}
+.tp-r em{font-style:normal;font-size:11px;font-weight:700;color:var(--yellow);position:absolute;right:8px}
+.pa{font-family:var(--f-ui);font-weight:700;font-size:13px;text-align:center;color:#c9cfdb}
+.pa.up{color:var(--green);font-size:11px} .pa.dn{color:var(--yellow);font-size:11px}
+.trk-h2h{background:#1f2130;display:flex;flex-direction:column;border-right:1px solid #2a2c38;min-width:0}
+.h2h-top{display:grid;grid-template-columns:1fr 1fr}
+.h2h-c{display:flex;flex-direction:column;gap:2px;padding:12px 12px 12px;position:relative;min-width:0;border-top:3px solid var(--tc,#555);
+  background:linear-gradient(165deg,color-mix(in srgb,var(--tc,#555) 45%,#15151e) 0%,#1f2130 88%)}
+.h2h-c + .h2h-c{border-left:1px solid #15151e}
+.h2h-pos{font-family:var(--f-num);font-size:14px;font-weight:600;color:#fff}
+.h2h-code{font-size:32px;font-weight:900;letter-spacing:.02em;line-height:1;color:#fff}
+.h2h-name{font-weight:700;font-size:14px;line-height:1.2;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h2h-c small{color:#d7dae2;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h2h-c.pick{background:#1a1b25;border:1px dashed #4a4d5c;border-top:3px dashed #4a4d5c;justify-content:center}
+.h2h-c.pick .h2h-code{font-size:22px;color:#c9cfdb}
+.h2h-x{position:absolute;right:8px;top:8px;width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.25);color:#fff;font-size:16px;line-height:1;cursor:pointer}
+.h2h-gap{display:grid;justify-items:center;padding:12px 12px 4px;text-align:center}
+.h2h-gap span{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#9aa0ae}
+.h2h-gap b{font-family:var(--f-num);font-size:30px;font-weight:600;color:#fff;line-height:1.15}
+.h2h-gap small{color:#c9cfdb;font-size:14px}
+.h2h-rows{margin-top:auto;padding:0 12px 14px;display:flex;flex-direction:column}
+.h2h-r{display:grid;grid-template-columns:1fr 104px 1fr;align-items:center;row-gap:6px;padding:9px 0;border-bottom:1px solid #3a3c4a;font-family:var(--f-num);font-size:15px;color:#c9cfdb}
+.h2h-r > span:nth-child(3){text-align:right;justify-self:end}
+.h2h-r .win{color:var(--green);font-weight:600}
+.h2h-r i{font-style:normal;justify-self:center;background:#2c2e3b;color:#c9cfdb;border-radius:12px;padding:2px 10px;font-family:var(--f-ui);font-size:12px;letter-spacing:.06em;white-space:nowrap}
+.h2h-r i em{font-style:normal;font-family:var(--f-num);color:var(--green);margin-left:2px}
+.h2h-bar{grid-column:1/-1;position:relative;height:5px;background:#2a2c38;border-radius:3px}
+.h2h-bar::before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#5b6170}
+.h2h-bar b{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--green)}
+.h2h-bar b.a{right:50%} .h2h-bar b.b{left:50%}
+.h2h-pc{display:inline-flex;align-items:center;gap:8px}
+.h2h-pc .meter{width:56px;height:6px;background:#2a2c38;border-radius:3px;overflow:hidden;display:inline-block}
+.h2h-pc .meter i{display:block;height:100%;background:var(--brand)}
+.trk-map{position:relative;background:radial-gradient(ellipse at 50% 40%, #2c2c38 0%, #15151e 70%);min-width:0}
+#trkMap{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+.trk-tl,.trk-tr{position:absolute;top:12px;display:flex;flex-direction:column;gap:8px}
+.trk-tl{left:12px} .trk-tr{right:12px}
+.trk-b{width:52px;height:52px;border-radius:6px;border:0;background:#2a2c38;color:#fff;display:grid;place-items:center;cursor:pointer}
+.trk-b:hover{background:#3a3d4d}
+.trk-b[aria-pressed="true"]{background:#fff;color:#15151e}
+.trk-note{position:absolute;left:12px;bottom:10px;color:#9aa0ae;font-size:13px;max-width:60ch}
+.trk-none{position:absolute;inset:0;display:grid;place-items:center;color:#9aa0ae;font-size:14px;padding:20px;text-align:center}
+
+/* race control */
+.rc{background:#15151e;border-radius:3px;max-height:620px;overflow-y:auto}
+.rc-r{display:grid;grid-template-columns:34px 76px 64px 128px minmax(0,1fr);gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid #22242f;font-size:14px;color:#e9ecf2}
+.rc-i{display:grid;place-items:center;height:24px}
+.rc-r.k-yellow,.rc-r.k-yellow2,.rc-r.k-sc,.rc-r.k-vsc{box-shadow:inset 3px 0 0 #ffd60a} .rc-r.k-red{box-shadow:inset 3px 0 0 #ff3346}
+.rc-r.k-green{box-shadow:inset 3px 0 0 #22d36b} .rc-r.k-chequered{box-shadow:inset 3px 0 0 #fff}
+.rc-t,.rc-l{font-family:var(--f-num);font-size:13px;color:#9aa0ae}
+.rc-c{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;text-align:center;border-radius:10px;padding:2px 0;background:#2c2e3b;color:#c9cfdb}
+.rc-c.c-pit{background:#3a3208;color:var(--yellow)} .rc-c.c-overtake{background:#0f2e40;color:#7fd3ff}
+.rc-c.c-timing{background:#2b1640;color:#d29bff} .rc-c.c-flag{background:#0f2a1a;color:#7cf2a6}
+.rc-c.c-safety{background:#3a3208;color:#ffe066} .rc-c.c-control{background:#2c2e3b;color:#c9cfdb}
+@media (max-width:600px){ .rc-r{grid-template-columns:30px 60px 104px minmax(0,1fr)} .rc-l{display:none} .rc-r .rc-m{grid-column:2/-1} }
+
+/* footer of the panel */
+.lt-foot{background:#000;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px 14px;position:sticky;bottom:0;z-index:5;
+  border-top:1px solid #22242f}
+.ticker{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 380px;background:#15151e;border:1px solid #2c2e3b;border-radius:5px;padding:4px 12px;font-size:14px;color:#e9ecf2}
+.ticker .rc-i{flex:none;display:grid;place-items:center}
+.ticker small{font-family:var(--f-num);font-size:13px;color:#9aa0ae;flex:none}
+.ticker .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ticker .lead{margin-left:auto;flex:none;font-family:var(--f-num);font-size:13px;color:#c9cfdb;padding-left:8px}
+.seg-btn{display:flex;align-items:center;gap:10px;background:none;border:0;color:#fff;cursor:pointer;text-align:left;padding:0}
+.seg-btn small{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#c9cfdb}
+.seg-btn span:last-child{font-weight:900;font-size:17px;letter-spacing:.04em;line-height:1.05}
+.seg-ico{display:flex;gap:2px;border:1px solid #6f7484;border-radius:3px;padding:5px}
+.seg-ico i{width:5px;height:14px;background:var(--yellow)} .seg-ico i:nth-child(2){background:var(--green)} .seg-ico i:nth-child(3){background:var(--purple)}
+.scrub{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;color:#c9cfdb;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.scrub input{flex:1;accent-color:var(--brand)}
+.lt-chips{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.lt-chip{display:flex;align-items:center;gap:10px;background:#fff;color:#15151e;border-radius:5px;padding:8px 14px;font-size:14px}
+.lt-chip b{font-family:var(--f-num);font-weight:600}
+.lapbar{width:4px;height:20px;background:#ddd;border-radius:2px;position:relative;overflow:hidden;transform:rotate(180deg)}
+.lapbar i{position:absolute;left:0;right:0;top:0;height:0;background:var(--brand)}
+footer{margin:12px auto 0;color:var(--dim);font-size:13px;max-width:1600px}
+.err{color:#ff8a8a;padding:20px}
+
+@media (max-width:1560px){ .lt-tab svg{display:none} .lt-tab{padding:0 11px} }
+/* narrower: the race and the controls on the first row, the tabs on their own row; on a phone the controls too */
+@media (max-width:1300px){
+  .lt-top{grid-template-columns:minmax(0,1fr) auto} .lt-tabs{grid-column:1 / -1;grid-row:2;justify-content:flex-start}
+  .lt-tab{min-height:44px}
+}
+@media (max-width:600px){
+  .lt-top{grid-template-columns:minmax(0,1fr)} .lt-ctl{grid-row:2;justify-self:start;padding-bottom:6px} .lt-tabs{grid-row:3}
+  .lt-foot{position:static}               /* on a phone it takes several lines: at the end, not over the data */
+}
+@media (max-width:1100px){
+  .trk{grid-template-columns:minmax(0,1fr);height:auto} .trk-pos{display:none} .trk-map{height:520px}
+  .trk.field{grid-template-columns:minmax(0,1fr)} .strat-grid{grid-template-columns:minmax(0,1fr)} .sp{position:static}
+}
+@media (prefers-reduced-motion: reduce){ .lt-live.on i{animation:none} }
+
+/* On a computer the page fits the screen: the title bar, the tabs and the bottom strip stay put, and only the race
+   data scrolls (a long side panel scrolls on its own). Phones and short windows scroll the whole page, as before. */
+@media (min-width:900px) and (min-height:700px){
+  html{height:100%} body{height:100%;display:flex;flex-direction:column;overflow:hidden}
+  body > .top,body > footer{flex:none}
+  body > .wrap{flex:1;min-height:0;width:100%;display:flex;flex-direction:column}
+  .panel.lt{flex:1;min-height:0}
+  .lt-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:12px}
+  .lt-foot{position:static}
+  .rc{max-height:none}
+  /* the bottom strip on one line: the lap and the temperatures are in the bar at the top already */
+  .lt-foot{flex-wrap:nowrap;padding:8px 14px 10px} .lt-foot .lt-chip:not(:last-child){display:none}
+  body > footer{margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+/* beside the table (wider than 1100 pixels) a long side panel scrolls on its own; below the table it doesn't */
+@media (min-width:1101px) and (min-height:700px){ .sp{top:0;max-height:calc(var(--body-h,100vh) - 24px);overflow-y:auto;overscroll-behavior:contain} }
+/* each driver's photo (or car number) in front of the name; BOX only where it's about pitting */
+.lb2-row.uct .boxtag,.lb2-row.bfc .boxtag,.lb2-row.oc .boxtag{display:none}
+.lb-name .nm{min-width:0;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./" title="Back to the menu">
+    <img class="mark" src="f1-logo.png" alt="F1" width="96" height="24" onerror="this.remove()">
+    <div><b>STRATEGY OPTIMIZER</b><small>Live timing · race replay</small></div>
+  </a>
+  <div class="chips">
+    <span class="chip"><span class="k">Session</span><span class="v">RACE</span></span>
+    <span class="chip"><span class="k">Lap</span><span class="v" id="lapchip">-</span></span>
+    <span class="chip flag green" id="flagchip">Track clear</span>
+    <span class="chip" title="Compounds used so far in this race"><span class="k">Tyres</span><span class="v" id="tyrechip">-</span></span>
+    <span class="chip"><span class="k">Track</span><span class="v" id="trackchip">-</span></span>
+    <span class="chip"><span class="k">Air</span><span class="v" id="airchip">-</span></span>
+    <span class="chip"><span class="k">Hum</span><span class="v" id="humchip">-</span></span>
+    <span class="chip"><span class="k">Race time</span><span class="v" id="clock">-</span></span>
+    <span class="chip note" id="seenchip">Loading</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel lt" aria-label="Live timing">
+    <div class="lt-top">
+      <div class="lt-title"><b>RACE</b><button id="race" class="lt-pick" type="button" aria-haspopup="dialog"><span class="n">Loading…</span></button></div>
+      <nav class="lt-tabs" role="tablist" aria-label="Live timing views">
+        <button class="lt-tab" role="tab" data-tab="board" aria-selected="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 13V9M9 2h6M12 2v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Leaderboard</button>
+        <button class="lt-tab" role="tab" data-tab="strategy" aria-selected="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Pit strategy</button>
+        <button class="lt-tab" role="tab" data-tab="tracker" aria-selected="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 15a8 8 0 0 1 16-3v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Driver tracker</button>
+        <button class="lt-tab" role="tab" data-tab="outcome" aria-selected="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 20h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Race outcome</button>
+        <button class="lt-tab" role="tab" data-tab="preview" aria-selected="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 21V4M4 4h12l-2 4 2 4H4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 17l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Race preview</button>
+        <button class="lt-tab" role="tab" data-tab="engineer" aria-selected="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="13" width="4" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="17" y="13" width="4" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 20a3 3 0 0 1-3 2.5h-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Engineer</button>
+        <button class="lt-tab" role="tab" data-tab="rc" aria-selected="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 4h16v12H9l-5 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 8h8M8 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Race control</button>
+      </nav>
+      <div class="lt-ctl">
+        <div class="tp" id="tp" role="group" aria-label="Replay">
+          <button class="tp-b" id="prev" type="button" aria-label="Previous lap" title="Previous lap (←)">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6.5 5.5v13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M18.5 6.3v11.4a.7.7 0 0 1-1.1.6L9.2 12.6a.7.7 0 0 1 0-1.2l8.2-5.7a.7.7 0 0 1 1.1.6z" fill="currentColor"/></svg></button>
+          <button class="tp-play" id="play" type="button" aria-pressed="false" aria-label="Play" title="Play (space)">
+            <svg class="i-play" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8.5 5.6v12.8a.8.8 0 0 0 1.2.7l10-6.4a.8.8 0 0 0 0-1.4l-10-6.4a.8.8 0 0 0-1.2.7z" fill="currentColor"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></svg></button>
+          <button class="tp-b" id="next" type="button" aria-label="Next lap" title="Next lap (→)">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M17.5 5.5v13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M5.5 6.3v11.4a.7.7 0 0 0 1.1.6l8.2-5.7a.7.7 0 0 0 0-1.2L6.6 5.7a.7.7 0 0 0-1.1.6z" fill="currentColor"/></svg></button>
+          <span class="tp-sep" aria-hidden="true"></span>
+          <div class="tp-spd">
+            <button class="tp-chip" id="speed" type="button" aria-haspopup="listbox" aria-expanded="false" title="Replay speed">
+              <b id="speedText">1×</b><small id="speedNote">real time</small>
+              <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <div class="spd-menu" id="speedMenu" role="listbox" aria-label="Replay speed" hidden></div>
+          </div>
+          <span class="tp-bar" aria-hidden="true"><i id="tpBar"></i></span>
+        </div>
+      </div>
+    </div>
+    <div class="lt-sub">
+      <span class="lt-live" id="live">REPLAY <i></i></span>
+      <nav class="lt-subtabs" id="ltSub" role="tablist" aria-label="View options"></nav>
+      <span class="lt-subr"><label class="reveal"><input type="checkbox" id="reveal"> Show what happened</label></span>
+    </div>
+
+    <div class="lt-body">
+      <div id="vBoard">
+        <div class="lt-banner" id="banner"></div>
+        <div class="lb2-scroll"><div class="lb2" id="lb2"><div class="empty-note">Loading the race...</div></div></div>
+        <div class="seg-info" id="segInfo" hidden></div>
+      </div>
+      <div id="vStrategy" hidden>
+        <div class="lt-banner" id="banner2"></div>
+        <div class="strat-grid">
+          <div class="lb2-scroll"><div class="lb2" id="strat" style="min-width:560px"></div></div>
+          <aside class="sp" id="sp" aria-live="polite"></aside>
+        </div>
+      </div>
+      <div id="vTracker" hidden>
+        <div class="trk" id="trk">
+          <div class="trk-pos" id="trkPos"></div>
+          <div class="trk-h2h" id="trkH2h"></div>
+          <div class="trk-map">
+            <canvas id="trkMap" aria-label="Circuit map with every car's position. Drag to pan, click a car to select it."></canvas>
+            <div class="trk-none" id="trkNone" hidden>No track map for this circuit (OpenF1 has no data before 2023).</div>
+            <div class="trk-tl">
+              <button class="trk-b" id="trkFollow" aria-pressed="false" title="Follow the first driver"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M21 3 3 10.5l7.5 3L14 21z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+              <button class="trk-b" id="trkReset" title="Reset the view"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+            </div>
+            <div class="trk-tr">
+              <button class="trk-b" id="trkIn" title="Zoom in"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21M10.5 7.5v6M7.5 10.5h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+              <button class="trk-b" id="trkOut" title="Zoom out"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21M7.5 10.5h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+            </div>
+            <div class="trk-note">Car positions are estimated from the timing gaps at the line.</div>
+          </div>
+        </div>
+      </div>
+      <div id="vOutcome" hidden>
+        <div class="lt-banner" id="banner3"></div>
+        <div class="strat-grid">
+          <div class="lb2-scroll" id="ocMain"><div class="lb2" id="oc" style="min-width:560px"></div></div>
+          <aside class="sp" id="op" aria-live="polite"></aside>
+        </div>
+      </div>
+      <div id="vPreview" hidden>
+        <div class="strat-grid">
+          <div class="lb2-scroll"><div class="lb2" id="pv" style="min-width:560px"></div></div>
+          <aside class="sp" id="pp" aria-live="polite"></aside>
+        </div>
+      </div>
+      <div id="vEngineer" hidden><div id="eng"></div></div>
+      <div id="vRC" hidden><div class="rc" id="rc"></div></div>
+    </div>
+
+    <div class="lt-foot">
+      <button class="seg-btn" id="segInfoBtn" aria-expanded="false"><span class="seg-ico" aria-hidden="true"><i></i><i></i><i></i></span><span><small>Learn about</small>SEGMENTS</span></button>
+      <label class="scrub">Lap <input type="range" id="lap" min="1" max="1" value="1"></label>
+      <div class="ticker" id="ticker" aria-live="polite" aria-label="Latest race control message"></div>
+      <div class="lt-chips">
+        <div class="lt-chip"><span class="lapbar"><i id="ftLapBar"></i></span><span id="ftLap"><b>-</b></span></div>
+        <div class="lt-chip"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Track temperature: <b id="ftTrack">-</b> · Air <b id="ftAir">-</b></div>
+        <div class="lt-chip" title="Time the pit, tyre and race outcome models took for every driver on this lap, with SHAP">Models: <b id="ftModel">-</b> ms per lap</div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer id="footer">Real race data from FastF1 (2022) and OpenF1 (2023–2026). Each lap shows only what was known at the end of that lap,
+  so a replay works like the race was live. Pit chance and tyre pick come from the LightGBM models, explained with SHAP.</footer>
+
+<script src="flags.js"></script>
+<script src="stints.js"></script>
+<script src="picker.js"></script>
+<script src="why.js"></script>
+<script src="pitnow.js"></script>
+<script src="battle.js"></script>
+<script src="versus.js"></script>
+<script src="engineer.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const TY = { SOFT: ["S", "Soft", "var(--soft)"], MEDIUM: ["M", "Medium", "var(--medium)"], HARD: ["H", "Hard", "var(--hard)"],
+  INTERMEDIATE: ["I", "Intermediate", "var(--inter)"], WET: ["W", "Wet", "var(--wet)"], "INTER/WET": ["I", "Inter/wet", "var(--inter)"],
+  UNKNOWN: ["?", "Unknown", "var(--dim)"] };
+const FLAG = { GREEN: ["Track clear", "green"], YELLOW: ["Yellow flag", "yellow"], VSC: ["Virtual safety car", "yellow"],
+  "SAFETY CAR": ["Safety car", "yellow"], "RED FLAG": ["Red flag", "red"] };
+// Replay speeds: 1x is real time (each lap takes as long as it took the leader), the others are that many times faster
+const SPEEDS = [[1, "1×", "real time"], [2, "2×", ""], [5, "5×", ""], [10, "10×", ""], [30, "30×", ""]];
+const SUBS = { board: [["laps", "Laps"], ["sectors", "Sectors"], ["segments", "Segments"], ["tyres", "Tyres"], ["speeds", "Speed trap"]],
+  strategy: [["all", "All drivers"], ["alerts", "Box alerts"], ["undercut", "Undercut threat"], ["battles", "Battle forecast"], ["duel", "Strategy battle"]],
+  tracker: [["h2h", "Head to Head"], ["field", "Full field"]],
+  outcome: [["now", "Chances now"], ["win", "Win chance by lap"], ["podium", "Podium chance by lap"]],
+  preview: [["next", "Next race"], ["past", "Before this race"]],
+  engineer: [["track", "Track and tyres"], ["plans", "Strategies"], ["winners", "Winners here"], ["prediction", "Prediction"]],
+  rc: [["all", "All messages"], ["PIT", "Pit lane"], ["OVERTAKE", "Overtakes"], ["TIMING", "Timing"], ["control", "Race control"]] };
+const S = { race: null, info: null, lap: 1, snap: null, tab: "board", sub: { board: "segments", strategy: "all", tracker: "h2h", outcome: "now", preview: "next", engineer: "track", rc: "all" },
+  ocFor: null, ocSeries: null, preview: null, pvFor: null, pvRace: {}, eng: null,
+  reveal: false, stream: null, speed: 0, a: null, b: null, pick: null, strat: null, series: {}, segInfo: false,
+  zoom: 1, pan: [0, 0], follow: false, cars: {}, anim: null, carPts: [] };
+
+const fmtLap = s => s == null ? "" : `${Math.floor(s / 60)}:${(s % 60).toFixed(3).padStart(6, "0")}`;
+const fmtS = s => s == null ? "" : s.toFixed(3);
+const sgn = v => v == null || isNaN(v) ? "" : (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(3);
+const pct = v => v == null ? "–" : Math.round(v * 100) + "%";
+const clock = s => { if (s == null) return "-"; if (s < 0) return "PRE-RACE"; s = Math.floor(s);
+  return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+const tcls = c => c === "p" ? "t-p" : c === "g" ? "t-g" : c === "y" ? "t-y" : "";
+const name = code => (S.info && S.info.names[code]) || code;
+const tyre = (c, age) => { const [l, n, col] = TY[c] || TY.UNKNOWN;
+  return `<span class="ty" title="${n}${age != null ? `, ${age} laps old` : ""}">${age != null ? `<span class="ty-age" style="color:${col}">${age}</span>` : ""}<b style="color:${col}"><span>${l}</span></b></span>`; };
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail; } catch (e) {} throw new Error(m); }
+  return r.json();
+}
+
+/* ---------------- races ---------------- */
+async function init() {
+  S.races = await getJSON("/races");
+  const want = new URLSearchParams(location.search).get("race"), has = id => S.races.some(r => r.race_id === id);
+  const first = has(want) ? want : has("2026_17") ? "2026_17" : S.races.at(-1).race_id;
+  $("race").onclick = openRacePicker;
+  document.querySelector(".lt-tabs").onclick = e => { const b = e.target.closest(".lt-tab"); if (b) { S.tab = b.dataset.tab; renderTabs(); needReasons(); } };
+  $("ltSub").onclick = e => { const b = e.target.closest(".lt-st"); if (b) { S.sub[S.tab] = b.dataset.sub; renderTabs(); } };
+  $("prev").onclick = () => { stop(); setLap(S.lap - 1, -1); };
+  $("next").onclick = () => { stop(); setLap(S.lap + 1, 1); };
+  $("play").onclick = () => S.stream ? stop() : play();
+  try { const k = +localStorage.getItem("replaySpeed"); if (SPEEDS[k]) S.speed = k; } catch (e) {}    // (the last speed picked)
+  showSpeed();
+  $("speed").onclick = e => { e.stopPropagation(); speedMenu($("speedMenu").hidden); };
+  $("speedMenu").onclick = e => { const b = e.target.closest("[data-speed]"); if (b) pickSpeed(+b.dataset.speed); };
+  document.addEventListener("click", e => { if (!e.target.closest(".tp-spd")) speedMenu(false); });
+  $("lap").oninput = e => { stop(); setLap(+e.target.value); };
+  $("reveal").onchange = e => { S.reveal = e.target.checked; if (S.stream) { stop(); play(); } else setLap(S.lap); };
+  $("segInfoBtn").onclick = () => { S.segInfo = !S.segInfo; $("segInfo").hidden = !S.segInfo; $("segInfoBtn").setAttribute("aria-expanded", String(S.segInfo)); };
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !$("speedMenu").hidden) { speedMenu(false); $("speed").focus(); return; }
+    if (e.target.closest("select, input, .vs-back, .rp-backdrop")) return;     // (in a pop-up the keys are its own)
+    if (e.key === " " && !e.target.closest("button, [role=button], summary")) { e.preventDefault(); S.stream ? stop() : play(); }
+    if (e.key === "ArrowRight") { stop(); setLap(S.lap + 1, 1); }
+    if (e.key === "ArrowLeft") { stop(); setLap(S.lap - 1, -1); }
+  });
+  ["lb2", "strat", "trkPos", "oc", "pv"].forEach(id => {
+    $(id).addEventListener("click", e => { const r = e.target.closest("[data-d]"); if (r) selectDriver(r.dataset.d, e.shiftKey); });
+    $(id).addEventListener("keydown", e => {                       // Enter or Space on a focused row
+      const r = e.target.closest("[data-d]"); if (!r || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault(); const code = r.dataset.d; selectDriver(code, e.shiftKey);
+      $(id).querySelector(`[data-d="${CSS.escape(code)}"]`)?.focus(); });
+  });
+  $("pp").addEventListener("click", e => { const b = e.target.closest("[data-oc]"); if (b) { S.pvFor = b.dataset.oc; viewPreview(); } });
+  $("op").addEventListener("click", e => { const b = e.target.closest("[data-oc]"); if (b) { S.ocFor = b.dataset.oc; ocPanel(); } });
+  $("trkH2h").addEventListener("click", e => { const x = e.target.closest(".h2h-x"); if (x) { S.pick = x.dataset.slot; renderView(); } });
+  mapEvents();
+  S.cards = {};                        // every driver of 2025 and 2026 (the race preview has drivers of other races)
+  Promise.all([2025, 2026].map(y => getJSON(`/drivers/cards?year=${y}`).catch(() => ({}))))
+    .then(([old, now]) => { S.cards = { ...old, ...now }; if (S.tab === "preview") renderView(); });
+  if ("ResizeObserver" in window) new ResizeObserver(() => document.documentElement.style.setProperty("--body-h",
+    `${document.querySelector(".lt-body").clientHeight}px`)).observe(document.querySelector(".lt-body"));
+  await loadRace(first);
+}
+
+// The race button in the title bar: the race's flag and name; it opens the picker
+function raceButton() {
+  const r = S.races.find(x => x.race_id === S.race);
+  if (!r) return;
+  $("race").innerHTML = RacePicker.flag(RacePicker.place(r.circuit)[0]) + `<span class="n">R${r.round} ${esc(r.name)} · ${r.year}</span>`;
+  $("race").setAttribute("aria-label", `Race: ${r.name} ${r.year}. Choose another race`);
+}
+
+// The picker: a tab for every season, and its races in order with their flags
+function openRacePicker() {
+  const now = S.races.find(r => r.race_id === S.race), years = [...new Set(S.races.map(r => r.year))].sort((a, b) => a - b);
+  const season = tab => S.races.filter(r => String(r.year) === tab).sort((a, b) => a.round - b.round);
+  RacePicker.open({
+    title: "Formula 1", opener: $("race"), tabsLabel: "Season",
+    tabs: years.map(y => ({ id: String(y), label: String(y) })), tab: String(now ? now.year : years.at(-1)),
+    tags: tab => { const races = season(tab); return [`${races.length} races`, races[0]?.seen_in_training ? "In the training data" : "New to the model"]; },
+    groups: tab => season(tab).map(r => ({ when: { label: "Round", value: r.round }, items: [{
+      id: r.race_id, flag: RacePicker.place(r.circuit)[0], title: r.name, sub: `${r.circuit} · ${r.laps} laps · ${r.drivers} drivers`,
+      current: r.race_id === S.race, chip: r.race_id === S.race ? "Showing" : "" }] })),
+    onPick: id => { if (id !== S.race) loadRace(id); },
+  });
+}
+
+let raceTicket = 0;
+async function loadRace(id) {
+  stop();
+  const mine = ++raceTicket, info = await getJSON(`/races/${id}`);
+  if (mine !== raceTicket) return;                                  // another race was picked meanwhile
+  S.race = id; S.info = info; S.series = {}; S.a = S.b = S.strat = null; S.cars = {};
+  S.zoom = 1; S.pan = [0, 0]; S.follow = false;
+  history.replaceState(null, "", `?race=${id}`);
+  raceButton();
+  try { localStorage.setItem("lastRace", id); } catch (e) { /* the home screen then shows the latest race */ }
+  const seen = $("seenchip");
+  seen.textContent = S.info.seen_in_training ? `${S.info.year} · in the training data` : `${S.info.year} · new to the model`;
+  seen.className = "chip note" + (S.info.seen_in_training ? "" : " new");
+  $("lap").max = S.info.laps;
+  prepareTrack();
+  await setLap(S.info.lap_list?.[0] ?? 1);
+  renderTabs();
+}
+
+/* ---------------- laps ---------------- */
+let ticket = 0;
+// Some races have whole laps missing from the data (e.g. Miami 2025 laps 2-24): go to the nearest lap that
+// has data, in the direction the user is moving
+function snapLap(n, dir) {
+  const list = S.info.lap_list || [];
+  if (!list.length || list.includes(n)) return n;
+  if (dir > 0) return list.find(x => x > n) ?? list.at(-1);
+  if (dir < 0) return [...list].reverse().find(x => x < n) ?? list[0];
+  return list.reduce((a, b) => Math.abs(b - n) < Math.abs(a - n) ? b : a);
+}
+async function setLap(n, dir = 0) {
+  if (!S.info) return;
+  n = snapLap(Math.max(1, Math.min(S.info.laps, n)), dir);
+  const mine = ++ticket;
+  try {
+    const snap = await getJSON(`/races/${S.race}/live/${n}?reveal=${S.reveal}&reasons=${S.tab === "outcome"}`);
+    if (mine === ticket) apply(snap, false);
+  } catch (err) { $("lb2").innerHTML = `<div class="err">Lap ${n}: ${esc(err.message)}</div>`; }
+}
+
+async function play() {
+  if (S.starting) return;
+  S.starting = true;
+  const list = S.info.lap_list || [];
+  if (S.lap >= (list.at(-1) ?? S.info.laps)) await setLap(list[0] ?? 1);   // at the end: start again
+  S.starting = false;
+  const es = new EventSource(`/races/${S.race}/live_replay?start=${S.lap + 1}&speed=${SPEEDS[S.speed][0]}&reveal=${S.reveal}&reasons=${S.tab === "outcome"}`);
+  es.onmessage = e => { ticket++; const snap = JSON.parse(e.data); apply(snap, true); countdown(snap.next_in); if (snap.lap >= snap.total_laps) stop(); };
+  es.onerror = stop;
+  S.stream = es;
+  playing(true);
+}
+function playing(on) {
+  $("play").classList.toggle("on", on); $("play").setAttribute("aria-pressed", String(on));
+  $("play").setAttribute("aria-label", on ? "Pause" : "Play"); $("play").title = on ? "Pause (space)" : "Play (space)";
+  $("tp").classList.toggle("playing", on); $("live").classList.toggle("on", on);
+  if (!on) countdown(null);
+}
+// The thin bar under the controls fills until the next lap comes in (at real time a lap takes about a minute and a half)
+function countdown(seconds) {
+  const bar = $("tpBar");
+  bar.style.transition = "none"; bar.style.width = "0";
+  if (!seconds) return;
+  void bar.offsetWidth;                                                  // start again from empty
+  bar.style.transition = `width ${seconds}s linear`; bar.style.width = "100%";
+}
+const typicalLap = () => S.snap?.drivers?.[0]?.last_lap || 95;
+function showSpeed() {
+  const [f, label, note] = SPEEDS[S.speed];
+  $("speedText").textContent = label; $("speedNote").textContent = note; $("speedNote").hidden = !note;
+  $("speed").setAttribute("aria-label", `Replay speed: ${label}${note ? " " + note : ""}`);
+}
+function speedMenu(open) {
+  const m = $("speedMenu");
+  m.hidden = !open; $("speed").setAttribute("aria-expanded", String(open));
+  if (!open) return;
+  const tick = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  m.innerHTML = `<h5>Replay speed</h5>` + SPEEDS.map(([f, label, note], k) => `<button type="button" role="option" data-speed="${k}" aria-selected="${k === S.speed}">` +
+    `<b>${label}</b><span>${note ? note + " · " : ""}a lap every ${fmtWait(typicalLap() / f)}</span>${k === S.speed ? tick : "<i></i>"}</button>`).join("");
+  m.querySelector('[aria-selected="true"]')?.focus();
+}
+const fmtWait = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}` : `${Math.max(1, Math.round(s))} s`;
+function pickSpeed(k) {
+  S.speed = k; showSpeed(); speedMenu(false); $("speed").focus();
+  try { localStorage.setItem("replaySpeed", String(k)); } catch (e) {}
+  if (S.stream) { stop(); play(); }
+}
+// The race outcome's reasons (SHAP, about 0.2 s a lap) come only when asked: on opening the tab, ask for this lap again
+function needReasons() {
+  if (S.tab !== "outcome" || !S.snap || !S.snap.has_outcome || S.snap.outcome_reasons) return;
+  if (S.stream) { stop(); setLap(S.lap).then(play); } else setLap(S.lap);
+}
+function stop() {
+  if (S.stream) { S.stream.close(); S.stream = null; }
+  playing(false);
+}
+
+function apply(snap, animate) {
+  S.snap = snap; S.lap = snap.lap;
+  const racing = snap.drivers.filter(d => d.status !== "OUT" && d.status !== "NO DATA");
+  if (!S.a || !racing.some(d => d.driver === S.a)) S.a = racing[0]?.driver;
+  if (!S.b || !racing.some(d => d.driver === S.b) || S.b === S.a) S.b = racing.find(d => d.driver !== S.a)?.driver;
+  if (!S.strat) S.strat = S.a;
+  const [flagText, flagCls] = FLAG[snap.track_status] || FLAG.GREEN;
+  const lapTxt = `${snap.lap} / ${snap.total_laps}`;
+  $("lapchip").textContent = lapTxt; $("lap").value = snap.lap;
+  $("flagchip").textContent = flagText; $("flagchip").className = "chip flag " + flagCls;
+  $("tyrechip").textContent = snap.compounds_used.map(c => TY[c][0]).join(" · ") || "-";
+  const w = snap.weather, deg = v => v == null ? "-" : v.toFixed(1) + "°C";
+  $("trackchip").textContent = deg(w.track); $("airchip").textContent = deg(w.air);
+  $("humchip").textContent = w.humidity == null ? "-" : Math.round(w.humidity) + "%";
+  $("clock").textContent = clock(snap.clock);
+  $("ftLap").innerHTML = `<b>${snap.lap}</b> / ${snap.total_laps}`; $("ftLapBar").style.height = (snap.lap / snap.total_laps * 100) + "%";
+  $("ftTrack").textContent = deg(w.track); $("ftAir").textContent = deg(w.air);
+  $("ftModel").textContent = snap.model_ms == null ? "-" : Math.round(snap.model_ms + (snap.outcome_ms || 0));
+  ticker(snap);
+  moveCars(animate ? Math.min((snap.next_in || 2) * 1000, 120000) : 0);    // the cars move until the next lap comes in
+  renderView();
+}
+
+/* ---------------- tabs ---------------- */
+function renderTabs() {
+  $("ltSub").innerHTML = SUBS[S.tab].map(([k, n]) => `<button class="lt-st" role="tab" data-sub="${k}" aria-selected="${S.sub[S.tab] === k}">${n}</button>`).join("");
+  document.querySelectorAll(".lt-tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+  $("vBoard").hidden = S.tab !== "board"; $("vStrategy").hidden = S.tab !== "strategy";
+  $("vTracker").hidden = S.tab !== "tracker"; $("vRC").hidden = S.tab !== "rc"; $("vOutcome").hidden = S.tab !== "outcome"; $("vPreview").hidden = S.tab !== "preview";
+  $("vEngineer").hidden = S.tab !== "engineer";
+  $("trk").classList.toggle("field", S.sub.tracker === "field");
+  $("segInfoBtn").hidden = !(S.tab === "board" && S.sub.board === "segments");
+  if (S.tab !== "board" || S.sub.board !== "segments") $("segInfo").hidden = true; else $("segInfo").hidden = !S.segInfo;
+  renderView();
+}
+function renderView() {
+  if (!S.snap) return;
+  if (S.tab === "board") viewBoard(); else if (S.tab === "strategy") viewStrategy(); else if (S.tab === "outcome") viewOutcome(); else if (S.tab === "preview") viewPreview();
+  else if (S.tab === "engineer") viewEngineer(); else if (S.tab === "tracker") { viewTracker(); drawMap(); } else viewRC();
+}
+function banner(id) {
+  const s = S.snap, [flagText, cls] = FLAG[s.track_status] || FLAG.GREEN;
+  const text = s.lap >= s.total_laps ? "Race finished" : `Lap ${s.lap} / ${s.total_laps} · ${flagText}`;
+  $(id).className = "lt-banner " + cls;
+  $(id).innerHTML = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2 1v14" stroke="currentColor" stroke-width="1.6"/><path d="M3 2h11v7H3z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M3 2h3v2.3H3zM9 2h3v2.3H9zM6 4.3h3v2.4H6zM12 4.3h2v2.4h-2zM3 6.7h3V9H3zM9 6.7h3V9H9z" fill="currentColor"/></svg>${esc(text)}`;
+}
+// A driver's photo in the team colour (the car number without one), from the race's driver cards
+const face = (code, colour) => { const k = S.info?.cards?.[code] || S.cards?.[code] || {};
+  return Versus.face({ code, colour: colour || "#8a96a8", number: k.number, photo: k.photo }, "sm"); };
+function nameCell(d, i) {
+  const pos = d.position == null ? "–" : d.position;
+  return `<span class="lb-pos ${i === 0 && d.position === 1 ? "first" : ""}">${pos}</span><span class="lb-bar" style="background:${esc(d.colour)}"></span>` +
+    `<span class="lb-name">${face(d.driver, d.colour)}<span class="nm">${esc(name(d.driver))}</span>${d.alert ? '<em class="boxtag" title="Likely to pit in the next 3 laps">BOX</em>' : ""}</span>`;
+}
+const statusCell = d => d.status === "PIT" ? '<span class="r st-pit">PIT</span>' : d.status === "OUT LAP" ? '<span class="r st-out">OUT</span>'
+  : d.status === "OUT" ? '<span class="r st-gone">RETIRED</span>' : d.status === "FINISHED" ? '<span class="r st-gone">FINISHED</span>'
+  : d.status === "NO DATA" ? '<span class="r st-gone">NO DATA</span>' : null;
+const rowAttrs = (d, cls) => `class="lb2-row ${cls}${d.driver === S.a ? " sel" : ""}${d.status === "OUT" || d.status === "NO DATA" ? " gone" : ""}" ` +
+  `data-d="${esc(d.driver)}" tabindex="0" role="button" aria-label="${esc(name(d.driver))}, P${d.position ?? "–"}. Press Enter for details."`;
+
+function viewBoard() {
+  banner("banner");
+  const s = S.snap, ord = s.drivers, lead = ord[0], sub = S.sub.board;
+  let cols, head, rows;
+  if (sub === "segments") {
+    cols = "sgm";
+    head = `<span>Position</span><span class="r">Lap time</span><span class="r">Gap</span><span class="r">Interval</span>` +
+      [0, 1, 2].map(k => `<span class="sh">Sector ${k + 1}${s.best.sectors[k] ? `<b class="pill-p">${esc(s.best.sectors[k].driver)}</b>` : ""}</span>`).join("") + `<span class="r">Tyre</span>`;
+    rows = ord.map((d, i) => {
+      const lapCell = i === 0 ? `<span class="r">${fmtLap(d.last_lap)}</span>` : d.last_lap == null ? '<span></span>' : `<span class="r"><i class="dpill">${sgn(d.last_lap - lead.last_lap)}</i></span>`;
+      const sect = k => { const sec = d.sectors[k] || {}, bars = (d.segments[k] || []).map(c => `<i class="${esc(c)}"></i>`).join("");
+        const val = sec.time == null ? "" : i === 0 ? fmtS(sec.time) : sgn(sec.time - (lead.sectors[k] || {}).time);
+        return `<span class="sg"><span class="sg-bars">${bars}</span><span class="sg-v ${sec.time == null ? "dim" : tcls(sec.col)}">${val}</span></span>`; };
+      const gap = i === 0 ? '<span class="r">–</span>' : `<span class="r">${esc(d.gap_text || "")}</span>`;
+      const intv = statusCell(d) || (i === 0 ? '<span class="r">–</span>' : `<span class="r">${esc(d.interval_text || "")}</span>`);
+      return `<div ${rowAttrs(d, cols)}>${nameCell(d, i)}${lapCell}${gap}${intv}${sect(0)}${sect(1)}${sect(2)}<span class="r">${tyre(d.compound, d.tyre_age)}</span></div>`; }).join("");
+  } else if (sub === "laps") {
+    cols = "laps";
+    head = `<span>Position</span><span class="r">Last lap</span><span class="r">Best lap</span><span class="r">Gap</span><span class="r">Interval</span><span class="r">Laps</span><span class="r">Pits</span>`;
+    rows = ord.map((d, i) => `<div ${rowAttrs(d, cols)}>${nameCell(d, i)}<span class="r ${tcls(d.last_col === "y" ? "" : d.last_col)}">${fmtLap(d.last_lap)}</span>` +
+      `<span class="r ${d.best_is_fastest ? "t-p" : ""}">${fmtLap(d.best_lap)}</span><span class="r">${i ? esc(d.gap_text || "") : "–"}</span>` +
+      `${statusCell(d) || `<span class="r">${i ? esc(d.interval_text || "") : "–"}</span>`}<span class="r">${d.laps}</span><span class="r">${d.pits}</span></div>`).join("");
+  } else if (sub === "sectors") {
+    cols = "secs";
+    head = `<span>Position</span>` + [1, 2, 3].map(k => `<span class="r">Sector ${k}</span>`).join("") + [1, 2, 3].map(k => `<span class="r">Best S${k}</span>`).join("") + `<span class="r">Ideal lap</span>`;
+    rows = ord.map((d, i) => { const sec = d.sectors.length ? d.sectors : [{}, {}, {}];
+      const ideal = sec.every(x => x.best != null) ? sec.reduce((a, x) => a + x.best, 0) : null;
+      return `<div ${rowAttrs(d, cols)}>${nameCell(d, i)}` + sec.map(x => `<span class="r ${tcls(x.col)}">${fmtS(x.time)}</span>`).join("") +
+        sec.map((x, k) => `<span class="r ${s.best.sectors[k] && x.best === s.best.sectors[k].time ? "t-p" : "t-g"}">${fmtS(x.best)}</span>`).join("") +
+        `<span class="r">${fmtLap(ideal)}</span></div>`; }).join("");
+  } else if (sub === "speeds") {
+    // Speeds (km/h) at the two intermediate points and the speed trap: on the last lap, and each driver's best so far
+    cols = "spd";
+    const where = ["Intermediate 1", "Intermediate 2", "Speed trap"], sb = s.best.speeds || [];
+    const tops = ord.map(d => d.speeds?.[2]?.best).filter(v => v != null), lo = Math.min(...tops), hi = Math.max(...tops);
+    head = `<span>Position</span>` + where.map((n, k) => `<span class="sh">${n}${sb[k] ? `<b class="pill-p">${esc(sb[k].driver)}</b>` : ""}</span>`).join("") +
+      ["Best I1", "Best I2", "Best trap"].map(n => `<span class="r">${n}</span>`).join("") + `<span>Top speed against the field</span>`;
+    rows = ord.map((d, i) => { const sp = d.speeds?.length ? d.speeds : [{}, {}, {}], top = sp[2].best;
+      const bar = top == null || !isFinite(lo) ? "<span></span>" : `<span class="topbar"><span><i class="${sb[2] && top >= sb[2].speed ? "p" : ""}" ` +
+        `style="width:${hi > lo ? 8 + (top - lo) / (hi - lo) * 92 : 100}%"></i></span></span>`;
+      return `<div ${rowAttrs(d, cols)}>${nameCell(d, i)}` + sp.map(x => `<span class="r ${x.speed == null ? "dim" : tcls(x.col)}">${x.speed == null ? "–" : Math.round(x.speed)}</span>`).join("") +
+        sp.map((x, k) => `<span class="r ${sb[k] && x.best != null && x.best >= sb[k].speed ? "t-p" : ""}">${x.best == null ? "–" : Math.round(x.best)}</span>`).join("") +
+        bar + `</div>`; }).join("");
+  } else {
+    cols = "tyres";
+    head = `<span>Position</span><span class="r">Current</span>${Stints.axis(s.total_laps)}<span class="r">Pits</span>`;
+    rows = ord.map((d, i) => { const going = !["FINISHED", "OUT", "NO DATA"].includes(d.status) && s.lap < s.total_laps;
+      const bar = Stints.bar(d.stints, s.total_laps, { colour: c => TY[c] || TY.UNKNOWN, now: s.lap, going });
+      return `<div ${rowAttrs(d, cols)}>${nameCell(d, i)}<span class="r">${tyre(d.compound, d.tyre_age)}</span>${bar}<span class="r">${d.pits}</span></div>`; }).join("");
+  }
+  $("lb2").innerHTML = `<div class="lb2-row hd ${cols}">${head}</div>` + rows;
+  if (sub === "speeds") $("lb2").insertAdjacentHTML("beforeend", `<div class="seg-info">Speeds in km/h, from F1's timing: at two intermediate points and the speed trap
+    on each lap. <span class="t-p">Purple</span> is the fastest of anyone so far, <span class="t-g">green</span> the driver's best. The bar compares
+    each driver's best speed trap, from the slowest best to the fastest.</div>`);
+  $("segInfo").innerHTML = s.has_segments
+    ? `Each sector is split into mini-sectors. A mini-sector lights up as the car crosses it: <span class="t-p">purple</span> fastest of anyone,
+       <span class="t-g">green</span> the driver's personal best, <span class="t-y">yellow</span> slower than their best (F1's own colours, from OpenF1).
+       The leader shows absolute times; everyone else shows the difference to the leader.`
+    : `Mini-sectors aren't available for this race: they come from OpenF1, which starts in 2023. Sector times still show.`;
+}
+
+/* ---------------- pit strategy ---------------- */
+function viewStrategy() {
+  banner("banner2");
+  if (S.sub.strategy === "undercut" || S.sub.strategy === "battles") { viewBattles(S.sub.strategy); driverPanel(); return; }
+  if (S.sub.strategy === "duel") { viewDuel(); driverPanel(); return; }
+  const s = S.snap, rv = S.reveal ? " rv" : "";
+  let ord = s.drivers.filter(d => !["OUT", "FINISHED", "NO DATA"].includes(d.status));
+  if (S.sub.strategy === "alerts") ord = ord.filter(d => d.alert || d.pitting_now);
+  const head = `<span>Position</span><span>Tyre</span><span>Pit stop in next 3 laps</span><span>Main reason (SHAP)</span><span class="r">If they pit now</span>` +
+    `<span class="r" title="Where they'd rejoin if they pitted at the end of this lap${!s.pit_cost ? "" : s.pit_cost.under === "red"
+      ? " (under the red flag new tyres cost no time)" : ` (a stop costs about ${Math.round(s.pit_cost.seconds)} s here now)`}">Rejoins</span>` +
+    `${S.reveal ? '<span class="r">What happened</span>' : ""}`;
+  const rows = ord.map((d, i) => {
+    const chance = d.pitting_now ? '<span class="st-pit">IN THE PITS</span>'
+      : `<span class="chance ${d.alert ? "alert" : ""}"><span class="meter"><i style="width:${(d.pit_chance || 0) * 100}%"></i><b style="left:${s.alert_threshold * 100}%"></b></span><span class="pct">${pct(d.pit_chance)}</span></span>`;
+    const r = (d.reasons || [])[0];
+    const reason = r && !d.pitting_now ? `<span class="reason" title="${esc(r.text)}"><em class="${r.points >= 0 ? "up" : "down"}">${esc(r.label)}</em>${esc(r.text)}</span>` : '<span class="reason"></span>';
+    const best = Object.entries(d.next_tyre || {}).sort((a, b) => b[1] - a[1])[0];
+    const next = best ? `<span class="r">${tyre(best[0])} <span class="ty-age">${pct(best[1])}</span></span>` : '<span></span>';
+    const actual = !S.reveal ? "" : !d.actual ? '<span></span>' : d.pitting_now ? `<span class="r">fitted ${tyre(d.actual.fitted || "UNKNOWN")}</span>`
+      : `<span class="r ${d.actual.pits_in_next_3_laps ? "t-y" : "dim"}">${d.actual.pits_in_next_3_laps ? "pits within 3" : "no stop"}</span>`;
+    return `<div ${rowAttrs(d, "strat" + rv)}>${nameCell(d, i)}<span>${tyre(d.compound, d.tyre_age)}</span>${chance}${reason}${next}${PitNow.cell(d.rejoin)}${actual}</div>`; }).join("");
+  $("strat").innerHTML = `<div class="lb2-row hd strat${rv}">${head}</div>` + (rows || '<div class="empty-note">No driver is above the alert line on this lap.</div>');
+  driverPanel();
+}
+
+// Undercut threat and battle forecast: every car against the car just ahead
+function viewBattles(sub) {
+  const s = S.snap, by = Object.fromEntries(s.drivers.map(d => [d.driver, d]));
+  const ahead = b => { const a = by[b.ahead];
+    return `<span class="ahd"><i style="background:${esc(a?.colour || "#8a96a8")}"></i><span class="nm">${esc(name(b.ahead))}</span>${a ? tyre(a.compound, a.tyre_age) : ""}</span>`; };
+  let ord = s.drivers.filter(d => d.battle && !["OUT", "FINISHED", "NO DATA"].includes(d.status)), head, cls, empty;
+  if (sub === "undercut") {
+    cls = "uct"; ord = ord.filter(d => d.battle.undercut && d.battle.undercut.chance >= 0.05);
+    head = `<span>Position</span><span>Tyre</span><span class="r">Gap</span><span>Car ahead</span>` +
+      `<span title="If they pit now and the car ahead pits next lap: how often they came out ahead in the real undercuts like this">Undercut works</span>` +
+      `<span class="r" title="What an undercut usually gains when the car ahead's tyres are worn this much">Usual gain</span><span class="r">Pit chance</span>`;
+    empty = s.track_status === "GREEN" ? "No undercut threat on this lap: no car is close enough behind, on dry tyres at least 5 laps old."
+      : s.track_status === "YELLOW" ? "No undercut threats under a yellow flag: they were learned from stops under green."
+      : "No undercut threats under the safety car, VSC or red flag: the stops cost less and the gaps close up.";
+  } else {
+    cls = "bfc";
+    head = `<span>Position</span><span>Tyre</span><span class="r">Gap</span><span>Car ahead</span>` +
+      `<span class="r" title="Seconds a lap gained on the car ahead (their pace over the last 5 green laps)">Closing</span><span class="r">Within 1 s</span>`;
+    empty = "No car has a car ahead on this lap.";
+  }
+  const rows = ord.map((d, i) => { const b = d.battle, u = b.undercut;
+    const more = sub === "undercut"
+      ? `${Battle.undercut(u)}<span class="r">${u.gain.toFixed(1)} s</span><span class="r">${d.pitting_now ? "IN" : pct(d.pit_chance)}</span>`
+      : `<span class="r">${b.closing == null ? "–" : (b.closing >= 0 ? "+" : "−") + Math.abs(b.closing).toFixed(2)}</span>${Battle.forecast(b)}`;
+    return `<div ${rowAttrs(d, cls)}>${nameCell(d, i)}<span>${tyre(d.compound, d.tyre_age)}</span><span class="r">${b.gap.toFixed(1)}</span>` +
+      `${ahead(b)}${more}</div>`; }).join("");
+  const note = sub === "undercut"
+    ? `If the car behind pits at the end of this lap and the car just ahead pits on the next one: how often that worked in the real undercuts of
+       2022-2025 on tyres worn about as much (a gain bigger than the gap). Shown when it worked at least 5% of the time.`
+    : `How many laps until the car behind is within 1 second (DRS until 2025, the overtake mode in 2026), from both cars' pace over their last
+       5 green laps. It assumes neither car pits.`;
+  $("strat").innerHTML = `<div class="lb2-row hd ${cls}">${head}</div>` + (rows || `<div class="empty-note">${esc(empty)}</div>`) +
+    `<div class="seg-info">${note}</div>`;
+}
+
+// The strategy battle: two drivers side by side (the same two as the tracker's head to head). The button at the
+// top shows both, and opens the picker: the two as big cards with VS between them, and every driver to pick from.
+const driverCard = c => { const d = S.snap?.drivers.find(x => x.driver === c) || {}, k = S.info.cards?.[c] || {};
+  return { code: c, first: k.first, last: k.last || name(c), team: d.team || k.team || "", colour: d.colour || "#8a96a8",
+           number: k.number, photo: k.photo, position: d.position, out: ["OUT", "NO DATA"].includes(d.status) }; };
+function pickDuel() {
+  const order = [...S.snap.drivers].sort((x, y) => (x.position ?? 99) - (y.position ?? 99)).map(d => d.driver);
+  const rest = S.info.drivers.filter(c => !order.includes(c));        // (no timing on this lap)
+  Versus.open({ drivers: [...order, ...rest].map(driverCard), a: S.a, b: S.b, opener: $("duPick"),
+    onPick: (a, b) => { S.a = a; S.b = b; S.strat = a; renderView(); } });
+}
+let duelTicket = 0;
+async function viewDuel() {
+  const s = S.snap, mine = ++duelTicket;
+  if (!$("duBody") || $("strat").dataset.race !== S.race) {           // the button stays while the laps go by
+    $("strat").innerHTML = `<div class="du"><button type="button" class="vs-bar" id="duPick" aria-haspopup="dialog"></button><div id="duBody"></div></div>`;
+    $("strat").dataset.race = S.race;
+    $("duPick").onclick = pickDuel;
+  }
+  const A0 = driverCard(S.a), B0 = driverCard(S.b), barKey = JSON.stringify([A0, B0]);
+  if ($("duPick").dataset.key !== barKey) {                             // (only when it changes: the photos don't flicker)
+    $("duPick").dataset.key = barKey;
+    $("duPick").innerHTML = Versus.bar(A0, B0);
+    $("duPick").setAttribute("aria-label", `Strategy battle: ${A0.last} against ${B0.last}. Change the drivers`);
+  }
+  if (S.a === S.b) { $("duBody").innerHTML = `<p class="note">Pick two different drivers.</p>`; return; }
+  let d;
+  try { d = await getJSON(`/races/${S.race}/duel/${S.a}/${S.b}?lap=${S.lap}`); }
+  catch (err) { if (mine === duelTicket && $("duBody")) $("duBody").innerHTML = `<p class="note">${esc(err.message)}</p>`; return; }
+  if (mine !== duelTicket || !$("duBody")) return;
+  const by = Object.fromEntries(s.drivers.map(x => [x.driver, x])), A = by[d.a] || {}, B = by[d.b] || {};
+  const facts = Battle.facts(A, B, d, { tyre, tyreName: c => TY[c]?.[1] || c, pct, soon: "Pit stop, next 3 laps", outcome: s.has_outcome });
+  $("duBody").innerHTML = Battle.duel(d, { name, colour: c => by[c]?.colour || "#8a96a8", total: s.total_laps, facts, colours: c => TY[c] || TY.UNKNOWN,
+    head: false });                                                     // (the button above shows the two)
+}
+
+let panelTicket = 0;
+async function driverPanel() {
+  const code = S.strat, d = S.snap.drivers.find(x => x.driver === code), mine = ++panelTicket;
+  if (!d || d.status === "OUT") { $("sp").innerHTML = `<p class="note">Click a driver to see why the model gives that chance.</p>`; return; }
+  const key = `${S.race}/${code}`, noRow = d.pit_chance == null;    // pitting now, finished, or no data on this lap
+  if (!S.series[key]) S.series[key] = getJSON(`/races/${S.race}/drivers/${code}?reveal=true`)
+    .catch(err => { delete S.series[key]; throw err; });          // a failed request is tried again next time
+  const [whyR, seriesR, pitR] = await Promise.allSettled([
+    noRow ? Promise.resolve(null) : getJSON(`/races/${S.race}/laps/${S.lap}/drivers/${code}`), S.series[key],
+    d.rejoin ? getJSON(`/races/${S.race}/laps/${S.lap}/drivers/${code}/pit_now`) : Promise.resolve(null)]);
+  const why = whyR.status === "fulfilled" ? whyR.value : null, series = seriesR.status === "fulfilled" ? seriesR.value : null;
+  if (mine !== panelTicket) return;
+  let html = `<h3>${esc(name(code))}</h3><p class="sub">${esc(d.team)} · lap ${S.lap} · P${d.position ?? "–"}</p>`;
+  if (d.pitting_now) html += `<p class="big">PIT<small>coming in at the end of this lap</small></p>`;
+  else if (!why) html += `<p class="note">${d.status === "FINISHED" ? "Finished the race." : "No timing for this driver on this lap."}</p>`;
+  else {
+    const top = why.reasons.slice(0, 8), rest = why.reasons.slice(8).reduce((a, r) => a + r.points, 0);
+    const biggest = Math.max(...top.map(r => Math.abs(r.points)), Math.abs(rest), 0.01);
+    const bar = v => `<span class="split"><i class="${v >= 0 ? "up" : "down"}" style="width:${Math.abs(v) / biggest * 50}%"></i></span>`;
+    html += PitWhy.html(name(code), why.pit_chance, S.snap.alert_threshold, why.reasons) +
+      `<p class="big">${pct(why.pit_chance)}<small>chance of a pit stop in the next 3 laps</small></p><h4>Why (SHAP)</h4><ul class="wf">` +
+      top.map(r => `<li><span>${esc(r.text)}</span>${bar(r.points)}<span class="v">${esc(r.label)}</span></li>`).join("") +
+      `<li><span class="dim">${why.reasons.length - top.length} smaller reasons</span>${bar(rest)}<span class="v">${pct(rest).replace(/^(\d)/, "+$1")}</span></li></ul>` +
+      `<p class="note">A typical lap starts at ${pct(why.typical_lap_chance)}. Red pushes the chance up, blue pushes it down.</p>`;
+  }
+  if (d.next_tyre) html += `<h4>${d.pitting_now ? "Tyre pick for this stop" : "If they pit now"}</h4><div class="mix">` +
+    Object.entries(d.next_tyre).sort((a, b) => b[1] - a[1]).map(([c, p]) => `<span>${tyre(c)} ${pct(p)}</span>`).join("") + `</div>`;
+  if (pitR.status === "fulfilled" && pitR.value)
+    html += PitNow.html(pitR.value, name(code), name, c => S.snap.drivers.find(x => x.driver === c)?.colour || "#8a96a8");
+  if (S.reveal && d.pitting_now && d.actual) html += `<p class="note">They really fitted ${tyre(d.actual.fitted || "UNKNOWN")}.</p>`;
+  const behind = S.snap.drivers.find(x => x.battle?.ahead === code && !["OUT", "FINISHED", "NO DATA"].includes(x.status));
+  const fight = Battle.html(d.battle, behind && { ...behind.battle, driver: behind.driver }, name(code), name);
+  if (fight) html += `<h4>Car ahead and behind</h4>` + fight;
+  html += `<h4>Pit stop chance, lap by lap</h4>`;
+  $("sp").innerHTML = html;
+  if (series) $("sp").append(chart(series));
+}
+
+function chart(series) {
+  const shown = series.laps.map(p => S.reveal || p.lap <= S.lap), tyreText = p => `${TY[p.compound]?.[1] || p.compound} ${p.tyre_age ?? ""}`;
+  const chance = (p, i) => !shown[i] ? null : p.pit_chance == null ? "in the pits" : pct(p.pit_chance);
+  return lineChart(series.laps.map(p => p.lap),
+    [{ key: "pit", label: "Pit chance", colour: "#e9ecf2", values: series.laps.map((p, i) => shown[i] ? p.pit_chance : null) }],
+    { W: 520, H: 170, title: `Pit stop chance for ${series.driver} on each lap`, labels: false, hline: series.alert_threshold,
+      marks: S.reveal ? series.laps.filter(p => p.pitted).map(p => ({ lap: p.lap, text: "PIT" })) : [],
+      tip: i => chance(series.laps[i], i) && `Lap ${series.laps[i].lap}: ${chance(series.laps[i], i)} · ${esc(tyreText(series.laps[i]))}`,
+      table: { head: ["Lap", "Chance", "Tyre"], row: i => shown[i] ? [series.laps[i].lap, chance(series.laps[i], i), esc(tyreText(series.laps[i]))] : null } });
+}
+
+/* ---------------- race outcome ---------------- */
+// Each driver's chance to win, finish on the podium and score points, from the race outcome model, with SHAP reasons
+const OC = { win: "Win", podium: "Podium", points: "Points" };
+const OC_COLOUR = { win: "#e8c547", podium: "#c9cfdb", points: "#3bc46e" };
+const FIELD = { win: "one winner", podium: "three podium places", points: "ten points places" };
+const pc = v => v == null ? "–" : v > 0 && v < 0.005 ? "<1%" : v > 0.995 && v < 1 ? ">99%" : Math.round(v * 100) + "%";
+const lab = v => (v < 0 ? "-" : "+") + (Math.abs(v) >= 0.01 ? Math.round(Math.abs(v) * 100) : (Math.abs(v) * 100).toFixed(1)) + "%";
+const ocCell = (o, t) => `<span class="oc-c ${t}${o.for === t ? " on" : ""}"><span class="meter"><i style="width:${(o[t] || 0) * 100}%"></i></span><span class="pct">${pc(o[t])}</span></span>`;
+
+function viewOutcome() {
+  banner("banner3");
+  if (!S.snap.has_outcome) {
+    $("oc").innerHTML = `<div class="empty-note">No race outcome model yet: run <code>python train_race_model.py</code>, then start the app again.</div>`;
+    $("op").innerHTML = ""; return;
+  }
+  if (S.sub.outcome === "now") { ocTable(); ocPanel(); } else ocChart(S.sub.outcome);
+}
+
+function ocTable() {
+  const s = S.snap, rv = S.reveal ? " rv" : "", ord = s.drivers.filter(d => d.outcome);
+  $("oc").style.minWidth = "560px";
+  const head = `<span>Position</span><span>Win</span><span>Podium</span><span>Points</span><span class="r">Likely</span><span>Main reason (SHAP)</span>` +
+    (S.reveal ? '<span class="r">Finished</span>' : "");
+  const rows = ord.map((d, i) => {
+    const o = d.outcome, e = o.likely, move = d.position != null && e != null ? d.position - e : 0;
+    const likely = `<span class="oc-f" title="Likely finish P${e ?? "–"} (average P${o.expected?.toFixed(1)})">P${e ?? "–"}${move ? `<small class="${move > 0 ? "up" : "dn"}">${move > 0 ? "▲" : "▼"}${Math.abs(move)}</small>` : ""}</span>`;
+    const r = o.reason, reason = r ? `<span class="reason" title="${OC[o.for]}: ${esc(r.text)}"><b class="for">${OC[o.for]}</b>` +
+      `<em class="${r.points >= 0 ? "up" : "down"}">${esc(r.label)}</em>${esc(r.text)}</span>` : `<span class="reason dim">${s.outcome_reasons ? "" : "…"}</span>`;
+    const real = S.reveal ? `<span class="r ${o.final === 1 ? "t-p" : o.final <= 3 ? "t-g" : ""}">${o.final == null ? "–" : "P" + o.final}</span>` : "";
+    return `<div ${rowAttrs(d, "oc" + rv)}>${nameCell(d, i)}${ocCell(o, "win")}${ocCell(o, "podium")}${ocCell(o, "points")}${likely}${reason}${real}</div>`; }).join("");
+  const gone = s.drivers.filter(d => !d.outcome).map(d => esc(d.driver));
+  const from = s.outcome_lap != null && s.outcome_lap !== s.lap
+    ? `<div class="seg-info">The timing has no positions for lap ${s.lap}, so these are the chances at the end of lap ${s.outcome_lap}.</div>` : "";
+  $("oc").innerHTML = from + `<div class="lb2-row hd oc${rv}">${head}</div>` + (rows || '<div class="empty-note">No positions on this lap.</div>') +
+    `<div class="seg-info">The race outcome model (LightGBM, trained on 2022-2025) at the end of this lap, from what was known then. The chances add
+     up across the field: ${FIELD.win}, ${FIELD.podium}, ${FIELD.points}. <b>Likely</b> is the likely finish, at least an even chance of that place or better (the arrow: places to gain or lose).
+     The main reason is for the biggest prize still in reach: the win if its chance is 10% or more, else the podium, else the points.` +
+    (gone.length ? ` Not placed on this lap: ${gone.join(", ")}.` : "") + `</div>`;
+}
+
+// The race's chances on every lap (asked once per race; the page shows the laps up to now, or all with "Show what happened")
+function ocSeries() {
+  if (!S.ocSeries || S.ocSeries.race !== S.race)
+    S.ocSeries = { race: S.race, p: getJSON(`/races/${S.race}/outcome?reveal=true`).catch(err => { S.ocSeries = null; throw err; }) };
+  return S.ocSeries.p;
+}
+
+let ocTicket = 0;
+async function ocPanel() {
+  const code = S.strat, d = S.snap.drivers.find(x => x.driver === code), mine = ++ocTicket;
+  if (!d || !d.outcome) {
+    $("op").innerHTML = `<p class="note">${d ? `${esc(name(code))} has no position on this lap.` : "Click a driver to see their chances and why."}</p>`; return;
+  }
+  const [whyR, seriesR] = await Promise.allSettled([getJSON(`/races/${S.race}/laps/${S.lap}/drivers/${code}/outcome?reveal=${S.reveal}`), ocSeries()]);
+  if (mine !== ocTicket) return;
+  if (whyR.status !== "fulfilled") { $("op").innerHTML = `<p class="err">${esc(whyR.reason?.message || "No data")}</p>`; return; }
+  const why = whyR.value, t = S.ocFor || d.outcome.for, w = why.why[t];
+  let html = `<h3>${esc(name(code))}</h3><p class="sub">${esc(d.team)} · lap ${why.from_lap ?? S.lap} · P${why.position ?? "–"}</p>` + ocSentence(name(code), t, w) +
+    `<div class="oc-big" role="group" aria-label="Which chance to explain">` + Object.keys(OC).map(k => `<button type="button" data-oc="${k}" ` +
+      `aria-pressed="${k === t}"><small><i class="oc-k ${k}"></i>${OC[k]}</small><b>${pc(why.why[k].chance)}</b></button>`).join("") + `</div>`;
+
+  // The chance of each finishing position (they can't finish behind the cars already out)
+  const top = Math.max(...why.spot, 0.01);
+  html += `<h4>Chance of each finishing position</h4><div class="spots" role="img" aria-label="${esc(why.spot.map((v, k) => `P${k + 1} ${pc(v)}`).join(", "))}">` +
+    why.spot.map((v, k) => `<span class="${k + 1 === why.position ? "now" : ""}${why.final === k + 1 ? " fin" : ""}" style="height:${Math.max(3, v / top * 100)}%" ` +
+      `title="P${k + 1}: ${pc(v)}"></span>`).join("") + `</div><div class="spots-x">${why.spot.map((_, k) => `<span>${k + 1}</span>`).join("")}</div>` +
+    `<p class="note">Likely finish P${why.likely} (average P${why.expected.toFixed(1)}). The white bar is where they are now` +
+    (why.final ? `; the green outline is where they really finished (P${why.final}).` : ".") + `</p>`;
+
+  // Why: the SHAP reasons, from the model's starting point to its answer, then the step that makes the field add up
+  const top8 = w.reasons.slice(0, 8), rest = w.reasons.slice(8).reduce((a, r) => a + r.points, 0);
+  const biggest = Math.max(...top8.map(r => Math.abs(r.points)), Math.abs(rest), Math.abs(w.fitted), 0.01);
+  const bar = v => `<span class="split"><i class="${v >= 0 ? "up" : "down"}" style="width:${Math.abs(v) / biggest * 50}%"></i></span>`;
+  html += `<h4>Why: the ${OC[t].toLowerCase()} chance (SHAP)</h4><ul class="wf">` +
+    top8.map(r => `<li><span>${esc(r.text)}</span>${bar(r.points)}<span class="v">${esc(r.label)}</span></li>`).join("") +
+    `<li><span class="dim">${w.reasons.length - top8.length} smaller reasons</span>${bar(rest)}<span class="v">${lab(rest)}</span></li>` +
+    `<li><span class="dim">fitted so the field adds up to ${FIELD[t]}</span>${bar(w.fitted)}<span class="v">${lab(w.fitted)}</span></li></ul>` +
+    `<p class="note">The model starts at ${pc(w.start)} for a driver with nothing special, and the reasons take it to ${pc(w.model)}
+     (red pushes the chance up, blue down). The last line is the small step that makes every driver's chances add up: ${pc(w.chance)}.</p>`;
+  html += `<h4>Chances, lap by lap</h4>`;
+  $("op").innerHTML = html;
+  if (seriesR.status === "fulfilled" && seriesR.value.drivers[code]) {
+    const all = seriesR.value, upto = all.laps.map(l => S.reveal || l <= S.lap);
+    $("op").append(lineChart(all.laps, Object.keys(OC).map(k => ({ key: k, label: OC[k], colour: OC_COLOUR[k],
+      values: all.drivers[code][k].map((v, i) => upto[i] ? v : null) })), { W: 520, H: 180, title: `${name(code)}'s win, podium and points chance on each lap` }));
+  }
+}
+
+// "Verstappen is the favourite to win: 85%. Main reasons: 4.2 s clear of P2 and ..."
+function ocSentence(who, t, w) {
+  const tone = w.chance >= 0.5 ? "box" : w.chance >= 0.15 ? "window" : "stay", n = esc(who);
+  const head = { win: [`${n} is the favourite to win`, `${n} could win`, `${n} is unlikely to win`],
+    podium: [`${n} is on course for a podium`, `${n} is in the fight for the podium`, `A podium looks unlikely for ${n}`],
+    points: [`${n} is on course for points`, `${n} is fighting for points`, `Points look unlikely for ${n}`] }[t][["box", "window", "stay"].indexOf(tone)];
+  const sign = w.model >= w.start ? 1 : -1;
+  const why = w.reasons.filter(r => Math.sign(r.points) === sign).slice(0, 2).map(r => esc(r.text.replace(/\s*\([^)]*\)/g, "")));
+  return `<p class="why-line why-${tone}"><b>${head}:</b> ${pc(w.chance)}.` + (why.length ? ` ${why.length > 1 ? "Main reasons" : "Main reason"}: ${why.join(" and ")}.` : "") + `</p>`;
+}
+
+// The whole field's win (or podium) chance, lap by lap: every driver who reached 5% so far, in team colours
+let chartTicket = 0;
+async function ocChart(t) {
+  const mine = ++chartTicket;
+  let series;
+  try { series = await ocSeries(); } catch (err) { $("oc").innerHTML = `<div class="err">${esc(err.message)}</div>`; return; }
+  if (mine !== chartTicket || S.tab !== "outcome" || S.sub.outcome !== t) return;
+  const upto = series.laps.map(l => S.reveal || l <= S.lap), colour = {}, used = {};
+  S.snap.drivers.forEach(d => { colour[d.driver] = d.colour; });
+  const lines = Object.entries(series.drivers).filter(([, v]) => v[t].some((x, i) => upto[i] && x >= 0.05))
+    .map(([code, v]) => { const c = colour[code] || "#8a96a8"; used[c] = (used[c] || 0) + 1;
+      return { key: code, label: code, colour: c, dash: used[c] > 1, values: v[t].map((x, i) => upto[i] ? x : null), wide: code === S.strat }; });
+  $("oc").style.minWidth = "0";
+  $("oc").innerHTML = `<div class="oc-chart"><h3>${OC[t]} chance, lap by lap</h3><div id="ocBig"></div><p class="note">Every driver whose ${OC[t].toLowerCase()}
+    chance reached 5% so far, in team colours (the second car of a team is dashed). Yellow bands: safety car or VSC (red: red flag). Click a line to see that driver.
+    ${S.reveal ? "Showing the whole race." : "Only the laps up to now: tick <b>Show what happened</b> for the rest."}</p></div>`;
+  $("ocBig").append(lineChart(series.laps, lines, { W: 900, H: 340, title: `${OC[t]} chance of each driver on each lap`, pick: code => selectDriver(code) }));
+  ocPanel();
+}
+
+// A line chart of chances (0-100%) over the laps: the safety car laps, the current lap, labels at the line ends, dots
+// and a tooltip for the lap under the mouse, and the same numbers as a table. Used by the pit chance and race outcome.
+// lines = [{key, label, colour, values (one per lap, null = no line), dash, wide}]. Options: pick (click a line),
+// labels (at the line ends), hline (a dashed line at that chance), marks ([{lap, text}] upright markers),
+// tip (lap number i -> the tooltip's text, null = none), table ({head, row: i -> the cells, null = no row}).
+function lineChart(laps, lines, { W, H, title, pick, labels = true, hline = null, marks = [], tip: tipText, table }) {
+  const L = 34, R = labels ? 40 : 8, T = 10, B = 22, total = S.info.laps, ns = "http://www.w3.org/2000/svg";
+  const x = lap => L + (lap - 1) / Math.max(total - 1, 1) * (W - L - R), y = v => T + (1 - v) * (H - T - B);
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", title);
+  const add = (tag, a) => { const n = document.createElementNS(ns, tag); for (const k in a) n.setAttribute(k, a[k]); svg.append(n); return n; };
+  (S.info.track_status || []).filter(s => s.status !== "YELLOW").forEach(s => add("rect", {     // (yellow flags are only local)
+    x: x(s.lap - 0.5), width: (W - L - R) / Math.max(total - 1, 1), y: T, height: H - T - B,
+    fill: s.status === "RED FLAG" ? "var(--red)" : "var(--yellow)", opacity: 0.1 }));
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { add("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: v === 0.25 || v === 0.75 ? "#20222c" : "#2a2c38" });
+    if (v === 0 || v === 0.5 || v === 1) add("text", { x: L - 5, y: y(v) + 3, "text-anchor": "end" }).textContent = pct(v); });
+  [1, Math.round(total / 2), total].forEach(l => add("text", { x: x(l), y: H - 5, "text-anchor": "middle" }).textContent = `L${l}`);
+  if (hline != null) add("line", { x1: L, x2: W - R, y1: y(hline), y2: y(hline), stroke: "var(--yellow)", "stroke-dasharray": "4 4", opacity: .8 });
+  marks.forEach(m => { add("line", { x1: x(m.lap), x2: x(m.lap), y1: T, y2: H - B, stroke: "#fff", opacity: .35 });
+    add("text", { x: x(m.lap) + 3, y: T + 9 }).textContent = m.text; });
+  add("line", { x1: x(S.lap), x2: x(S.lap), y1: T, y2: H - B, stroke: "var(--brand)", "stroke-width": 2 });
+  const guide = add("line", { y1: T, y2: H - B, stroke: "#fff", opacity: 0.35, visibility: "hidden" });
+  const hit = add("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" });
+  const ends = [];
+  lines.forEach(ln => {                                       // drawn after the hover area, so the lines can be clicked
+    let d = "", pen = false, last = null;
+    ln.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? "L" : "M"}${x(laps[i]).toFixed(1)},${y(v).toFixed(1)}`; pen = true; last = i; });
+    if (!d) return;
+    const path = add("path", { d, class: "ln", fill: "none", stroke: ln.colour, "stroke-width": ln.wide ? 3.2 : lines.length > 1 ? 1.8 : 2,
+      "stroke-linejoin": "round", "stroke-linecap": "round", ...(ln.dash ? { "stroke-dasharray": "5 3" } : {}) });
+    path.addEventListener("mousemove", e => show(e));
+    if (pick) path.addEventListener("click", () => pick(ln.key));
+    ends.push({ ln, x: x(laps[last]), y: y(ln.values[last]) });
+  });
+  if (labels) {
+    ends.sort((a, b) => a.y - b.y).forEach((e, i, all) => { if (i && e.y - all[i - 1].y < 11) e.y = all[i - 1].y + 11; });   // no overlaps
+    ends.forEach(e => { add("text", { x: e.x + 5, y: e.y + 3, class: "end", fill: e.ln.colour }).textContent = e.ln.label; });
+  }
+  const dots = lines.map(ln => add("circle", { r: 3.5, fill: ln.colour, stroke: "#15151e", "stroke-width": 2, visibility: "hidden" }));
+  const wrap = document.createElement("div"); wrap.className = "chart";
+  const tip = document.createElement("div"); tip.className = "tip multi"; wrap.append(svg, tip);
+  const hide = () => { tip.style.display = "none"; guide.setAttribute("visibility", "hidden"); dots.forEach(d => d.setAttribute("visibility", "hidden")); };
+  function show(e) {
+    const box = svg.getBoundingClientRect();
+    const lap = Math.round(1 + ((e.clientX - box.left) / box.width * W - L) / (W - L - R) * (total - 1)), i = laps.indexOf(lap);
+    const vals = i < 0 ? [] : lines.filter(ln => ln.values[i] != null).sort((a, b) => b.values[i] - a.values[i]).slice(0, 6);
+    const text = i < 0 ? null : tipText ? tipText(i) : vals.length ? `<b>Lap ${lap}</b><br>` +
+      vals.map(ln => `<span style="color:${esc(ln.colour)}">■</span> ${esc(ln.label)} ${pc(ln.values[i])}`).join("<br>") : null;
+    if (!text) { hide(); return; }
+    guide.setAttribute("x1", x(lap)); guide.setAttribute("x2", x(lap)); guide.setAttribute("visibility", "visible");
+    lines.forEach((ln, k) => { const v = ln.values[i];
+      dots[k].setAttribute("visibility", v == null ? "hidden" : "visible");
+      if (v != null) { dots[k].setAttribute("cx", x(lap)); dots[k].setAttribute("cy", y(v)); } });
+    tip.innerHTML = text;
+    tip.style.left = (x(lap) / W * box.width) + "px"; tip.style.top = (e.clientY - box.top) + "px"; tip.style.display = "block";
+  }
+  hit.addEventListener("mousemove", show);
+  svg.addEventListener("mouseleave", hide);
+  const head = table ? table.head : ["Lap", ...lines.map(ln => ln.label)];
+  const row = table ? table.row : i => lines.some(ln => ln.values[i] != null) ? [laps[i], ...lines.map(ln => pc(ln.values[i]))] : null;
+  const det = document.createElement("details");
+  det.innerHTML = `<summary>Show as a table</summary><table><tr>${head.map(h => `<th>${esc(h)}</th>`).join("")}</tr>` +
+    laps.map((_, i) => row(i)).filter(Boolean).map(cells => `<tr>${cells.map(c => `<td>${c}</td>`).join("")}</tr>`).join("") + `</table>`;
+  wrap.append(det);
+  return wrap;
+}
+
+/* ---------------- engineer ---------------- */
+// The race engineer's briefing for this track: tyre life on a day this hot, the strategies and winners here, and the
+// race preview, from only the races here before this one (a replay: what was known then, no spoilers)
+let engTicket = 0;
+async function viewEngineer() {
+  const race = S.race, w = S.snap?.weather || {};
+  if (S.eng?.race !== race) S.eng = { race, temp: w.track ?? null, rain: !!w.rain, data: null, key: null, shown: null };   // the weather now
+  const e = S.eng, key = `${e.temp}|${e.rain}`;
+  if (e.key !== key) {
+    const mine = ++engTicket, q = new URLSearchParams({ before: race, rain: e.rain });
+    if (e.temp != null) q.set("track_temp", Math.round(e.temp));
+    let d = null, err = null;
+    try { d = await getJSON(`/engineer/${encodeURIComponent(S.info.circuit)}?${q}`); } catch (x) { err = x.message; }
+    if (mine !== engTicket || S.race !== race) return;
+    Object.assign(e, { data: d, err, key });                      // (an error too: not asked again on every lap)
+  }
+  const shown = `${key}|${S.sub.engineer}|${S.reveal}`;
+  if (S.tab !== "engineer" || shown === e.shown) return;          // a new lap of the replay: nothing to change
+  e.shown = shown;
+  if (e.err) { $("eng").innerHTML = `<div class="empty-note">${esc(e.err)}</div>`; return; }
+  Engineer.render($("eng"), e.data, { face, part: S.sub.engineer, reveal: S.reveal,
+    what: `Only the races here before the ${S.info.year} ${S.info.name}: no spoilers`,
+    onChange: c => { e.temp = c.temp; e.rain = c.rain; viewEngineer(); } });
+}
+
+/* ---------------- race preview ---------------- */
+// Before a race: each driver's chance to win, finish on the podium and score points (the race preview model,
+// trained on every race before it), the reasons (SHAP), and how it did before the races of 2025 and 2026
+let pvTicket = 0;
+function viewPreview() { if (S.sub.preview === "next") previewNext(); else previewPast(); }
+const pvRow = (d, i, cls, cells) => `<div class="lb2-row ${cls}${d.driver === S.strat ? " sel" : ""}" data-d="${esc(d.driver)}" tabindex="0" role="button" ` +
+  `aria-label="${esc(d.name)}. Press Enter for the reasons."><span class="lb-pos">${i + 1}</span><span class="lb-bar" style="background:${esc(d.colour)}"></span>` +
+  `<span class="pv-name">${face(d.driver, d.colour)}<span class="pv-t">${esc(d.name)}<small>${esc(d.team || "")}</small></span></span>${cells}</div>`;
+
+async function previewNext() {
+  const mine = ++pvTicket;
+  let p;
+  try { p = await (S.preview ||= getJSON("/preview").catch(err => { S.preview = null; throw err; })); }
+  catch (err) { $("pv").innerHTML = `<div class="empty-note">${esc(err.message)}</div>`; $("pp").innerHTML = ""; return; }
+  if (mine !== pvTicket || S.tab !== "preview" || S.sub.preview !== "next") return;
+  const when = new Date(p.date + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const s = p.summary?.["before qualifying"], last = p.races?.at(-1);
+  const head = `<span>Driver</span><span>Win</span><span>Podium</span><span>Points</span><span class="r">Likely</span><span>Main reason (SHAP)</span>`;
+  const rows = p.drivers.map((d, i) => { const r = d.why[d.for].reasons[0];
+    return pvRow(d, i, "pv", ocCell(d, "win") + ocCell(d, "podium") + ocCell(d, "points") + `<span class="oc-f">P${d.likely}</span>` +
+      (r ? `<span class="reason" title="${OC[d.for]}: ${esc(r.text)}"><b class="for">${OC[d.for]}</b><em class="${r.points >= 0 ? "up" : "down"}">${lab(r.points)}</em>${esc(r.text)}</span>` : "<span></span>")); }).join("");
+  $("pv").innerHTML = `<div class="pv-head"><b>${esc(p.name)}</b><span>${when} · round ${p.round} · before qualifying</span>` +
+    `<small>Made ${esc(p.made)} from every race of 2022-2026 up to the last one, with only what is known before the start: recent form, race
+     pace from the lap data, retirements and this track before.${s ? ` Tested the same way before each race of 2025 and 2026: its favourite
+     won ${s.favourite_won} of ${s.races}` : ""}${last ? ` (before the ${esc(last.name)}: ${esc(last["before qualifying"].favourite)} ` +
+      `${pc(last["before qualifying"].chance)}; ${esc(last.winner)} won with ${pc(last["before qualifying"].winner_chance)})` : ""}. One race has a lot of luck in it:
+     a 30% favourite loses most of the time.</small>${p.is_past ? `<small><b>This race has been run.</b> For the next one, add this race
+     (see the README) and run <code>python race_preview.py</code>, then start the app again.</small>` : ""}</div>` +
+    `<div class="lb2-row hd pv">${head}</div>` + rows;
+  if (!p.drivers.some(d => d.driver === S.strat)) S.strat = p.drivers[0]?.driver;
+  previewPanel(p.drivers.find(d => d.driver === S.strat) || p.drivers[0]);
+}
+
+function previewPanel(d) {
+  if (!d) { $("pp").innerHTML = ""; return; }
+  const t = S.pvFor || d.for, w = d.why[t];
+  // Only the 8 biggest reasons are saved: the rest is what the smaller ones add up to (model = start + every reason)
+  const top = w.reasons, rest = w.model - w.start - top.reduce((a, r) => a + r.points, 0), fitted = w.chance - w.model;
+  const biggest = Math.max(...top.map(r => Math.abs(r.points)), Math.abs(fitted), 0.01);
+  const bar = v => `<span class="split"><i class="${v >= 0 ? "up" : "down"}" style="width:${Math.abs(v) / biggest * 50}%"></i></span>`;
+  $("pp").innerHTML = `<h3>${esc(d.name)}</h3><p class="sub">${esc(d.team)} · before qualifying</p>` + ocSentence(d.name, t, w) +
+    `<div class="oc-big" role="group" aria-label="Which chance to explain">` + Object.keys(OC).map(k => `<button type="button" data-oc="${k}" ` +
+      `aria-pressed="${k === t}"><small><i class="oc-k ${k}"></i>${OC[k]}</small><b>${pc(d[k])}</b></button>`).join("") + `</div>` +
+    `<h4>Why: the ${OC[t].toLowerCase()} chance (SHAP)</h4><ul class="wf">` +
+    top.map(r => `<li><span>${esc(r.text)}</span>${bar(r.points)}<span class="v">${lab(r.points)}</span></li>`).join("") +
+    `<li><span class="dim">smaller reasons, and the step that makes the field add up to ${FIELD[t]}</span>${bar(fitted + rest)}<span class="v">${lab(fitted + rest)}</span></li></ul>` +
+    `<p class="note">An average driver starts at ${pc(w.start)}; red pushes the chance up, blue down. Likely finish P${d.likely}.</p>`;
+}
+
+async function previewPast() {
+  const mine = ++pvTicket, race = S.race;
+  let p;
+  try { p = await (S.pvRace[race] ||= getJSON(`/preview/${race}`).catch(err => { delete S.pvRace[race]; throw err; })); }
+  catch (err) { $("pv").innerHTML = `<div class="empty-note">${esc(err.message)} Pick a 2025 or 2026 race in the race menu.</div>`; $("pp").innerHTML = ""; return; }
+  if (mine !== pvTicket || S.tab !== "preview" || S.sub.preview !== "past") return;
+  const before = p.drivers[0], after = [...p.drivers].sort((a, b) => b["after qualifying"].win - a["after qualifying"].win)[0];
+  const won = S.reveal ? p.drivers.find(d => d.final === 1) : null;                 // the result only with "Show what happened"
+  const head = `<span>Driver</span><span>Win, before qualifying</span><span>Win, after qualifying</span><span>Podium, after qualifying</span>` +
+    `<span class="r">Grid</span><span class="r">Finished</span>`;
+  const rows = p.drivers.map((d, i) => pvRow(d, i, "pvp" + (won && d.final === 1 ? " won" : ""),
+    ocCell({ ...d["before qualifying"], for: "win" }, "win") + ocCell({ ...d["after qualifying"], for: "win" }, "win") +
+    ocCell({ ...d["after qualifying"], for: "" }, "podium") + `<span class="r">${d.grid == null ? "–" : "P" + d.grid}</span>` +
+    (S.reveal ? `<span class="r ${d.final === 1 ? "t-p" : d.final <= 3 ? "t-g" : ""}">${d.final == null ? "–" : "P" + d.final}</span>`
+      : `<span class="r dim">?</span>`))).join("");
+  $("pv").innerHTML = `<div class="pv-head"><b>${esc(p.name)}: what the preview said</b><span>Trained only on the races before it</span>` +
+    `<small>Before qualifying its favourite was ${esc(before.name)} (${pc(before["before qualifying"].win)}); after qualifying ${esc(after.name)}
+     (${pc(after["after qualifying"].win)}).${won ? ` ${esc(won.name)} won, with ${pc(won["before qualifying"].win)} before qualifying and ` +
+      `${pc(won["after qualifying"].win)} after.` : " Tick <b>Show what happened</b> for the result."}</small></div><div class="lb2-row hd pvp">${head}</div>` + rows;
+  $("pp").innerHTML = `<p class="note">The race preview was tested this way before each race of 2025 and 2026: trained again on every race
+    before it, then asked about that race. The purple outline is the winner. The reasons are shown for the next race.</p>`;
+}
+
+/* ---------------- driver tracker ---------------- */
+function selectDriver(code, shift) {
+  if (S.pick) { if (S.pick === "a") { if (code === S.b) S.b = S.a; S.a = code; } else { if (code === S.a) S.a = S.b; S.b = code; } S.pick = null; }
+  else if (shift) { if (code !== S.a) S.b = code; }
+  else { if (code === S.b) S.b = S.a; S.a = code; }
+  S.strat = code;
+  renderView();
+}
+function viewTracker() {
+  const ord = S.snap.drivers.filter(d => d.status !== "OUT" && d.status !== "NO DATA"), start = S.info.start_positions || {};
+  const arrow = (d, i) => { const ch = (start[d.driver] ?? i + 1) - (i + 1);
+    return ch > 0 ? '<span class="pa up" aria-label="gained places">▲</span>' : ch < 0 ? '<span class="pa dn" aria-label="lost places">▼</span>' : `<span class="pa">${i + 1}</span>`; };
+  $("trkPos").innerHTML = `<div class="tp-h">Position</div>` + ord.map((d, i) => `<div class="tp-r ${d.driver === S.a || d.driver === S.b ? "sel" : ""} ${d.status === "PIT" ? "pit" : ""}" data-d="${esc(d.driver)}" tabindex="0" role="button" title="P${i + 1} ${esc(name(d.driver))}">${arrow(d, i)}<span class="lb-bar" style="background:${esc(d.colour)}"></span><b>${esc(d.driver)}</b>${d.status === "PIT" ? "<em>PIT</em>" : d.alert ? "<em>BOX</em>" : ""}</div>`).join("");
+  const A = S.snap.drivers.find(d => d.driver === S.a), B = S.snap.drivers.find(d => d.driver === S.b);
+  if (!A || !B) { $("trkH2h").innerHTML = ""; return; }
+  // The two drivers as cards in their team's colour, like the head-to-head cards of sports apps
+  const card = (d, slot) => S.pick === slot ? `<div class="h2h-c pick"><b class="h2h-code">Select</b><small>Click a driver in the list</small></div>`
+    : `<div class="h2h-c" style="--tc:${esc(d.colour)}"><span class="h2h-pos">P${d.position ?? "–"}</span><b class="h2h-code">${esc(d.driver)}</b>` +
+      `<span class="h2h-name">${esc(name(d.driver))}</span><small>${esc(d.team || "")}</small>` +
+      `<button class="h2h-x" data-slot="${slot}" aria-label="Change ${esc(d.driver)}">×</button></div>`;
+  // A time for both: the quicker one in green, and a bar from the middle towards them (longer = bigger gap, full at `cap` s)
+  const row = (label, va, vb, fmt, cap) => {
+    const dl = va == null || vb == null ? null : vb - va, win = dl == null || Math.abs(dl) < 5e-4 ? "" : dl > 0 ? "a" : "b";
+    const w = dl == null ? 0 : Math.min(1, Math.abs(dl) / cap) * 50;
+    return `<div class="h2h-r"><span class="${win === "a" ? "win" : ""}">${fmt(va)}</span><i>${label}${win ? ` <em>${Math.abs(dl).toFixed(3)}</em>` : ""}</i>` +
+      `<span class="${win === "b" ? "win" : ""}">${fmt(vb)}</span><span class="h2h-bar" aria-hidden="true"><b class="${win}" style="width:${w}%"></b></span></div>`; };
+  // The pit stop chance: a meter on each side
+  const meter = d => d.pitting_now ? `<span class="t-y">PIT</span>` : `<span class="h2h-pc"><span class="meter"><i style="width:${(d.pit_chance || 0) * 100}%"></i></span>${pct(d.pit_chance)}</span>`;
+  const sec = (d, k) => (d.sectors[k] || {}).time;
+  const status = d => d.status === "ON TRACK" ? "On track" : d.status.toLowerCase();
+  const ahead = (A.position ?? 99) < (B.position ?? 99) ? A : B, behind = ahead === A ? B : A;
+  const gap = A.gap != null && B.gap != null ? Math.abs(A.gap - B.gap).toFixed(3) : "–";
+  $("trkH2h").innerHTML = `<div class="h2h-top">${card(A, "a")}${card(B, "b")}</div>` +
+    `<div class="h2h-gap"><span>Gap at the line</span><b>${gap} s</b><small>${esc(ahead.driver)} ahead of ${esc(behind.driver)}</small></div><div class="h2h-rows">` +
+    row("LAP", A.last_lap, B.last_lap, fmtLap, 1) + [0, 1, 2].map(k => row("S" + (k + 1), sec(A, k), sec(B, k), fmtS, 0.4)).join("") +
+    `<div class="h2h-r"><span>${tyre(A.compound, A.tyre_age)}</span><i>TYRE</i><span>${tyre(B.compound, B.tyre_age)}</span></div>` +
+    `<div class="h2h-r"><span>${meter(A)}</span><i>PIT CHANCE</i><span>${meter(B)}</span></div>` +
+    `<div class="h2h-r"><span>${esc(status(A))}</span><i>STATUS</i><span>${esc(status(B))}</span></div></div>`;
+}
+
+/* track map: the circuit from one real lap, cars placed by their gap to the leader */
+let T = null;
+function prepareTrack() {
+  const t = S.info.track;
+  $("trkNone").hidden = !!t;
+  if (!t) { T = null; return; }
+  const n = t.x.length, lap = t.t[n - 1];
+  T = { x: t.x, y: t.y, t: t.t, lap, ends: t.sector_ends, n };
+  let mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity;
+  t.x.forEach((v, i) => { mnx = Math.min(mnx, v); mxx = Math.max(mxx, v); mny = Math.min(mny, t.y[i]); mxy = Math.max(mxy, t.y[i]); });
+  Object.assign(T, { mnx, mny, mxx, mxy });
+}
+function pointAt(u) {                              // u = share of the lap's time, 0..1
+  const tt = ((u % 1) + 1) % 1 * T.lap; let lo = 0, hi = T.n - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (T.t[m] <= tt) lo = m; else hi = m; }
+  const f = T.t[hi] > T.t[lo] ? (tt - T.t[lo]) / (T.t[hi] - T.t[lo]) : 0;
+  return [T.x[lo] + (T.x[hi] - T.x[lo]) * f, T.y[lo] + (T.y[hi] - T.y[lo]) * f];
+}
+const carU = d => d.behind_leader_s == null || !S.snap.leader_lap_time ? null : 1 - (d.behind_leader_s / S.snap.leader_lap_time) % 1;
+function moveCars(ms) {
+  const from = {}, to = {};
+  S.snap.drivers.forEach(d => { const u = carU(d); if (u == null) return; to[d.driver] = u;
+    from[d.driver] = S.cars[d.driver] ?? u; });
+  if (S.anim) cancelAnimationFrame(S.anim.raf);
+  if (!ms) { S.cars = { ...to }; drawMap(); return; }
+  const t0 = performance.now();
+  const step = now => { const f = Math.min(1, (now - t0) / ms);
+    for (const k in to) { let dl = to[k] - from[k]; dl = ((dl % 1) + 1.5) % 1 - 0.5; S.cars[k] = from[k] + (1 + dl) * f; }
+    if (S.tab === "tracker") drawMap();
+    if (f < 1) S.anim = { raf: requestAnimationFrame(step) }; else { S.cars = { ...to }; S.anim = null; } };
+  S.anim = { raf: requestAnimationFrame(step) };
+}
+function fit(c) { const r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } const x = c.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0); return { x, w: r.width, h: r.height }; }
+function drawMap() {
+  if (S.tab !== "tracker" || !S.snap) return;
+  const c = $("trkMap"), { x, w, h } = fit(c);
+  x.clearRect(0, 0, w, h); S.carPts = [];
+  if (!T) return;
+  const pad = 60, s0 = Math.min((w - 2 * pad) / (T.mxx - T.mnx), (h - 2 * pad) / (T.mxy - T.mny));
+  const ox = (w - (T.mxx - T.mnx) * s0) / 2, oy = (h - (T.mxy - T.mny) * s0) / 2;
+  const base = ([a, b]) => [ox + (a - T.mnx) * s0, oy + (T.mxy - b) * s0];
+  let cen = [w / 2 + S.pan[0], h / 2 + S.pan[1]];
+  if (S.follow && S.cars[S.a] != null) cen = base(pointAt(S.cars[S.a]));
+  const tf = ([bx, by]) => [(bx - cen[0]) * S.zoom + w / 2, (by - cen[1]) * S.zoom + h / 2];
+  const P = u => tf(base(pointAt(u)));
+  const mid = tf([w / 2, h / 2]);
+  const N = u => { const a = P(u - 0.004), b = P(u + 0.004), p = P(u); let nx = -(b[1] - a[1]), ny = b[0] - a[0]; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+    if ((p[0] - mid[0]) * nx + (p[1] - mid[1]) * ny < 0) { nx = -nx; ny = -ny; } return [nx, ny]; };
+  const lw = Math.min(1.8, 0.8 + S.zoom * 0.25);
+  const path = () => { x.beginPath(); for (let i = 0; i <= T.n; i++) { const [px, py] = tf(base([T.x[i % T.n], T.y[i % T.n]])); i ? x.lineTo(px, py) : x.moveTo(px, py); } };
+  x.lineCap = "round"; x.lineJoin = "round";
+  x.strokeStyle = "#5b6170"; x.lineWidth = 18 * lw; path(); x.stroke();
+  x.strokeStyle = "#2a2e38"; x.lineWidth = 15 * lw; path(); x.stroke();
+  x.strokeStyle = "#e10632"; x.lineWidth = 3 * lw; path(); x.stroke();
+  const label = (txt, px, py, size = 9, col = "#c9cfdb") => { x.font = `700 ${size}px 'Titillium Web', sans-serif`; x.fillStyle = col; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(txt, px, py); };
+  { const [px, py] = P(0), [nx, ny] = N(0), cx = px + nx * 24, cy = py + ny * 24, q = 3.5;          // start/finish chequer
+    for (let r = 0; r < 3; r++) for (let cc = 0; cc < 3; cc++) { x.fillStyle = (r + cc) % 2 ? "#fff" : "#111"; x.fillRect(cx - q * 1.5 + cc * q, cy - q * 1.5 + r * q, q, q); } }
+  const ends = T.ends || [1 / 3, 2 / 3], marks = [0, ...ends, 1];
+  ends.forEach(e => { const [px, py] = P(e), [nx, ny] = N(e); x.strokeStyle = "#ffd60a"; x.lineWidth = 2; x.beginPath();
+    x.moveTo(px - nx * 10 * lw, py - ny * 10 * lw); x.lineTo(px + nx * 10 * lw, py + ny * 10 * lw); x.stroke(); });
+  [0, 1, 2].forEach(k => { const m = (marks[k] + marks[k + 1]) / 2, [px, py] = P(m), [nx, ny] = N(m); label("SECTOR " + (k + 1), px + nx * 34, py + ny * 34); });
+  const pill = (txt, px, py, bg, fg, bar, size) => { x.font = `800 ${size}px 'Titillium Web', sans-serif`; const tw = x.measureText(txt).width, ph = size + 9, pw = tw + (bar ? 20 : 14);
+    x.fillStyle = bg; x.beginPath(); x.roundRect(px - pw / 2, py - ph / 2, pw, ph, ph / 2); x.fill();
+    if (bar) { x.fillStyle = bar; x.fillRect(px - pw / 2 + 9, py - size / 2, 3, size); }
+    x.fillStyle = fg; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(txt, px + (bar ? 4 : 0), py + 1); };
+  const h2h = S.sub.tracker === "h2h", sel = new Set([S.a, S.b]);
+  const ord = S.snap.drivers.filter(d => S.cars[d.driver] != null);
+  const draw = (d, r) => { const u = S.cars[d.driver]; let [px, py] = P(u); const [nx, ny] = N(u);
+    if (d.status === "PIT") { px -= nx * 16 * lw; py -= ny * 16 * lw; }
+    const big = sel.has(d.driver) && h2h;
+    x.save(); if (big) { x.shadowColor = d.colour; x.shadowBlur = 22; }
+    x.beginPath(); x.arc(px, py, big ? 14 : 7, 0, 7); x.fillStyle = d.colour; x.globalAlpha = d.status === "PIT" ? 0.55 : 1; x.fill(); x.restore();
+    if (!big) { x.lineWidth = 1.5; x.strokeStyle = "#15181f"; x.stroke(); }
+    const side = r % 2 ? -1 : 1, off = big ? 36 : 22;
+    if (big) pill(d.driver, px + nx * off * 0.2, py - off, "#ffffff", "#15151e", d.colour, 15);
+    else pill(d.driver, px + nx * off * side, py + ny * off * side, "rgba(10,12,18,.72)", "#e7ecf3", null, 12);
+    S.carPts.push({ d: d.driver, px, py }); };
+  for (let r = ord.length - 1; r >= 0; r--) if (!(sel.has(ord[r].driver) && h2h)) draw(ord[r], r);
+  if (h2h) [S.b, S.a].forEach(code => { const d = ord.find(q => q.driver === code); if (d) draw(d, ord.indexOf(d)); });
+}
+function mapEvents() {
+  const c = $("trkMap"); let drag = null;
+  c.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, moved: false }; c.setPointerCapture(e.pointerId); });
+  c.addEventListener("pointermove", e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) { drag.moved = true; S.follow = false; $("trkFollow").setAttribute("aria-pressed", "false"); }
+    if (drag.moved) { S.pan[0] -= dx / S.zoom; S.pan[1] -= dy / S.zoom; drag.x = e.clientX; drag.y = e.clientY; drawMap(); } });
+  c.addEventListener("pointerup", e => { if (drag && !drag.moved) { const r = c.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    let best = null, bd = 400; S.carPts.forEach(p => { const dd = (p.px - mx) ** 2 + (p.py - my) ** 2; if (dd < bd) { bd = dd; best = p.d; } });
+    if (best) selectDriver(best, e.shiftKey); } drag = null; });
+  $("trkIn").onclick = () => { S.zoom = Math.min(4, S.zoom * 1.4); drawMap(); };
+  $("trkOut").onclick = () => { S.zoom = Math.max(1, S.zoom / 1.4); if (S.zoom === 1) S.pan = [0, 0]; drawMap(); };
+  $("trkReset").onclick = () => { S.zoom = 1; S.pan = [0, 0]; S.follow = false; $("trkFollow").setAttribute("aria-pressed", "false"); drawMap(); };
+  $("trkFollow").onclick = () => { S.follow = !S.follow; if (S.follow && S.zoom < 1.8) S.zoom = 2; $("trkFollow").setAttribute("aria-pressed", String(S.follow)); drawMap(); };
+  window.addEventListener("resize", drawMap);
+}
+
+/* ---------------- race control ---------------- */
+// Each message with its flag, or what it is (as in the F1 app's race control): the kind, its label and its icon
+function rcKind(m) {
+  const t = m.text.toUpperCase();
+  if (m.cat === "SAFETY CAR") return /VSC|VIRTUAL/.test(t) ? ["vsc", "VSC"] : ["sc", "Safety car"];
+  if (m.cat === "PIT") return ["pit", "Pit"];
+  if (m.cat === "OVERTAKE") return ["overtake", "Overtake"];
+  if (m.cat === "TIMING") return ["fastest", "Fastest lap"];
+  if (/CHEQUERED|SESSION FINISHED/.test(t)) return ["chequered", "Chequered flag"];
+  if (/RED FLAG/.test(t)) return ["red", "Red flag"];
+  if (/BLACK AND WHITE/.test(t)) return ["bw", "Black and white"];
+  if (/BLUE FLAG/.test(t)) return ["blue", "Blue flag"];
+  if (/DOUBLE YELLOW/.test(t)) return ["yellow2", "Double yellow"];
+  if (/YELLOW/.test(t)) return ["yellow", "Yellow flag"];
+  if (/GREEN|CLEAR/.test(t)) return ["green", "Green flag"];
+  return ["control", "Race control"];
+}
+const RC_ICON = Flags.ICON;                        // the flag icons (flags.js), shared with the game's page
+
+// The bottom strip: race control's newest message up to this lap (else the newest of any kind), with its flag,
+// and who leads at the race time shown
+function ticker(snap) {
+  const m = snap.messages.find(x => ["FLAG", "SAFETY CAR", "CONTROL"].includes(x.cat)) || snap.messages[0];
+  const lead = snap.drivers.find(d => d.position === 1);
+  const msg = m ? (([kind]) => `<span class="rc-i">${RC_ICON[kind]}</span><small>LAP ${m.lap}</small><span class="t" title="${esc(m.text)}">${esc(m.text)}</span>`)(rcKind(m))
+    : `<span class="t dim">No messages yet</span>`;
+  $("ticker").innerHTML = msg + (lead ? `<span class="lead">Leader <b>${esc(name(lead.driver))}</b> · ${clock(snap.clock)}</span>` : "");
+}
+
+function viewRC() {
+  const f = S.sub.rc, cls = { PIT: "pit", OVERTAKE: "overtake", TIMING: "timing", FLAG: "flag", "SAFETY CAR": "safety", CONTROL: "control" };
+  const list = S.snap.messages.filter(m => f === "all" || m.cat === f || (f === "control" && ["FLAG", "SAFETY CAR", "CONTROL"].includes(m.cat)));
+  $("rc").innerHTML = list.length ? list.map(m => { const [kind, label] = rcKind(m);
+    return `<div class="rc-r k-${kind}"><span class="rc-i">${RC_ICON[kind]}</span><span class="rc-t">${clock(m.seconds)}</span><span class="rc-l">LAP ${m.lap}</span>` +
+      `<span class="rc-c c-${cls[m.cat] || "control"}">${esc(label)}</span><span class="rc-m">${esc(m.text)}</span></div>`; }).join("")
+    : `<div class="empty-note">No messages of this kind up to lap ${S.lap}. They appear as the race runs: pit stops, overtakes, fastest laps and race control.</div>`;
+}
+
+init().catch(err => { $("lb2").innerHTML = `<div class="err">Can't reach the server (${esc(err.message)}). Start it with: python api.py</div>`; });
+})();
+</script>
+</body>
+</html>

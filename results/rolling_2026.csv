@@ -1,0 +1,19 @@
+,Model,Mean,Change,95% CI from,95% CI to,Races better,Races
+Pit stop model: PR-AUC per race (higher is better),Fixed,0.38690977096825724,,,,,
+Pit stop model: PR-AUC per race (higher is better),Rolling,0.39421864268454543,0.007308871716288201,-0.007270707264548789,0.02123113970069563,10.0,16.0
+Pit stop model: PR-AUC per race (higher is better),Rolling x3,0.389855947519112,0.002946176550854767,-0.012906540488043928,0.017519626012849315,11.0,16.0
+Tyre model: right compound per race (higher is better),Fixed,0.7254544918133847,,,,,
+Tyre model: right compound per race (higher is better),Rolling,0.7367330836867133,0.011278591873328699,-0.008045524316337559,0.029351872097864537,7.0,16.0
+Tyre model: right compound per race (higher is better),Rolling x3,0.7357237945306085,0.010269302717223872,-0.01299715839576555,0.03262471847120763,8.0,16.0
+Race outcome: win log loss per race (lower is better),Fixed,0.06582258265907165,,,,,
+Race outcome: win log loss per race (lower is better),Rolling,0.06486598197917702,-0.0009566006798946334,-0.0023925194255832775,0.00042971604261704104,8.0,16.0
+Race outcome: win log loss per race (lower is better),Rolling x3,0.06449777937621944,-0.0013248032828522172,-0.004877820101955338,0.002501676138631275,9.0,16.0
+Race outcome: podium log loss per race (lower is better),Fixed,0.15133591112573289,,,,,
+Race outcome: podium log loss per race (lower is better),Rolling,0.15223115457613878,0.0008952434504058606,6.373678396952337e-05,0.0018496388318942362,6.0,16.0
+Race outcome: podium log loss per race (lower is better),Rolling x3,0.15304139367157976,0.0017054825458468438,-0.0005459651205938718,0.00399366635385364,7.0,16.0
+Race outcome: points log loss per race (lower is better),Fixed,0.35083094133519444,,,,,
+Race outcome: points log loss per race (lower is better),Rolling,0.35078195401682133,-4.898731837311987e-05,-0.003378692497828362,0.0035361597391532513,9.0,16.0
+Race outcome: points log loss per race (lower is better),Rolling x3,0.35413392636900315,0.003302985033808735,-0.0017503093707979462,0.008939477336146485,6.0,16.0
+Race outcome: win log loss in the first quarter of each race (lower is better),Fixed,0.10201562226859316,,,,,
+Race outcome: win log loss in the first quarter of each race (lower is better),Rolling,0.09915317836315708,-0.002862443905436082,-0.005666285559379523,-0.00017108783388928428,8.0,16.0
+Race outcome: win log loss in the first quarter of each race (lower is better),Rolling x3,0.09681806842897572,-0.005197553839617446,-0.01125442467794116,0.00017919023455281342,9.0,16.0

@@ -1,0 +1,4 @@
+# LightGBM cannot read its model files with Windows line endings, so git must never convert them
+models/*.txt -text
+# Windows batch files need Windows line endings
+*.bat text eol=crlf

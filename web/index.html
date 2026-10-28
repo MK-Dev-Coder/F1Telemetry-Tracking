@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Strategy Optimizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0a0d12; --panel:#10151c; --panel-2:#151c26; --line:#212a36; --line-2:#2c3746;
+  --fg:#e7ecf3; --muted:#8a96a8; --dim:#5b6676; --brand:#e10632; --cursor:#f4f7fb; --green:#22d36b; --blue:#2f9fd0; --teal:#5ee0cf;
+  --f-ui:"Titillium Web", "Segoe UI", system-ui, sans-serif;
+  --f-num:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);min-height:100%}
+body{font-family:var(--f-ui);font-size:15px;line-height:1.4;padding:12px 16px 32px;display:flex;flex-direction:column;min-height:100vh}
+:focus-visible{outline:2px solid var(--cursor);outline-offset:3px}
+.top{display:flex;align-items:center;gap:10px;padding-block:6px 12px;border-bottom:1px solid var(--line);max-width:1200px;width:100%;margin:0 auto}
+.mark{display:block;height:24px;width:auto}
+.top b{font-weight:900;font-size:17px;letter-spacing:.06em}
+.top small{display:block;color:var(--muted);font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.help-btn{margin-left:auto;width:36px;height:36px;border-radius:50%;border:1px solid var(--line-2);background:var(--panel);color:var(--fg);
+  font:900 18px/1 var(--f-ui);cursor:pointer;display:grid;place-items:center}
+.help-btn:hover{border-color:var(--muted);background:var(--panel-2)}
+main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:1200px;width:100%;margin:0 auto;padding-block:32px}
+h1{margin:0 0 6px;font-size:40px;font-weight:900;letter-spacing:.02em;line-height:1.05}
+.lead{margin:0 0 28px;color:var(--muted);max-width:60ch}
+
+/* the big buttons (real races, F1 25, F1 26), each with a short video behind it on hover */
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+@media (max-width:1100px){ .choice{padding:22px 20px 18px} .choice .name{font-size:60px} .choice .go{flex-wrap:wrap} }
+/* each card in its own colour (--acc), the text on it in --on */
+.choice{--acc:var(--brand);--on:#fff;position:relative;display:flex;flex-direction:column;gap:12px;min-height:330px;padding:26px 26px 20px;
+  border:1px solid #262833;border-radius:10px;background:#15151e;color:inherit;text-decoration:none;overflow:hidden;isolation:isolate;
+  transition:border-color .2s,transform .2s,box-shadow .2s}
+.choice.game{--acc:var(--blue);--on:#06121f} .choice.game26{--acc:var(--teal);--on:#06121f}
+.choice::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--acc);z-index:3}
+.choice:hover,.choice:focus-visible{border-color:color-mix(in srgb,var(--acc) 65%,#262833);transform:translateY(-3px);
+  box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 0 1px color-mix(in srgb,var(--acc) 35%,transparent)}
+/* the latest track's outline, big and faint behind the card */
+.art-bg{position:absolute;right:-34px;top:-26px;width:250px;height:250px;z-index:1;pointer-events:none;opacity:.16;transition:opacity .3s,transform .5s}
+.art-bg .art{width:100%;height:100%} .choice .art-bg .base{display:none} .choice .art-bg .line{stroke:var(--acc);stroke-width:2.4}
+.choice:hover .art-bg,.choice:focus-visible .art-bg{opacity:.34;transform:rotate(-4deg) scale(1.05)}
+.choice .name em{font-style:normal;color:var(--acc)}
+.choice .what .tag{margin-left:8px;font-size:12px;letter-spacing:.1em;border-radius:4px;padding:2px 7px;vertical-align:1px}
+.tag.new{background:var(--acc);color:var(--on)} .tag.live{background:#e10632;color:#fff} .tag.years{border:1px solid #3a3c4a;color:#c9cfdb}
+.feats{display:flex;flex-wrap:wrap;gap:6px;position:relative;z-index:2}
+.feat{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:3px 10px 3px 8px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid #2c2e3b;color:#d7dae2}
+.feat svg{width:14px;height:14px;color:var(--acc);flex:none}
+.go .stat b{color:#fff;font-weight:600}
+.open{display:inline-flex;align-items:center;gap:8px;background:var(--acc);color:var(--on);border-radius:18px;padding:7px 14px 7px 16px}
+.open svg{width:15px;height:15px;transition:transform .2s}
+.choice:hover .open svg,.choice:focus-visible .open svg{transform:translateX(4px)}
+@media (prefers-reduced-motion:reduce){ .choice,.art-bg,.open svg{transition:none} .choice:hover,.choice:focus-visible{transform:none} }
+.clip{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s ease;z-index:0;pointer-events:none}
+.shade{position:absolute;inset:0;z-index:1;opacity:0;transition:opacity .4s ease;pointer-events:none;
+  background:linear-gradient(90deg, rgba(21,21,30,.94) 0%, rgba(21,21,30,.72) 45%, rgba(21,21,30,.25) 100%)}
+.choice.playing .clip{opacity:1} .choice.playing .shade{opacity:1}
+.choice > .what,.choice > .name,.choice > p,.choice > .go,.choice > .feats{position:relative;z-index:2}
+.choice .name{font-size:76px;font-weight:900;line-height:.9;letter-spacing:-.01em}
+.choice .what{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#c9cfdb;font-weight:700}
+.choice p{margin:0;color:#c9cfdb;max-width:46ch}
+.choice .go{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;border-top:1px solid #262833;
+  font-family:var(--f-num);font-size:13px;color:var(--muted)}
+.choice.playing .go{border-top-color:rgba(255,255,255,.18);color:#c9cfdb}
+.choice .go .open{font-family:var(--f-ui);font-weight:800;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);margin-right:6px;vertical-align:1px}
+
+/* the "how this app works" box */
+dialog.help{width:min(820px, calc(100% - 32px));max-height:calc(100% - 48px);padding:0;border:1px solid #2c2e3b;border-top:4px solid var(--brand);
+  border-radius:6px;background:#15151e;color:var(--fg);box-shadow:0 24px 80px rgba(0,0,0,.6)}
+dialog.help::backdrop{background:rgba(5,7,10,.75)}
+.help-in{padding:24px 28px 22px;overflow-y:auto;max-height:calc(100vh - 56px)}
+.help-head{display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:6px}
+.help h2{margin:0;font-size:28px;font-weight:900;letter-spacing:.02em}
+.help .close{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid #3a3c4a;background:none;color:var(--fg);font-size:20px;line-height:1;cursor:pointer}
+.help .close:hover{background:#22242f}
+.help .intro{margin:0 0 14px;color:#c9cfdb}
+.help h3{margin:18px 0 6px;font-size:14px;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.help h3 i{width:5px;height:16px;border-radius:1px;background:var(--brand)} .help h3.game i{background:linear-gradient(var(--brand) 0 50%, var(--blue) 50%)}
+.help h3.game26 i{background:linear-gradient(var(--brand) 0 50%, var(--teal) 50%)}
+.help h3.note i{background:#5b6676}
+.help ul{margin:0;padding-left:20px;color:#d7dae2;line-height:1.6}
+.help li{margin:3px 0} .help li::marker{color:#6f7484}
+.help code{font-family:var(--f-num);font-size:14px;background:#2c2e3b;border-radius:3px;padding:1px 6px;color:#fff}
+@media (prefers-reduced-motion: no-preference){
+  dialog.help[open]{animation:pop .18s ease-out} @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}}
+}
+@media (prefers-reduced-motion: reduce){ .choice,.clip,.shade{transition:none} }
+
+/* live now: the F1 25 session that's being recorded, at the top while the game sends */
+.live{display:none;grid-template-columns:minmax(0,1fr) 240px;gap:24px;align-items:center;margin:0 0 30px;padding:22px 26px;border-radius:14px;
+  background:linear-gradient(115deg,#320d18 0%,#1a1018 45%,#15151e 75%);border:1px solid rgba(225,6,50,.6);color:inherit;text-decoration:none}
+.live.on{display:grid}
+.live:hover{border-color:var(--brand)}
+.live-badge{display:inline-flex;align-items:center;gap:8px;background:var(--brand);color:#fff;font-weight:900;font-size:14px;letter-spacing:.12em;
+  border-radius:6px;padding:4px 10px}
+.live-badge i{width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.8)}70%{box-shadow:0 0 0 9px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+.live .kicker{margin-left:10px;color:#c9cfdb;font-size:14px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.live h2{margin:12px 0 4px;font-size:30px;font-weight:900;line-height:1.1;display:flex;align-items:center;gap:12px}
+.live .rp-flag{width:36px;height:26px}
+.live .meta{display:block;font-family:var(--f-num);color:#e7ecf3;font-size:16px}
+.live .open{margin-top:14px;display:inline-block;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:14px;color:#fff}
+.live .art{height:150px}
+/* where you left off */
+.continue{margin-top:30px}
+.continue h2{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#c9cfdb;margin:0 0 12px;font-weight:700}
+.cont{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cont a{display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:16px;align-items:center;padding:16px 18px;border-radius:12px;background:#15151e;
+  border:1px solid #262833;color:inherit;text-decoration:none;min-width:0}
+.cont a:hover{border-color:#4a4d5c;background:#191b25}
+.cont small{display:block;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#9aa0ae;font-weight:700}
+.cont b{display:flex;align-items:center;gap:10px;font-size:18px;margin:6px 0 4px;min-width:0}
+.cont b .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cont .m{display:block;font-family:var(--f-num);font-size:14px;color:#c9cfdb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cont .art{height:80px}
+.art{display:block;width:100%}
+.art .base{fill:none;stroke:#3a3d4d;stroke-width:7;stroke-linejoin:round;stroke-linecap:round}
+.art .line{fill:none;stroke:var(--brand);stroke-width:2;stroke-linejoin:round}
+@media (max-width:760px){ .live{grid-template-columns:1fr} .live .art{display:none} .live h2{font-size:24px} .cont{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){ .live-badge i{animation:none} }
+
+footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px}
+@media (max-width:760px){ .choices{grid-template-columns:1fr} .choice{min-height:0} .choice .name{font-size:60px} h1{font-size:32px} .help-in{padding:20px 18px} }
+</style>
+</head>
+<body>
+<header class="top">
+  <img class="mark" src="f1-logo.png" alt="F1" width="96" height="24" onerror="this.remove()">
+  <div><b>STRATEGY OPTIMIZER</b><small>Pit wall · race strategy</small></div>
+  <button class="help-btn" id="helpBtn" aria-haspopup="dialog" aria-controls="help" title="How this app works">?</button>
+</header>
+<main>
+  <a class="live" id="live" href="f1-25.html" aria-live="polite">
+    <span><span class="live-badge"><i></i>LIVE</span><span class="kicker">F1 25 · recording now</span>
+      <h2></h2><span class="meta"></span><span class="open">Open live timing →</span></span>
+    <span class="art-slot"></span>
+  </a>
+  <h1>Which data?</h1>
+  <p class="lead">Real Formula 1 races with the pit stop model, or your own laps from F1 25 and its 2026 Season Pack on the PlayStation.</p>
+  <div class="choices">
+    <a class="choice" href="f1.html">
+      <!-- Hover video: put your clip in web/media/ as f1.mp4 (and, if you like, f1.webm) -->
+      <video class="clip" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
+        <source src="media/f1.webm" type="video/webm"><source src="media/f1.mp4" type="video/mp4">
+      </video>
+      <span class="shade" aria-hidden="true"></span>
+      <span class="art-bg" id="f1Art" aria-hidden="true"></span>
+      <span class="what">Real races<span class="tag years">2022–2026</span></span>
+      <span class="name">F1</span>
+      <p>Replay any race lap by lap, as if it were live, with the pit stop model calling it.</p>
+      <span class="feats"><span class="feat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="5.5"/><path d="M8 9V6.2M6.5 1.8h3"/></svg>Pit stop chance</span><span class="feat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h8M2 8h12M2 12h5"/></svg>The reasons</span><span class="feat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.5"/></svg>Next tyre</span></span>
+      <div class="go"><span id="f1Note">OpenF1 and FastF1</span><span class="open">Open<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></div>
+    </a>
+    <a class="choice game" href="f1-25.html">
+      <!-- Hover video: put your clip in web/media/ as f1-25.mp4 (and, if you like, f1-25.webm) -->
+      <video class="clip" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
+        <source src="media/f1-25.webm" type="video/webm"><source src="media/f1-25.mp4" type="video/mp4">
+      </video>
+      <span class="shade" aria-hidden="true"></span>
+      <span class="art-bg" id="g25Art" aria-hidden="true"></span>
+      <span class="what">Your game sessions<span class="tag live" id="g25Live" hidden>● LIVE</span></span>
+      <span class="name">F1 <em>25</em></span>
+      <p>Your own driving, lap against lap, live while you drive on the PlayStation.</p>
+      <span class="feats"><span class="feat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 11l3-5 3 3 3-6 4 7"/></svg>Telemetry</span><span class="feat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14V2.5h7l-1.5 2.8L10 8H3"/></svg>Live pit strategy</span><span class="feat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v2"/></svg>Team radio</span></span>
+      <div class="go"><span id="gameNote">Checking the game connection…</span><span class="open">Open<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></div>
+    </a>
+    <a class="choice game26" href="f1-26.html">
+      <!-- Hover video: put your clip in web/media/ as f1-26.mp4 (and, if you like, f1-26.webm) -->
+      <video class="clip" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
+        <source src="media/f1-26.webm" type="video/webm"><source src="media/f1-26.mp4" type="video/mp4">
+      </video>
+      <span class="shade" aria-hidden="true"></span>
+      <span class="art-bg" id="g26Art" aria-hidden="true"></span>
+      <span class="what">2026 Season Pack<span class="tag new">NEW</span><span class="tag live" id="g26Live" hidden>● LIVE</span></span>
+      <span class="name">F1 <em>26</em></span>
+      <p>The 2026 cars and teams: everything from F1 25, plus the new rules.</p>
+      <span class="feats"><span class="feat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 6.5h13M3 10h10M4 6.5v6M12 6.5v6"/></svg>Active aero</span><span class="feat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"/></svg>Overtake mode</span><span class="feat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="4.5" width="11" height="7" rx="1.5"/><path d="M14.5 7v2M4 7h4v2H4z"/></svg>Energy limit</span></span>
+      <div class="go"><span id="game26Note">Checking the game connection…</span><span class="open">Open<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></div>
+    </a>
+  </div>
+  <section class="continue" id="continue" hidden aria-label="Continue where you left off">
+    <h2>Continue where you left off</h2>
+    <div class="cont" id="cont"></div>
+  </section>
+</main>
+<footer>Unofficial project, not associated with Formula 1 or EA.</footer>
+
+<dialog class="help" id="help" aria-labelledby="helpTitle">
+  <div class="help-in">
+    <div class="help-head">
+      <h2 id="helpTitle">How this app works</h2>
+      <button class="close" id="helpClose" aria-label="Close">×</button>
+    </div>
+    <p class="intro">Three ways in: real Formula 1 races with a pit stop prediction model, or your own sessions from F1 25 and from its 2026 Season Pack (F1 26).</p>
+
+    <h3><i></i>F1: real races</h3>
+    <ul>
+      <li>Pick any race from 2022 to 2026, then step through it lap by lap or press <b>Play</b> to watch it as if it were live.</li>
+      <li>Every lap, the model gives each driver's chance of a pit stop in the next 3 laps. <b>BOX</b> marks the drivers likely to stop.</li>
+      <li>Click a driver to see <b>why</b>: the reasons come from SHAP, in plain English, such as "tyres are 30 laps old".</li>
+      <li>It also picks the tyre they would most likely fit. Tick <b>Show what happened</b> to compare with what really happened.</li>
+      <li><b>Engineer</b>: the briefing for the race's track, from only the races there before it: how long each tyre lasts on a day this hot, the strategies and winners there, and the race prediction.</li>
+      <li>Leaderboard, Pit strategy, Driver tracker (track map and head-to-head) and Race control, like the F1 TV timing screen.</li>
+      <li>The data comes from FastF1 (2022) and OpenF1 (2023–2026). The 2026 races were not used to train the model, so they are a fair test.</li>
+    </ul>
+
+    <h3 class="game"><i></i>F1 25: your game sessions</h3>
+    <ul>
+      <li>F1 25 on your PS5 sends telemetry to this PC while you drive: <b>Settings → Telemetry Settings</b>, UDP Telemetry On, Broadcast Mode On (or this PC's address), port <code>20777</code>, format 2025.</li>
+      <li>Every session is recorded by itself and shows up live: the leaderboard, your lap and sector times, tyres, events and the final result.</li>
+      <li><b>Pit strategy</b> in races: the same pit stop model, live, with its reasons and the tyre each car would fit. It shows the model working live; the game's AI plans its own strategy.</li>
+      <li><b>Engineer</b>: the game's own plan (the pit window from its strategy screen, where you'd rejoin, how long it says each tyre lasts, your tyre sets) beside real F1 at that track, scaled to your race's length.</li>
+      <li><b>Team radio</b>: hold <code>T</code> and ask your engineer ("how are my tyres?", "should I box?"); the answer is spoken back. A free local AI (Ollama) words the answers from your live data; without it the engineer answers from the data.</li>
+      <li><b>Telemetry</b>: speed, throttle, brake and gear along the lap. Compare any two laps and see where you gained or lost time.</li>
+      <li><b>Track map</b> drawn from your own driving, and your <b>car</b>: tyre wear and temperatures, fuel, ERS and damage.</li>
+      <li>Sessions are kept on this PC, so you can open any of them again later.</li>
+    </ul>
+
+    <h3 class="game26"><i></i>F1 26: the 2026 Season Pack</h3>
+    <ul>
+      <li>Your sessions with the 2026 cars and teams (Audi and Cadillac too) get their own section, with everything the F1 25 section has.</li>
+      <li>Set the game's UDP Format to <code>2026</code>: the app then also shows <b>active aero</b> (straight and corner mode) and <b>overtake mode</b> along each lap, <b>OT</b> on the leaderboard while a car uses it, and the energy you may harvest per lap.</li>
+      <li>Sessions with the 2025 cars stay in the F1 25 section, whichever format the game sends.</li>
+    </ul>
+
+    <h3 class="note"><i></i>Good to know</h3>
+    <ul>
+      <li>Start the app by double-clicking <code>start_app.bat</code>, and keep its window open while you use it.</li>
+      <li>Everything stays on this PC: nothing is uploaded anywhere.</li>
+      <li>Unofficial project, not associated with Formula 1 or EA.</li>
+    </ul>
+  </div>
+</dialog>
+
+<script src="picker.js"></script>
+<script>
+(async () => {
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+
+  // The "how this app works" box: opens in the middle, closes with ×, Esc or a click outside it
+  const help = document.getElementById("help");
+  document.getElementById("helpBtn").onclick = () => help.showModal();
+  document.getElementById("helpClose").onclick = () => help.close();
+  help.addEventListener("click", e => { if (e.target === help) help.close(); });
+
+  // Hover videos: play while the pointer (or keyboard focus) is on a button, stop and rewind when it leaves.
+  // Until a video file is there, nothing happens and the button looks as it always did.
+  const calm = matchMedia("(prefers-reduced-motion: reduce)");
+  document.querySelectorAll(".choice").forEach(card => {
+    const video = card.querySelector("video.clip");
+    if (!video) return;
+    let missing = false, wanted = false;
+    video.querySelector("source:last-of-type")?.addEventListener("error", () => { missing = true; });
+    const start = () => {
+      wanted = true;
+      if (missing || calm.matches) return;
+      video.play().then(() => { if (wanted) card.classList.add("playing"); else video.pause(); }).catch(() => {});
+    };
+    const stop = () => {
+      wanted = false;
+      card.classList.remove("playing");
+      video.pause();
+      if (video.readyState) video.currentTime = 0;
+    };
+    card.addEventListener("mouseenter", start); card.addEventListener("focus", start);
+    card.addEventListener("mouseleave", stop); card.addEventListener("blur", stop);
+  });
+
+  const getJSON = url => fetch(url).then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); });
+  const fmtLap = s => s == null ? "" : `${Math.floor(s / 60)}:${(s % 60).toFixed(3).padStart(6, "0")}`;
+  const stored = key => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+  const P = window.RacePicker;                      // flags and Grand Prix names, from picker.js
+
+  // A track's shape as a card's picture (real races' y goes up, the game's z goes down)
+  function art(xs, ys, flipY) {
+    if (!xs || xs.length < 10) return "";
+    const step = Math.ceil(xs.length / 240), px = [], py = [];
+    for (let i = 0; i < xs.length; i += step) { px.push(xs[i]); py.push(flipY ? -ys[i] : ys[i]); }
+    const mnx = Math.min(...px), mxx = Math.max(...px), mny = Math.min(...py), mxy = Math.max(...py);
+    const s = 88 / Math.max(mxx - mnx, mxy - mny, 1), ox = (100 - (mxx - mnx) * s) / 2, oy = (100 - (mxy - mny) * s) / 2;
+    const d = px.map((x, i) => `${i ? "L" : "M"}${(ox + (x - mnx) * s).toFixed(1)},${(oy + (py[i] - mny) * s).toFixed(1)}`).join("") + "Z";
+    return `<svg class="art" viewBox="0 0 100 100" aria-hidden="true"><path class="base" d="${d}"/><path class="line" d="${d}"/></svg>`;
+  }
+  const gameArt = m => art(m.outline.map(p => p[0]), m.outline.map(p => p[1]), false);
+  // The game calls a sprint "Race" too: it's the race of a weekend that also has a sprint shootout
+  const kind = (s, all) => s.type_id === 15 && all.some(x => x.weekend && x.weekend === s.weekend && x.type_id >= 10 && x.type_id <= 14) ? "Sprint" : s.type;
+
+  // Each track shape is fetched once (the big cards and the continue cards can show the same track)
+  const shapes = {}, shape = url => shapes[url] || (shapes[url] = getJSON(url));
+  const latestRace = list => [...list].sort((a, b) => b.year - a.year || b.round - a.round)[0];
+  let races = [], sessions = [];
+  try {
+    races = await getJSON("/races");
+    const r = latestRace(races);
+    document.getElementById("f1Note").innerHTML = `<span class="stat"><b>${races.length}</b> races · latest <b>R${r.round} ${esc(P.place(r.circuit)[1].replace(" Grand Prix", ""))}</b> ${r.year}</span>`;
+    shape(`/races/${r.race_id}`).then(v => { document.getElementById("f1Art").innerHTML = art(v.track?.x, v.track?.y, true); }).catch(() => {});
+  } catch (e) { /* the F1 note keeps its default text */ }
+  // F1 25 and F1 26 (the 2026 Season Pack) sessions: each game has its own page
+  const PAGE = { "F1 25": "f1-25.html", "F1 26": "f1-26.html" }, gameOf = s => s.game || "F1 25";
+  const notes = [[document.getElementById("gameNote"), "F1 25"], [document.getElementById("game26Note"), "F1 26"]];
+  try {
+    let st;
+    [st, sessions] = await Promise.all([getJSON("/game/status"), getJSON("/game/sessions")]);
+    for (const [note, game] of notes) {
+      const mine = sessions.filter(s => gameOf(s) === game), live = mine.find(s => s.live), last = mine[0];   // newest first
+      document.getElementById(game === "F1 26" ? "g26Live" : "g25Live").hidden = !live;
+      if (live) note.innerHTML = `<span class="live-dot"></span>Live now: <b>${esc(live.track)}</b> ${esc(live.type)}`;
+      else if (!st.listening) note.textContent = st.error || "Not receiving the game";
+      else if (!mine.length) note.textContent = game === "F1 26" ? "No sessions yet · set UDP Format 2026" : "No sessions yet · drive and it records";
+      else note.innerHTML = `<span class="stat"><b>${mine.length}</b> session${mine.length === 1 ? "" : "s"} · latest <b>${esc(last.track)}</b>` +
+        `${last.best_lap ? ` · best <b>${fmtLap(last.best_lap)}</b>` : ""}</span>`;
+      if (last) shape(`/game/sessions/${last.id}/map`).then(m => {
+        document.getElementById(game === "F1 26" ? "g26Art" : "g25Art").innerHTML = gameArt(m); }).catch(() => {});
+    }
+  } catch (e) { notes.forEach(([note]) => { note.textContent = "Start the app with start_app.bat"; }); }
+
+  // Continue where you left off: the last real race and F1 25 session you opened (else the latest ones)
+  const cards = [], lastRace = races.find(r => r.race_id === stored("lastRace"));
+  const race = lastRace || latestRace(races);
+  if (race) cards.push(`<a href="f1.html?race=${encodeURIComponent(race.race_id)}"><span style="min-width:0"><small>${lastRace ? "Your last real race" : "Latest real race"}</small>` +
+    `<b>${P.flag(P.place(race.circuit)[0])}<span class="t">R${race.round} ${esc(race.name)}</span></b>` +
+    `<span class="m">${race.year} · ${race.laps} laps · ${race.seen_in_training ? "in the training data" : "new to the model"}</span></span>` +
+    `<span class="art-slot" id="raceArt"></span></a>`);
+  const lastSession = sessions.find(s => s.id === stored("lastSession")), sess = lastSession || sessions[0];
+  if (sess) {
+    const when = new Date(sess.started * 1000).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+    const bits = [when, sess.laps ? `${sess.laps} lap${sess.laps === 1 ? "" : "s"}` : "", sess.best_lap ? `best ${fmtLap(sess.best_lap)}` : ""];
+    cards.push(`<a href="${PAGE[gameOf(sess)]}?session=${encodeURIComponent(sess.id)}"><span style="min-width:0"><small>${lastSession ? "Your last" : "Latest"} ${gameOf(sess)} session</small>` +
+      `<b>${P.flag(P.place(sess.track)[0])}<span class="t">${esc(P.place(sess.track)[1])} - ${esc(kind(sess, sessions))}</span></b>` +
+      `<span class="m">${bits.filter(Boolean).join(" · ")}</span></span><span class="art-slot" id="sessArt"></span></a>`);
+  }
+  document.getElementById("cont").innerHTML = cards.join("");
+  document.getElementById("continue").hidden = !cards.length;
+  if (race) shape(`/races/${race.race_id}`).then(v => { document.getElementById("raceArt").innerHTML = art(v.track?.x, v.track?.y, true); }).catch(() => {});
+  if (sess) shape(`/game/sessions/${sess.id}/map`).then(m => { document.getElementById("sessArt").innerHTML = gameArt(m); }).catch(() => {});
+
+  // Live now: while the game sends, a card with the session, your lap and your place (checked every 4 seconds)
+  const liveCard = document.getElementById("live");
+  let liveId = null;
+  async function checkLive() {
+    try {
+      const id = (await getJSON("/game/status")).live_session;
+      if (!id) { liveCard.classList.remove("on"); liveId = null; return; }
+      const [v, all] = await Promise.all([getJSON(`/game/sessions/${id}`), getJSON("/game/sessions")]);
+      const s = v.session, me = v.leaderboard.find(r => r.player) || {}, [code, gp] = P.place(s.track);
+      if (!s.game) return;                         // its game (F1 25 or F1 26) is known within a second
+      if (id !== liveId) {
+        liveId = id;
+        liveCard.querySelector(".art-slot").innerHTML = "";
+        getJSON(`/game/sessions/${id}/map`).then(m => { if (liveId === id) liveCard.querySelector(".art-slot").innerHTML = gameArt(m); }).catch(() => {});
+      }
+      liveCard.href = `${PAGE[gameOf(s)]}?session=${encodeURIComponent(id)}`;
+      liveCard.querySelector(".kicker").textContent = `${gameOf(s)} · recording now`;
+      liveCard.querySelector("h2").innerHTML = `${P.flag(code)}<span>${esc(gp)} - ${esc(kind(s, all))}</span>`;
+      const lap = me.lap ? (v.race && v.info.total_laps ? `Lap ${me.lap} / ${v.info.total_laps}` : `Lap ${me.lap}`) : "";
+      liveCard.querySelector(".meta").textContent = [lap, me.position ? `P${me.position}` : "", s.best_lap ? `best ${fmtLap(s.best_lap)}` : ""].filter(Boolean).join(" · ");
+      liveCard.classList.add("on");
+    } catch (e) { liveCard.classList.remove("on"); }
+  }
+  checkLive();
+  setInterval(checkLive, 4000);
+})();
+</script>
+</body>
+</html>

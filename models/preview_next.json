@@ -1,0 +1,2829 @@
+{
+ "name": "Mexico City Grand Prix",
+ "date": "2026-11-01",
+ "circuit": "Mexico City",
+ "year": 2026,
+ "round": 19,
+ "race_id": "2026_19",
+ "version": "before qualifying",
+ "trained_on": "2022 - 2026_18",
+ "made": "2026-10-26 01:21 UTC",
+ "drivers": [
+  {
+   "driver": "ANT",
+   "team": "Mercedes",
+   "win": 0.3014,
+   "podium": 0.6742,
+   "points": 0.9623,
+   "likely": 2,
+   "for": "win",
+   "why": {
+    "win": {
+     "chance": 0.3014,
+     "start": 0.0494,
+     "model": 0.38,
+     "reasons": [
+      {
+       "text": "9 wins this season",
+       "points": 0.09
+      },
+      {
+       "text": "race pace 1.6% quicker than the field in the last 3 races",
+       "points": 0.0892
+      },
+      {
+       "text": "averaged P2.4 in the last 5 races",
+       "points": 0.0481
+      },
+      {
+       "text": "averaged P3.4 this season",
+       "points": 0.0453
+      },
+      {
+       "text": "team's race pace 1.1% quicker than the field lately",
+       "points": 0.0356
+      },
+      {
+       "text": "team averaged P7.2 in the last 3 races",
+       "points": 0.0191
+      },
+      {
+       "text": "finished P1 last time",
+       "points": 0.0109
+      },
+      {
+       "text": "averaged P6.0 here before",
+       "points": -0.0105
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.6742,
+     "start": 0.1295,
+     "model": 0.7189,
+     "reasons": [
+      {
+       "text": "race pace 1.6% quicker than the field in the last 3 races",
+       "points": 0.1312
+      },
+      {
+       "text": "9 wins this season",
+       "points": 0.1237
+      },
+      {
+       "text": "averaged P3.4 this season",
+       "points": 0.0986
+      },
+      {
+       "text": "averaged P2.4 in the last 5 races",
+       "points": 0.0887
+      },
+      {
+       "text": "team's race pace 1.1% quicker than the field lately",
+       "points": 0.0644
+      },
+      {
+       "text": "team averaged P7.2 in the last 3 races",
+       "points": 0.0527
+      },
+      {
+       "text": "finished P1 last time",
+       "points": 0.0321
+      },
+      {
+       "text": "15 podiums this season",
+       "points": 0.0178
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.9623,
+     "start": 0.476,
+     "model": 0.9609,
+     "reasons": [
+      {
+       "text": "9 wins this season",
+       "points": 0.1201
+      },
+      {
+       "text": "averaged P3.4 this season",
+       "points": 0.0849
+      },
+      {
+       "text": "averaged P2.4 in the last 5 races",
+       "points": 0.074
+      },
+      {
+       "text": "race pace 1.6% quicker than the field in the last 3 races",
+       "points": 0.0621
+      },
+      {
+       "text": "team averaged P7.2 in the last 3 races",
+       "points": 0.0516
+      },
+      {
+       "text": "15 podiums this season",
+       "points": 0.0469
+      },
+      {
+       "text": "team's race pace 1.1% quicker than the field lately",
+       "points": 0.0272
+      },
+      {
+       "text": "averaged P6.0 here before",
+       "points": 0.0241
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "VER",
+   "team": "Red Bull Racing",
+   "win": 0.1472,
+   "podium": 0.3851,
+   "points": 0.8399,
+   "likely": 4,
+   "for": "win",
+   "why": {
+    "win": {
+     "chance": 0.1472,
+     "start": 0.0494,
+     "model": 0.197,
+     "reasons": [
+      {
+       "text": "averaged P1.8 in the last 5 races",
+       "points": 0.0554
+      },
+      {
+       "text": "race pace 1.8% quicker than the field in the last 3 races",
+       "points": 0.0468
+      },
+      {
+       "text": "team's race pace 1.3% quicker than the field lately",
+       "points": 0.0246
+      },
+      {
+       "text": "team averaged P4.3 in the last 3 races",
+       "points": 0.0239
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0066
+      },
+      {
+       "text": "10 podiums this season",
+       "points": 0.003
+      },
+      {
+       "text": "2 wins this season",
+       "points": -0.0023
+      },
+      {
+       "text": "averaged P2.8 here before",
+       "points": 0.002
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.3851,
+     "start": 0.1295,
+     "model": 0.442,
+     "reasons": [
+      {
+       "text": "team averaged P4.3 in the last 3 races",
+       "points": 0.0967
+      },
+      {
+       "text": "race pace 1.8% quicker than the field in the last 3 races",
+       "points": 0.0903
+      },
+      {
+       "text": "averaged P1.8 in the last 5 races",
+       "points": 0.0714
+      },
+      {
+       "text": "team's race pace 1.3% quicker than the field lately",
+       "points": 0.0455
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0197
+      },
+      {
+       "text": "averaged P2.8 here before",
+       "points": 0.0126
+      },
+      {
+       "text": "averaged P6.9 this season",
+       "points": 0.0084
+      },
+      {
+       "text": "finished P3 last time",
+       "points": 0.0044
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.8399,
+     "start": 0.476,
+     "model": 0.8361,
+     "reasons": [
+      {
+       "text": "averaged P1.8 in the last 5 races",
+       "points": 0.0794
+      },
+      {
+       "text": "averaged P6.9 this season",
+       "points": 0.0747
+      },
+      {
+       "text": "team averaged P4.3 in the last 3 races",
+       "points": 0.071
+      },
+      {
+       "text": "10 podiums this season",
+       "points": 0.0502
+      },
+      {
+       "text": "race pace 1.8% quicker than the field in the last 3 races",
+       "points": 0.04
+      },
+      {
+       "text": "averaged P2.8 here before",
+       "points": 0.033
+      },
+      {
+       "text": "team's race pace 1.3% quicker than the field lately",
+       "points": 0.031
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0292
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "HAM",
+   "team": "Ferrari",
+   "win": 0.1461,
+   "podium": 0.4823,
+   "points": 0.856,
+   "likely": 4,
+   "for": "win",
+   "why": {
+    "win": {
+     "chance": 0.1461,
+     "start": 0.0494,
+     "model": 0.1955,
+     "reasons": [
+      {
+       "text": "race pace 1.3% quicker than the field in the last 3 races",
+       "points": 0.0573
+      },
+      {
+       "text": "team averaged P3.5 in the last 3 races",
+       "points": 0.0455
+      },
+      {
+       "text": "team's race pace 1.4% quicker than the field lately",
+       "points": 0.0228
+      },
+      {
+       "text": "averaged P5.2 this season",
+       "points": 0.0162
+      },
+      {
+       "text": "6 podiums this season",
+       "points": 0.005
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.0026
+      },
+      {
+       "text": "finished P4 last time",
+       "points": -0.002
+      },
+      {
+       "text": "1 win this season",
+       "points": -0.0012
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.4823,
+     "start": 0.1295,
+     "model": 0.5352,
+     "reasons": [
+      {
+       "text": "race pace 1.3% quicker than the field in the last 3 races",
+       "points": 0.1332
+      },
+      {
+       "text": "team averaged P3.5 in the last 3 races",
+       "points": 0.1225
+      },
+      {
+       "text": "team's race pace 1.4% quicker than the field lately",
+       "points": 0.0536
+      },
+      {
+       "text": "averaged P5.2 this season",
+       "points": 0.0525
+      },
+      {
+       "text": "averaged P8.2 in the last 5 races",
+       "points": 0.0157
+      },
+      {
+       "text": "averaged P4.0 here before",
+       "points": 0.0113
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.0065
+      },
+      {
+       "text": "1 win this season",
+       "points": 0.0061
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.856,
+     "start": 0.476,
+     "model": 0.8525,
+     "reasons": [
+      {
+       "text": "averaged P5.2 this season",
+       "points": 0.105
+      },
+      {
+       "text": "race pace 1.3% quicker than the field in the last 3 races",
+       "points": 0.068
+      },
+      {
+       "text": "team averaged P3.5 in the last 3 races",
+       "points": 0.0641
+      },
+      {
+       "text": "averaged P8.2 in the last 5 races",
+       "points": 0.0593
+      },
+      {
+       "text": "averaged P4.0 here before",
+       "points": 0.0346
+      },
+      {
+       "text": "team's race pace 1.4% quicker than the field lately",
+       "points": 0.0302
+      },
+      {
+       "text": "1 win this season",
+       "points": 0.0078
+      },
+      {
+       "text": "finished P4 last time",
+       "points": 0.0059
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "LEC",
+   "team": "Ferrari",
+   "win": 0.1188,
+   "podium": 0.4217,
+   "points": 0.7932,
+   "likely": 4,
+   "for": "win",
+   "why": {
+    "win": {
+     "chance": 0.1188,
+     "start": 0.0494,
+     "model": 0.1608,
+     "reasons": [
+      {
+       "text": "team averaged P3.5 in the last 3 races",
+       "points": 0.0364
+      },
+      {
+       "text": "race pace 1.5% quicker than the field in the last 3 races",
+       "points": 0.0351
+      },
+      {
+       "text": "team's race pace 1.4% quicker than the field lately",
+       "points": 0.0197
+      },
+      {
+       "text": "averaged P3.2 in the last 5 races",
+       "points": 0.0078
+      },
+      {
+       "text": "averaged P6.1 this season",
+       "points": 0.0045
+      },
+      {
+       "text": "6 podiums this season",
+       "points": 0.0044
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.0035
+      },
+      {
+       "text": "finished P2 last time",
+       "points": 0.0015
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.4217,
+     "start": 0.1295,
+     "model": 0.4741,
+     "reasons": [
+      {
+       "text": "team averaged P3.5 in the last 3 races",
+       "points": 0.098
+      },
+      {
+       "text": "averaged P3.2 in the last 5 races",
+       "points": 0.0668
+      },
+      {
+       "text": "race pace 1.5% quicker than the field in the last 3 races",
+       "points": 0.0626
+      },
+      {
+       "text": "team's race pace 1.4% quicker than the field lately",
+       "points": 0.0456
+      },
+      {
+       "text": "averaged P6.1 this season",
+       "points": 0.0286
+      },
+      {
+       "text": "finished P2 last time",
+       "points": 0.0126
+      },
+      {
+       "text": "averaged P3.5 here before",
+       "points": 0.0123
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.0083
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.7932,
+     "start": 0.476,
+     "model": 0.7887,
+     "reasons": [
+      {
+       "text": "averaged P6.1 this season",
+       "points": 0.0851
+      },
+      {
+       "text": "averaged P3.2 in the last 5 races",
+       "points": 0.0774
+      },
+      {
+       "text": "team averaged P3.5 in the last 3 races",
+       "points": 0.0733
+      },
+      {
+       "text": "averaged P3.5 here before",
+       "points": 0.0356
+      },
+      {
+       "text": "team's race pace 1.4% quicker than the field lately",
+       "points": 0.0282
+      },
+      {
+       "text": "1 win this season",
+       "points": 0.0103
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.0072
+      },
+      {
+       "text": "race pace 1.5% quicker than the field in the last 3 races",
+       "points": -0.0053
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "NOR",
+   "team": "McLaren",
+   "win": 0.0654,
+   "podium": 0.2605,
+   "points": 0.8779,
+   "likely": 5,
+   "for": "podium",
+   "why": {
+    "win": {
+     "chance": 0.0654,
+     "start": 0.0494,
+     "model": 0.0905,
+     "reasons": [
+      {
+       "text": "race pace 0.9% quicker than the field in the last 3 races",
+       "points": 0.0235
+      },
+      {
+       "text": "team averaged P6.0 in the last 3 races",
+       "points": 0.01
+      },
+      {
+       "text": "team's race pace 0.8% quicker than the field lately",
+       "points": 0.0087
+      },
+      {
+       "text": "5 podiums this season",
+       "points": 0.0029
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.002
+      },
+      {
+       "text": "finished P5 last time",
+       "points": -0.0018
+      },
+      {
+       "text": "averaged P6.8 this season",
+       "points": -0.0016
+      },
+      {
+       "text": "2 wins this season",
+       "points": -0.0014
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.2605,
+     "start": 0.1295,
+     "model": 0.3033,
+     "reasons": [
+      {
+       "text": "race pace 0.9% quicker than the field in the last 3 races",
+       "points": 0.0672
+      },
+      {
+       "text": "team averaged P6.0 in the last 3 races",
+       "points": 0.0508
+      },
+      {
+       "text": "team's race pace 0.8% quicker than the field lately",
+       "points": 0.027
+      },
+      {
+       "text": "averaged P6.8 this season",
+       "points": 0.0111
+      },
+      {
+       "text": "finished P5 last time",
+       "points": -0.0071
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.0062
+      },
+      {
+       "text": "averaged P8.0 in the last 5 races",
+       "points": 0.0061
+      },
+      {
+       "text": "averaged P4.2 here before",
+       "points": 0.0057
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.8779,
+     "start": 0.476,
+     "model": 0.8747,
+     "reasons": [
+      {
+       "text": "averaged P6.8 this season",
+       "points": 0.0947
+      },
+      {
+       "text": "race pace 0.9% quicker than the field in the last 3 races",
+       "points": 0.0805
+      },
+      {
+       "text": "averaged P8.0 in the last 5 races",
+       "points": 0.0659
+      },
+      {
+       "text": "team averaged P6.0 in the last 3 races",
+       "points": 0.0646
+      },
+      {
+       "text": "averaged P4.2 here before",
+       "points": 0.0343
+      },
+      {
+       "text": "team's race pace 0.8% quicker than the field lately",
+       "points": 0.0301
+      },
+      {
+       "text": "2 wins this season",
+       "points": 0.0175
+      },
+      {
+       "text": "finished P5 last time",
+       "points": 0.0076
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "HAD",
+   "team": "Red Bull Racing",
+   "win": 0.0646,
+   "podium": 0.2214,
+   "points": 0.8216,
+   "likely": 6,
+   "for": "podium",
+   "why": {
+    "win": {
+     "chance": 0.0646,
+     "start": 0.0494,
+     "model": 0.0894,
+     "reasons": [
+      {
+       "text": "team's race pace 1.3% quicker than the field lately",
+       "points": 0.0201
+      },
+      {
+       "text": "team averaged P4.3 in the last 3 races",
+       "points": 0.0171
+      },
+      {
+       "text": "race pace 0.8% quicker than the field in the last 3 races",
+       "points": 0.0148
+      },
+      {
+       "text": "averaged P8.2 this season",
+       "points": -0.0099
+      },
+      {
+       "text": "2 podiums this season",
+       "points": 0.0044
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0044
+      },
+      {
+       "text": "averaged P6.0 in the last 5 races",
+       "points": 0.0027
+      },
+      {
+       "text": "finished P6 last time",
+       "points": -0.0017
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.2214,
+     "start": 0.1295,
+     "model": 0.2716,
+     "reasons": [
+      {
+       "text": "team averaged P4.3 in the last 3 races",
+       "points": 0.0832
+      },
+      {
+       "text": "race pace 0.8% quicker than the field in the last 3 races",
+       "points": 0.0474
+      },
+      {
+       "text": "team's race pace 1.3% quicker than the field lately",
+       "points": 0.0457
+      },
+      {
+       "text": "averaged P8.2 this season",
+       "points": -0.0147
+      },
+      {
+       "text": "2 podiums this season",
+       "points": 0.0118
+      },
+      {
+       "text": "averaged P13.0 here before",
+       "points": -0.0106
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0089
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0061
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.8216,
+     "start": 0.476,
+     "model": 0.8174,
+     "reasons": [
+      {
+       "text": "averaged P6.0 in the last 5 races",
+       "points": 0.0896
+      },
+      {
+       "text": "race pace 0.8% quicker than the field in the last 3 races",
+       "points": 0.0827
+      },
+      {
+       "text": "team averaged P4.3 in the last 3 races",
+       "points": 0.0673
+      },
+      {
+       "text": "team's race pace 1.3% quicker than the field lately",
+       "points": 0.0627
+      },
+      {
+       "text": "averaged P8.2 this season",
+       "points": 0.0562
+      },
+      {
+       "text": "averaged P13.0 here before",
+       "points": -0.0172
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0159
+      },
+      {
+       "text": "finished P6 last time",
+       "points": 0.0136
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "RUS",
+   "team": "Mercedes",
+   "win": 0.0559,
+   "podium": 0.2289,
+   "points": 0.9024,
+   "likely": 6,
+   "for": "podium",
+   "why": {
+    "win": {
+     "chance": 0.0559,
+     "start": 0.0494,
+     "model": 0.0777,
+     "reasons": [
+      {
+       "text": "3 wins this season",
+       "points": 0.0165
+      },
+      {
+       "text": "team's race pace 1.1% quicker than the field lately",
+       "points": 0.014
+      },
+      {
+       "text": "averaged P8.6 in the last 5 races",
+       "points": -0.0051
+      },
+      {
+       "text": "team averaged P7.2 in the last 3 races",
+       "points": 0.0048
+      },
+      {
+       "text": "race pace 0.6% quicker than the field in the last 3 races",
+       "points": 0.0036
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0021
+      },
+      {
+       "text": "averaged P6.9 this season",
+       "points": -0.0021
+      },
+      {
+       "text": "8 podiums this season",
+       "points": 0.0017
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.2289,
+     "start": 0.1295,
+     "model": 0.2683,
+     "reasons": [
+      {
+       "text": "3 wins this season",
+       "points": 0.0377
+      },
+      {
+       "text": "race pace 0.6% quicker than the field in the last 3 races",
+       "points": 0.0359
+      },
+      {
+       "text": "team's race pace 1.1% quicker than the field lately",
+       "points": 0.0358
+      },
+      {
+       "text": "team averaged P7.2 in the last 3 races",
+       "points": 0.0311
+      },
+      {
+       "text": "averaged P6.9 this season",
+       "points": 0.0134
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0105
+      },
+      {
+       "text": "finished P8 last time",
+       "points": -0.0085
+      },
+      {
+       "text": "averaged P5.5 here before",
+       "points": 0.0024
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.9024,
+     "start": 0.476,
+     "model": 0.8997,
+     "reasons": [
+      {
+       "text": "averaged P6.9 this season",
+       "points": 0.0898
+      },
+      {
+       "text": "3 wins this season",
+       "points": 0.0795
+      },
+      {
+       "text": "race pace 0.6% quicker than the field in the last 3 races",
+       "points": 0.0758
+      },
+      {
+       "text": "team averaged P7.2 in the last 3 races",
+       "points": 0.0566
+      },
+      {
+       "text": "averaged P8.6 in the last 5 races",
+       "points": 0.0563
+      },
+      {
+       "text": "team's race pace 1.1% quicker than the field lately",
+       "points": 0.0396
+      },
+      {
+       "text": "averaged P5.5 here before",
+       "points": 0.0356
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0151
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "PIA",
+   "team": "McLaren",
+   "win": 0.0448,
+   "podium": 0.1828,
+   "points": 0.8349,
+   "likely": 7,
+   "for": "podium",
+   "why": {
+    "win": {
+     "chance": 0.0448,
+     "start": 0.0494,
+     "model": 0.0626,
+     "reasons": [
+      {
+       "text": "race pace 0.8% quicker than the field in the last 3 races",
+       "points": 0.0116
+      },
+      {
+       "text": "averaged P8.7 this season",
+       "points": -0.0103
+      },
+      {
+       "text": "team's race pace 0.8% quicker than the field lately",
+       "points": 0.0086
+      },
+      {
+       "text": "team averaged P6.0 in the last 3 races",
+       "points": 0.0069
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0044
+      },
+      {
+       "text": "2 podiums this season",
+       "points": 0.0034
+      },
+      {
+       "text": "averaged P8.0 in the last 5 races",
+       "points": -0.0015
+      },
+      {
+       "text": "finished P7 last time",
+       "points": -0.0015
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.1828,
+     "start": 0.1295,
+     "model": 0.2166,
+     "reasons": [
+      {
+       "text": "team averaged P6.0 in the last 3 races",
+       "points": 0.041
+      },
+      {
+       "text": "race pace 0.8% quicker than the field in the last 3 races",
+       "points": 0.0405
+      },
+      {
+       "text": "team's race pace 0.8% quicker than the field lately",
+       "points": 0.0231
+      },
+      {
+       "text": "averaged P8.7 this season",
+       "points": -0.0197
+      },
+      {
+       "text": "2 podiums this season",
+       "points": 0.0097
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0072
+      },
+      {
+       "text": "finished P7 last time",
+       "points": -0.0065
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.0045
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.8349,
+     "start": 0.476,
+     "model": 0.831,
+     "reasons": [
+      {
+       "text": "race pace 0.8% quicker than the field in the last 3 races",
+       "points": 0.077
+      },
+      {
+       "text": "averaged P8.7 this season",
+       "points": 0.0686
+      },
+      {
+       "text": "team averaged P6.0 in the last 3 races",
+       "points": 0.0649
+      },
+      {
+       "text": "averaged P8.0 in the last 5 races",
+       "points": 0.0601
+      },
+      {
+       "text": "team's race pace 0.8% quicker than the field lately",
+       "points": 0.0378
+      },
+      {
+       "text": "averaged P7.0 here before",
+       "points": 0.0363
+      },
+      {
+       "text": "finished P7 last time",
+       "points": 0.0083
+      },
+      {
+       "text": "2 podiums this season",
+       "points": 0.0055
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "LAW",
+   "team": "Racing Bulls",
+   "win": 0.006,
+   "podium": 0.0312,
+   "points": 0.4814,
+   "likely": 11,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.006,
+     "start": 0.0494,
+     "model": 0.0085,
+     "reasons": [
+      {
+       "text": "team averaged P10.0 in the last 3 races",
+       "points": -0.0096
+      },
+      {
+       "text": "race pace 0.1% quicker than the field in the last 3 races",
+       "points": -0.008
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0078
+      },
+      {
+       "text": "averaged P9.3 this season",
+       "points": -0.0069
+      },
+      {
+       "text": "averaged P8.2 in the last 5 races",
+       "points": -0.0024
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0022
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0016
+      },
+      {
+       "text": "averaged P18.0 here before",
+       "points": -0.0011
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0312,
+     "start": 0.1295,
+     "model": 0.0383,
+     "reasons": [
+      {
+       "text": "race pace 0.1% quicker than the field in the last 3 races",
+       "points": -0.0237
+      },
+      {
+       "text": "team averaged P10.0 in the last 3 races",
+       "points": -0.0151
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0134
+      },
+      {
+       "text": "averaged P9.3 this season",
+       "points": -0.0102
+      },
+      {
+       "text": "averaged P18.0 here before",
+       "points": -0.0076
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0058
+      },
+      {
+       "text": "averaged P8.2 in the last 5 races",
+       "points": -0.0046
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0043
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.4814,
+     "start": 0.476,
+     "model": 0.4747,
+     "reasons": [
+      {
+       "text": "averaged P18.0 here before",
+       "points": -0.0757
+      },
+      {
+       "text": "averaged P8.2 in the last 5 races",
+       "points": 0.0589
+      },
+      {
+       "text": "team averaged P10.0 in the last 3 races",
+       "points": 0.0308
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0275
+      },
+      {
+       "text": "averaged P9.3 this season",
+       "points": 0.0265
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0156
+      },
+      {
+       "text": "finished P9 last time",
+       "points": 0.0095
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0068
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "GAS",
+   "team": "Alpine",
+   "win": 0.0054,
+   "podium": 0.0113,
+   "points": 0.402,
+   "likely": 12,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0054,
+     "start": 0.0494,
+     "model": 0.0077,
+     "reasons": [
+      {
+       "text": "team averaged P15.3 in the last 3 races",
+       "points": -0.0099
+      },
+      {
+       "text": "race pace 0.0% slower than the field in the last 3 races",
+       "points": -0.0087
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0074
+      },
+      {
+       "text": "averaged P10.9 this season",
+       "points": -0.0068
+      },
+      {
+       "text": "averaged P13.4 in the last 5 races",
+       "points": -0.005
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0021
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0017
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.0016
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0113,
+     "start": 0.1295,
+     "model": 0.0139,
+     "reasons": [
+      {
+       "text": "team averaged P15.3 in the last 3 races",
+       "points": -0.0345
+      },
+      {
+       "text": "race pace 0.0% slower than the field in the last 3 races",
+       "points": -0.0209
+      },
+      {
+       "text": "averaged P10.9 this season",
+       "points": -0.0206
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0172
+      },
+      {
+       "text": "averaged P13.4 in the last 5 races",
+       "points": -0.0148
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.0049
+      },
+      {
+       "text": "averaged P11.8 here before",
+       "points": -0.0047
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.003
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.402,
+     "start": 0.476,
+     "model": 0.3956,
+     "reasons": [
+      {
+       "text": "team averaged P15.3 in the last 3 races",
+       "points": -0.0767
+      },
+      {
+       "text": "averaged P10.9 this season",
+       "points": 0.0423
+      },
+      {
+       "text": "averaged P13.4 in the last 5 races",
+       "points": -0.0374
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.0356
+      },
+      {
+       "text": "averaged P11.8 here before",
+       "points": -0.0139
+      },
+      {
+       "text": "race pace 0.0% slower than the field in the last 3 races",
+       "points": -0.0102
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0096
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0064
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "HUL",
+   "team": "Audi",
+   "win": 0.0049,
+   "podium": 0.0124,
+   "points": 0.3478,
+   "likely": 12,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0049,
+     "start": 0.0494,
+     "model": 0.0071,
+     "reasons": [
+      {
+       "text": "team averaged P13.8 in the last 3 races",
+       "points": -0.0094
+      },
+      {
+       "text": "race pace 0.0% slower than the field in the last 3 races",
+       "points": -0.0089
+      },
+      {
+       "text": "team's race pace 0.3% slower than the field lately",
+       "points": -0.0072
+      },
+      {
+       "text": "averaged P13.1 this season",
+       "points": -0.0066
+      },
+      {
+       "text": "averaged P10.2 in the last 5 races",
+       "points": -0.0052
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0021
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0017
+      },
+      {
+       "text": "averaged P13.7 here before",
+       "points": -0.0011
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0124,
+     "start": 0.1295,
+     "model": 0.0153,
+     "reasons": [
+      {
+       "text": "team averaged P13.8 in the last 3 races",
+       "points": -0.034
+      },
+      {
+       "text": "averaged P13.1 this season",
+       "points": -0.022
+      },
+      {
+       "text": "race pace 0.0% slower than the field in the last 3 races",
+       "points": -0.0197
+      },
+      {
+       "text": "team's race pace 0.3% slower than the field lately",
+       "points": -0.0187
+      },
+      {
+       "text": "averaged P10.2 in the last 5 races",
+       "points": -0.0085
+      },
+      {
+       "text": "averaged P13.7 here before",
+       "points": -0.005
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0032
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0029
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.3478,
+     "start": 0.476,
+     "model": 0.3417,
+     "reasons": [
+      {
+       "text": "team averaged P13.8 in the last 3 races",
+       "points": -0.0516
+      },
+      {
+       "text": "averaged P13.1 this season",
+       "points": -0.0479
+      },
+      {
+       "text": "averaged P10.2 in the last 5 races",
+       "points": 0.0386
+      },
+      {
+       "text": "averaged P13.7 here before",
+       "points": -0.0307
+      },
+      {
+       "text": "race pace 0.0% slower than the field in the last 3 races",
+       "points": -0.0134
+      },
+      {
+       "text": "finished P11 last time",
+       "points": -0.0131
+      },
+      {
+       "text": "team's race pace 0.3% slower than the field lately",
+       "points": -0.0115
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0068
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "BEA",
+   "team": "Haas F1 Team",
+   "win": 0.0049,
+   "podium": 0.0104,
+   "points": 0.2835,
+   "likely": 13,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0049,
+     "start": 0.0494,
+     "model": 0.0069,
+     "reasons": [
+      {
+       "text": "race pace 0.3% slower than the field in the last 3 races",
+       "points": -0.012
+      },
+      {
+       "text": "team averaged P15.0 in the last 3 races",
+       "points": -0.0096
+      },
+      {
+       "text": "averaged P14.5 this season",
+       "points": -0.0065
+      },
+      {
+       "text": "team's race pace 0.4% slower than the field lately",
+       "points": -0.0058
+      },
+      {
+       "text": "averaged P14.6 in the last 5 races",
+       "points": -0.0054
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0024
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0016
+      },
+      {
+       "text": "averaged P4.0 here before",
+       "points": 0.0008
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0104,
+     "start": 0.1295,
+     "model": 0.0128,
+     "reasons": [
+      {
+       "text": "team averaged P15.0 in the last 3 races",
+       "points": -0.0342
+      },
+      {
+       "text": "race pace 0.3% slower than the field in the last 3 races",
+       "points": -0.0286
+      },
+      {
+       "text": "averaged P14.5 this season",
+       "points": -0.0211
+      },
+      {
+       "text": "averaged P14.6 in the last 5 races",
+       "points": -0.0163
+      },
+      {
+       "text": "team's race pace 0.4% slower than the field lately",
+       "points": -0.0143
+      },
+      {
+       "text": "averaged P4.0 here before",
+       "points": 0.0039
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0036
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0027
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.2835,
+     "start": 0.476,
+     "model": 0.2779,
+     "reasons": [
+      {
+       "text": "averaged P14.5 this season",
+       "points": -0.0898
+      },
+      {
+       "text": "team averaged P15.0 in the last 3 races",
+       "points": -0.0743
+      },
+      {
+       "text": "averaged P14.6 in the last 5 races",
+       "points": -0.0646
+      },
+      {
+       "text": "averaged P4.0 here before",
+       "points": 0.0501
+      },
+      {
+       "text": "race pace 0.3% slower than the field in the last 3 races",
+       "points": -0.0212
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0063
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.0058
+      },
+      {
+       "text": "team's race pace 0.4% slower than the field lately",
+       "points": 0.0057
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "LIN",
+   "team": "Racing Bulls",
+   "win": 0.0042,
+   "podium": 0.0194,
+   "points": 0.4479,
+   "likely": 11,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0042,
+     "start": 0.0494,
+     "model": 0.0061,
+     "reasons": [
+      {
+       "text": "race pace 0.4% slower than the field in the last 3 races",
+       "points": -0.0111
+      },
+      {
+       "text": "team averaged P10.0 in the last 3 races",
+       "points": -0.0093
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0069
+      },
+      {
+       "text": "averaged P10.8 this season",
+       "points": -0.0064
+      },
+      {
+       "text": "averaged P10.6 in the last 5 races",
+       "points": -0.0049
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0025
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0014
+      },
+      {
+       "text": "finished P12 last time",
+       "points": -0.0006
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0194,
+     "start": 0.1295,
+     "model": 0.0239,
+     "reasons": [
+      {
+       "text": "race pace 0.4% slower than the field in the last 3 races",
+       "points": -0.031
+      },
+      {
+       "text": "averaged P10.8 this season",
+       "points": -0.0224
+      },
+      {
+       "text": "team averaged P10.0 in the last 3 races",
+       "points": -0.0161
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0125
+      },
+      {
+       "text": "averaged P10.6 in the last 5 races",
+       "points": -0.0107
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0047
+      },
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0042
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0028
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.4479,
+     "start": 0.476,
+     "model": 0.4414,
+     "reasons": [
+      {
+       "text": "no retirements for the team lately",
+       "points": -0.0296
+      },
+      {
+       "text": "team averaged P10.0 in the last 3 races",
+       "points": 0.0292
+      },
+      {
+       "text": "averaged P10.6 in the last 5 races",
+       "points": 0.0202
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0146
+      },
+      {
+       "text": "finished P12 last time",
+       "points": -0.0113
+      },
+      {
+       "text": "race pace 0.4% slower than the field in the last 3 races",
+       "points": -0.0099
+      },
+      {
+       "text": "averaged P10.8 this season",
+       "points": -0.0083
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0071
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "OCO",
+   "team": "Haas F1 Team",
+   "win": 0.0041,
+   "podium": 0.0087,
+   "points": 0.2712,
+   "likely": 12,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0041,
+     "start": 0.0494,
+     "model": 0.0059,
+     "reasons": [
+      {
+       "text": "race pace 0.4% slower than the field in the last 3 races",
+       "points": -0.0123
+      },
+      {
+       "text": "team averaged P15.0 in the last 3 races",
+       "points": -0.009
+      },
+      {
+       "text": "averaged P13.5 this season",
+       "points": -0.0063
+      },
+      {
+       "text": "team's race pace 0.4% slower than the field lately",
+       "points": -0.0059
+      },
+      {
+       "text": "averaged P12.2 in the last 5 races",
+       "points": -0.0052
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.002
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0016
+      },
+      {
+       "text": "averaged P10.0 here before",
+       "points": -0.0011
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0087,
+     "start": 0.1295,
+     "model": 0.0107,
+     "reasons": [
+      {
+       "text": "team averaged P15.0 in the last 3 races",
+       "points": -0.0315
+      },
+      {
+       "text": "race pace 0.4% slower than the field in the last 3 races",
+       "points": -0.0284
+      },
+      {
+       "text": "averaged P13.5 this season",
+       "points": -0.0202
+      },
+      {
+       "text": "averaged P12.2 in the last 5 races",
+       "points": -0.0148
+      },
+      {
+       "text": "team's race pace 0.4% slower than the field lately",
+       "points": -0.0143
+      },
+      {
+       "text": "averaged P10.0 here before",
+       "points": -0.0038
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0031
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0026
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.2712,
+     "start": 0.476,
+     "model": 0.2657,
+     "reasons": [
+      {
+       "text": "team averaged P15.0 in the last 3 races",
+       "points": -0.0716
+      },
+      {
+       "text": "averaged P13.5 this season",
+       "points": -0.0689
+      },
+      {
+       "text": "averaged P12.2 in the last 5 races",
+       "points": -0.0461
+      },
+      {
+       "text": "finished P14 last time",
+       "points": -0.0176
+      },
+      {
+       "text": "race pace 0.4% slower than the field in the last 3 races",
+       "points": -0.0143
+      },
+      {
+       "text": "averaged P10.0 here before",
+       "points": 0.0097
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0067
+      },
+      {
+       "text": "team retired 10% of its cars in the last 5 races",
+       "points": 0.0052
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "COL",
+   "team": "Alpine",
+   "win": 0.0039,
+   "podium": 0.0078,
+   "points": 0.2662,
+   "likely": 13,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0039,
+     "start": 0.0494,
+     "model": 0.0056,
+     "reasons": [
+      {
+       "text": "race pace 0.3% slower than the field in the last 3 races",
+       "points": -0.0124
+      },
+      {
+       "text": "team averaged P15.3 in the last 3 races",
+       "points": -0.0092
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0068
+      },
+      {
+       "text": "averaged P12.7 this season",
+       "points": -0.0062
+      },
+      {
+       "text": "averaged P15.8 in the last 5 races",
+       "points": -0.0052
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.002
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0016
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.0013
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0078,
+     "start": 0.1295,
+     "model": 0.0095,
+     "reasons": [
+      {
+       "text": "team averaged P15.3 in the last 3 races",
+       "points": -0.0316
+      },
+      {
+       "text": "race pace 0.3% slower than the field in the last 3 races",
+       "points": -0.0297
+      },
+      {
+       "text": "averaged P12.7 this season",
+       "points": -0.0197
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0163
+      },
+      {
+       "text": "averaged P15.8 in the last 5 races",
+       "points": -0.0149
+      },
+      {
+       "text": "averaged P14.0 here before",
+       "points": -0.0048
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.0042
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.003
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.2662,
+     "start": 0.476,
+     "model": 0.2608,
+     "reasons": [
+      {
+       "text": "team averaged P15.3 in the last 3 races",
+       "points": -0.0819
+      },
+      {
+       "text": "averaged P15.8 in the last 5 races",
+       "points": -0.0726
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.0328
+      },
+      {
+       "text": "averaged P12.7 this season",
+       "points": -0.0292
+      },
+      {
+       "text": "averaged P14.0 here before",
+       "points": -0.025
+      },
+      {
+       "text": "race pace 0.3% slower than the field in the last 3 races",
+       "points": -0.025
+      },
+      {
+       "text": "team's race pace 0.2% slower than the field lately",
+       "points": -0.0081
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0063
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "BOR",
+   "team": "Audi",
+   "win": 0.0036,
+   "podium": 0.0072,
+   "points": 0.2541,
+   "likely": 13,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0036,
+     "start": 0.0494,
+     "model": 0.0052,
+     "reasons": [
+      {
+       "text": "race pace 0.6% slower than the field in the last 3 races",
+       "points": -0.0131
+      },
+      {
+       "text": "team averaged P13.8 in the last 3 races",
+       "points": -0.0086
+      },
+      {
+       "text": "team's race pace 0.3% slower than the field lately",
+       "points": -0.0066
+      },
+      {
+       "text": "averaged P12.9 this season",
+       "points": -0.0061
+      },
+      {
+       "text": "averaged P15.8 in the last 5 races",
+       "points": -0.0049
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.002
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0015
+      },
+      {
+       "text": "averaged P10.0 here before",
+       "points": -0.0013
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0072,
+     "start": 0.1295,
+     "model": 0.0088,
+     "reasons": [
+      {
+       "text": "race pace 0.6% slower than the field in the last 3 races",
+       "points": -0.0317
+      },
+      {
+       "text": "team averaged P13.8 in the last 3 races",
+       "points": -0.0297
+      },
+      {
+       "text": "averaged P12.9 this season",
+       "points": -0.0193
+      },
+      {
+       "text": "team's race pace 0.3% slower than the field lately",
+       "points": -0.0158
+      },
+      {
+       "text": "averaged P15.8 in the last 5 races",
+       "points": -0.0142
+      },
+      {
+       "text": "averaged P10.0 here before",
+       "points": -0.0043
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.003
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0025
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.2541,
+     "start": 0.476,
+     "model": 0.2488,
+     "reasons": [
+      {
+       "text": "averaged P15.8 in the last 5 races",
+       "points": -0.0741
+      },
+      {
+       "text": "team averaged P13.8 in the last 3 races",
+       "points": -0.0572
+      },
+      {
+       "text": "race pace 0.6% slower than the field in the last 3 races",
+       "points": -0.0371
+      },
+      {
+       "text": "averaged P12.9 this season",
+       "points": -0.0369
+      },
+      {
+       "text": "finished P13 last time",
+       "points": -0.0178
+      },
+      {
+       "text": "averaged P10.0 here before",
+       "points": 0.0085
+      },
+      {
+       "text": "team's race pace 0.3% slower than the field lately",
+       "points": -0.0077
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0071
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "ALO",
+   "team": "Aston Martin",
+   "win": 0.0036,
+   "podium": 0.0068,
+   "points": 0.1022,
+   "likely": 16,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0036,
+     "start": 0.0494,
+     "model": 0.0052,
+     "reasons": [
+      {
+       "text": "race pace 0.4% slower than the field in the last 3 races",
+       "points": -0.0119
+      },
+      {
+       "text": "team averaged P14.5 in the last 3 races",
+       "points": -0.009
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.0084
+      },
+      {
+       "text": "averaged P16.4 this season",
+       "points": -0.0061
+      },
+      {
+       "text": "averaged P15.6 in the last 5 races",
+       "points": -0.0049
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.002
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0015
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.0012
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0068,
+     "start": 0.1295,
+     "model": 0.0084,
+     "reasons": [
+      {
+       "text": "team averaged P14.5 in the last 3 races",
+       "points": -0.0308
+      },
+      {
+       "text": "race pace 0.4% slower than the field in the last 3 races",
+       "points": -0.0282
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.0211
+      },
+      {
+       "text": "averaged P16.4 this season",
+       "points": -0.0191
+      },
+      {
+       "text": "averaged P15.6 in the last 5 races",
+       "points": -0.014
+      },
+      {
+       "text": "averaged P18.2 here before",
+       "points": -0.0044
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.0035
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0029
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.1022,
+     "start": 0.476,
+     "model": 0.0993,
+     "reasons": [
+      {
+       "text": "averaged P16.4 this season",
+       "points": -0.1153
+      },
+      {
+       "text": "averaged P15.6 in the last 5 races",
+       "points": -0.0784
+      },
+      {
+       "text": "team averaged P14.5 in the last 3 races",
+       "points": -0.0763
+      },
+      {
+       "text": "averaged P18.2 here before",
+       "points": -0.0494
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.0282
+      },
+      {
+       "text": "race pace 0.4% slower than the field in the last 3 races",
+       "points": -0.0277
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.022
+      },
+      {
+       "text": "finished P16 last time",
+       "points": -0.0149
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "PER",
+   "team": "Cadillac",
+   "win": 0.0032,
+   "podium": 0.0056,
+   "points": 0.0269,
+   "likely": 18,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0032,
+     "start": 0.0494,
+     "model": 0.0045,
+     "reasons": [
+      {
+       "text": "race pace 1.6% slower than the field in the last 3 races",
+       "points": -0.0144
+      },
+      {
+       "text": "team averaged P19.3 in the last 3 races",
+       "points": -0.0082
+      },
+      {
+       "text": "team's race pace 2.5% slower than the field lately",
+       "points": -0.0075
+      },
+      {
+       "text": "averaged P17.0 this season",
+       "points": -0.0059
+      },
+      {
+       "text": "averaged P18.0 in the last 5 races",
+       "points": -0.0046
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0019
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0015
+      },
+      {
+       "text": "averaged P13.3 here before",
+       "points": -0.001
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0056,
+     "start": 0.1295,
+     "model": 0.007,
+     "reasons": [
+      {
+       "text": "race pace 1.6% slower than the field in the last 3 races",
+       "points": -0.0352
+      },
+      {
+       "text": "team averaged P19.3 in the last 3 races",
+       "points": -0.0278
+      },
+      {
+       "text": "team's race pace 2.5% slower than the field lately",
+       "points": -0.0196
+      },
+      {
+       "text": "averaged P17.0 this season",
+       "points": -0.0183
+      },
+      {
+       "text": "averaged P18.0 in the last 5 races",
+       "points": -0.013
+      },
+      {
+       "text": "averaged P13.3 here before",
+       "points": -0.0037
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0029
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0024
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.0269,
+     "start": 0.476,
+     "model": 0.0256,
+     "reasons": [
+      {
+       "text": "team averaged P19.3 in the last 3 races",
+       "points": -0.1578
+      },
+      {
+       "text": "averaged P17.0 this season",
+       "points": -0.0966
+      },
+      {
+       "text": "averaged P18.0 in the last 5 races",
+       "points": -0.0854
+      },
+      {
+       "text": "race pace 1.6% slower than the field in the last 3 races",
+       "points": -0.0585
+      },
+      {
+       "text": "team's race pace 2.5% slower than the field lately",
+       "points": -0.0365
+      },
+      {
+       "text": "averaged P13.3 here before",
+       "points": -0.012
+      },
+      {
+       "text": "team retired 30% of its cars in the last 5 races",
+       "points": 0.0067
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0046
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "BOT",
+   "team": "Cadillac",
+   "win": 0.0032,
+   "podium": 0.0056,
+   "points": 0.0215,
+   "likely": 19,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0032,
+     "start": 0.0494,
+     "model": 0.0045,
+     "reasons": [
+      {
+       "text": "race pace 3.5% slower than the field in the last 3 races",
+       "points": -0.0144
+      },
+      {
+       "text": "team averaged P19.3 in the last 3 races",
+       "points": -0.0082
+      },
+      {
+       "text": "team's race pace 2.5% slower than the field lately",
+       "points": -0.0075
+      },
+      {
+       "text": "averaged P18.8 this season",
+       "points": -0.0059
+      },
+      {
+       "text": "averaged P19.0 in the last 5 races",
+       "points": -0.0046
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0019
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0015
+      },
+      {
+       "text": "averaged P13.0 here before",
+       "points": -0.001
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0056,
+     "start": 0.1295,
+     "model": 0.007,
+     "reasons": [
+      {
+       "text": "race pace 3.5% slower than the field in the last 3 races",
+       "points": -0.0352
+      },
+      {
+       "text": "team averaged P19.3 in the last 3 races",
+       "points": -0.0278
+      },
+      {
+       "text": "team's race pace 2.5% slower than the field lately",
+       "points": -0.0196
+      },
+      {
+       "text": "averaged P18.8 this season",
+       "points": -0.0183
+      },
+      {
+       "text": "averaged P19.0 in the last 5 races",
+       "points": -0.013
+      },
+      {
+       "text": "averaged P13.0 here before",
+       "points": -0.0037
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0029
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0024
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.0215,
+     "start": 0.476,
+     "model": 0.0202,
+     "reasons": [
+      {
+       "text": "team averaged P19.3 in the last 3 races",
+       "points": -0.1516
+      },
+      {
+       "text": "averaged P18.8 this season",
+       "points": -0.1049
+      },
+      {
+       "text": "averaged P19.0 in the last 5 races",
+       "points": -0.0937
+      },
+      {
+       "text": "race pace 3.5% slower than the field in the last 3 races",
+       "points": -0.0555
+      },
+      {
+       "text": "team's race pace 2.5% slower than the field lately",
+       "points": -0.0375
+      },
+      {
+       "text": "averaged P13.0 here before",
+       "points": -0.0098
+      },
+      {
+       "text": "team retired 30% of its cars in the last 5 races",
+       "points": 0.0061
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0044
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "SAI",
+   "team": "Williams",
+   "win": 0.003,
+   "podium": 0.0063,
+   "points": 0.1106,
+   "likely": 16,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.003,
+     "start": 0.0494,
+     "model": 0.0044,
+     "reasons": [
+      {
+       "text": "race pace 0.6% slower than the field in the last 3 races",
+       "points": -0.0146
+      },
+      {
+       "text": "team averaged P17.5 in the last 3 races",
+       "points": -0.0082
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.008
+      },
+      {
+       "text": "averaged P14.3 this season",
+       "points": -0.0058
+      },
+      {
+       "text": "averaged P15.6 in the last 5 races",
+       "points": -0.0045
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0019
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0015
+      },
+      {
+       "text": "averaged P6.8 here before",
+       "points": -0.0006
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0063,
+     "start": 0.1295,
+     "model": 0.0077,
+     "reasons": [
+      {
+       "text": "race pace 0.6% slower than the field in the last 3 races",
+       "points": -0.0356
+      },
+      {
+       "text": "team averaged P17.5 in the last 3 races",
+       "points": -0.0288
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.02
+      },
+      {
+       "text": "averaged P14.3 this season",
+       "points": -0.0185
+      },
+      {
+       "text": "averaged P15.6 in the last 5 races",
+       "points": -0.0133
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0032
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0025
+      },
+      {
+       "text": "team retired 30% of its cars in the last 5 races",
+       "points": 0.0019
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.1106,
+     "start": 0.476,
+     "model": 0.1075,
+     "reasons": [
+      {
+       "text": "team averaged P17.5 in the last 3 races",
+       "points": -0.1315
+      },
+      {
+       "text": "averaged P15.6 in the last 5 races",
+       "points": -0.0837
+      },
+      {
+       "text": "race pace 0.6% slower than the field in the last 3 races",
+       "points": -0.0792
+      },
+      {
+       "text": "averaged P14.3 this season",
+       "points": -0.073
+      },
+      {
+       "text": "averaged P6.8 here before",
+       "points": 0.0311
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.0243
+      },
+      {
+       "text": "team retired 30% of its cars in the last 5 races",
+       "points": 0.0106
+      },
+      {
+       "text": "finished P18 last time",
+       "points": -0.0095
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "STR",
+   "team": "Aston Martin",
+   "win": 0.0029,
+   "podium": 0.0052,
+   "points": 0.0529,
+   "likely": 17,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0029,
+     "start": 0.0494,
+     "model": 0.0041,
+     "reasons": [
+      {
+       "text": "race pace 0.8% slower than the field in the last 3 races",
+       "points": -0.0148
+      },
+      {
+       "text": "team averaged P14.5 in the last 3 races",
+       "points": -0.0081
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.008
+      },
+      {
+       "text": "averaged P18.3 this season",
+       "points": -0.0057
+      },
+      {
+       "text": "averaged P18.0 in the last 5 races",
+       "points": -0.0044
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0019
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0015
+      },
+      {
+       "text": "averaged P14.2 here before",
+       "points": -0.0012
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0052,
+     "start": 0.1295,
+     "model": 0.0064,
+     "reasons": [
+      {
+       "text": "race pace 0.8% slower than the field in the last 3 races",
+       "points": -0.0361
+      },
+      {
+       "text": "team averaged P14.5 in the last 3 races",
+       "points": -0.0277
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.0199
+      },
+      {
+       "text": "averaged P18.3 this season",
+       "points": -0.0179
+      },
+      {
+       "text": "averaged P18.0 in the last 5 races",
+       "points": -0.0127
+      },
+      {
+       "text": "averaged P14.2 here before",
+       "points": -0.0044
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0028
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0024
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.0529,
+     "start": 0.476,
+     "model": 0.051,
+     "reasons": [
+      {
+       "text": "averaged P18.3 this season",
+       "points": -0.1224
+      },
+      {
+       "text": "averaged P18.0 in the last 5 races",
+       "points": -0.0897
+      },
+      {
+       "text": "race pace 0.8% slower than the field in the last 3 races",
+       "points": -0.0832
+      },
+      {
+       "text": "team averaged P14.5 in the last 3 races",
+       "points": -0.0745
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.0257
+      },
+      {
+       "text": "averaged P14.2 here before",
+       "points": -0.0209
+      },
+      {
+       "text": "finished P15 last time",
+       "points": -0.0135
+      },
+      {
+       "text": "team retired 40% of its cars in the last 5 races",
+       "points": 0.0124
+      }
+     ]
+    }
+   }
+  },
+  {
+   "driver": "ALB",
+   "team": "Williams",
+   "win": 0.0029,
+   "podium": 0.0052,
+   "points": 0.0437,
+   "likely": 17,
+   "for": "points",
+   "why": {
+    "win": {
+     "chance": 0.0029,
+     "start": 0.0494,
+     "model": 0.0041,
+     "reasons": [
+      {
+       "text": "race pace 0.7% slower than the field in the last 3 races",
+       "points": -0.0146
+      },
+      {
+       "text": "team averaged P17.5 in the last 3 races",
+       "points": -0.008
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.008
+      },
+      {
+       "text": "averaged P16.7 this season",
+       "points": -0.0057
+      },
+      {
+       "text": "averaged P18.2 in the last 5 races",
+       "points": -0.0044
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0019
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0015
+      },
+      {
+       "text": "averaged P13.0 here before",
+       "points": -0.0012
+      }
+     ]
+    },
+    "podium": {
+     "chance": 0.0052,
+     "start": 0.1295,
+     "model": 0.0064,
+     "reasons": [
+      {
+       "text": "race pace 0.7% slower than the field in the last 3 races",
+       "points": -0.0357
+      },
+      {
+       "text": "team averaged P17.5 in the last 3 races",
+       "points": -0.0276
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.0199
+      },
+      {
+       "text": "averaged P16.7 this season",
+       "points": -0.0179
+      },
+      {
+       "text": "averaged P18.2 in the last 5 races",
+       "points": -0.0127
+      },
+      {
+       "text": "averaged P13.0 here before",
+       "points": -0.0044
+      },
+      {
+       "text": "no win this season yet",
+       "points": -0.0028
+      },
+      {
+       "text": "no podium this season yet",
+       "points": -0.0024
+      }
+     ]
+    },
+    "points": {
+     "chance": 0.0437,
+     "start": 0.476,
+     "model": 0.042,
+     "reasons": [
+      {
+       "text": "team averaged P17.5 in the last 3 races",
+       "points": -0.116
+      },
+      {
+       "text": "averaged P16.7 this season",
+       "points": -0.1005
+      },
+      {
+       "text": "averaged P18.2 in the last 5 races",
+       "points": -0.0988
+      },
+      {
+       "text": "race pace 0.7% slower than the field in the last 3 races",
+       "points": -0.0763
+      },
+      {
+       "text": "team's race pace 0.6% slower than the field lately",
+       "points": -0.0206
+      },
+      {
+       "text": "averaged P13.0 here before",
+       "points": -0.0141
+      },
+      {
+       "text": "finished P17 last time",
+       "points": -0.0089
+      },
+      {
+       "text": "team retired 30% of its cars in the last 5 races",
+       "points": 0.0087
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

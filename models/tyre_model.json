@@ -1,0 +1,81 @@
+{
+ "features": [
+  "Compound",
+  "Circuit",
+  "TyreLife",
+  "Stint",
+  "UsedSoft",
+  "UsedMedium",
+  "UsedHard",
+  "DryCompoundsUsed",
+  "LapNumber",
+  "LapsLeft",
+  "RaceProgress",
+  "FieldOnSoft",
+  "FieldOnMedium",
+  "FieldOnHard",
+  "FieldOnWetTyres",
+  "FitSoftRecent",
+  "FitMediumRecent",
+  "FitHardRecent",
+  "FitWetRecent",
+  "SafetyCar",
+  "VSC",
+  "Rainfall",
+  "TrackTemp",
+  "AirTemp",
+  "Humidity",
+  "Position"
+ ],
+ "classes": [
+  "SOFT",
+  "MEDIUM",
+  "HARD",
+  "INTER/WET"
+ ],
+ "settings": {
+  "num_leaves": 15,
+  "min_child_samples": 20
+ },
+ "trees": 102,
+ "trained_on": "2022-2025",
+ "categories": {
+  "Compound": [
+   "HARD",
+   "INTERMEDIATE",
+   "MEDIUM",
+   "SOFT",
+   "UNKNOWN",
+   "WET"
+  ],
+  "Circuit": [
+   "Austin",
+   "Baku",
+   "Catalunya",
+   "Hungaroring",
+   "Imola",
+   "Interlagos",
+   "Jeddah",
+   "Kuala Lumpur",
+   "Las Vegas",
+   "Le Castellet",
+   "Lusail",
+   "Madring",
+   "Melbourne",
+   "Mexico City",
+   "Miami",
+   "Monte Carlo",
+   "Montreal",
+   "Monza",
+   "Sakhir",
+   "Shanghai",
+   "Silverstone",
+   "Singapore",
+   "Spa-Francorchamps",
+   "Spielberg",
+   "Suzuka",
+   "Yas Marina Circuit",
+   "Zandvoort"
+  ]
+ }
+}
