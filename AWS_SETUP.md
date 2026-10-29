@@ -4,8 +4,10 @@ The app works without any of this. With it, the race data and the models have a 
 older version kept), a Lambda function checks each table that arrives, Athena answers questions about the data in
 SQL, and the desktop app fetches the newest data when it starts. The game's recordings never go to AWS.
 
-About an hour, once. Do every step in the region **Europe (Frankfurt) eu-central-1** (the menu at the top right of
-the AWS console). Keep the keys to yourself: never put them in the project folder, an email or a chat.
+About an hour, once. Do every step in one region: **Europe (Frankfurt) eu-central-1**, or **Europe (Stockholm)
+eu-north-1** on AWS's free plan, which allows only that one (the menu at the top right of the AWS console). On the
+free plan each project is an AWS account of its own: open the console from the project that holds the bucket (the
+account ID is at the top right). Keep the keys to yourself: never put them in the project folder, an email or a chat.
 
 ## 1. An account and a budget alarm (10 minutes)
 
@@ -29,6 +31,8 @@ On this PC, in the project folder:
 python aws_sync.py setup f1-strategy-yourname-2026
 ```
 
+In Stockholm, add the region: `python aws_sync.py setup f1-strategy-yourname-2026 eu-north-1`.
+
 ## 3. A key for the app (5 minutes)
 
 1. **IAM → Users → Create user**: name `f1-strategy-app`, no console access → Next → Next → **Create user**.
@@ -40,8 +44,9 @@ python aws_sync.py setup f1-strategy-yourname-2026
    ```
 
 3. **Security credentials → Create access key → Local code** (or "Application running outside AWS") → Next →
-   **Create access key**. Keep the page open, and on this PC type both parts (the secret one doesn't show as you
-   type):
+   **Create access key**. Keep the page open, and on this PC paste both parts (paste the secret with a right-click:
+   it doesn't show, and Ctrl+V doesn't paste into a hidden prompt in every window). It checks them and tests the key
+   on the bucket:
 
    ```bat
    python aws_sync.py keys

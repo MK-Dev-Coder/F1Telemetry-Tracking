@@ -111,7 +111,8 @@ def main():
         for q in asked:
             title, sql = QUESTIONS.get(q, (q, q))
             rows, seconds, read = run(athena, sql, bucket)
-            print(f"\n{title}  ({seconds:.1f} s in Athena, {read / 1e6:.1f} MB read)")
+            amount = f"{read / 1e6:.1f} MB" if read >= 1e6 else f"{read / 1e3:.0f} KB"
+            print(f"\n{title}  ({seconds:.1f} s in Athena, {amount} read)")
             show(rows)
     else:
         print(__doc__)

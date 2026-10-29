@@ -25,6 +25,7 @@ import configparser
 import getpass
 import hashlib
 import json
+import re
 import sys
 import tempfile
 import time
@@ -291,9 +292,13 @@ def save_keys():
     path = Path.home() / ".aws" / "credentials"
     print("Paste your access key (AWS: IAM > Users > f1-strategy-app > Security credentials).")
     key_id = input("Access key ID: ").strip()
-    secret = getpass.getpass("Secret access key (it won't show as you type): ").strip()
-    if not key_id or not secret:
-        raise SystemExit("Nothing saved")
+    secret = getpass.getpass("Secret access key (paste it with a right-click; it won't show): ").strip()
+    if not re.fullmatch(r"AKIA[A-Z0-9]{16}", key_id):
+        raise SystemExit("That isn't an access key ID (20 letters and digits, starting AKIA). Nothing saved.")
+    if not re.fullmatch(r"[A-Za-z0-9/+]{40}", secret):
+        raise SystemExit(f"That isn't a secret access key: it should be 40 characters, and {len(secret)} came in. "
+                         "Nothing saved. Paste it with a right-click (Ctrl+V doesn't paste into a hidden prompt "
+                         "in every window).")
     creds = configparser.ConfigParser()
     creds.read(path, encoding="utf-8")
     creds[PROFILE] = {"aws_access_key_id": key_id, "aws_secret_access_key": secret}
@@ -301,6 +306,13 @@ def save_keys():
     with open(path, "w", encoding="utf-8") as f:
         creds.write(f)
     print(f"Saved in {path} as '{PROFILE}' (on this PC only)")
+    cfg = settings()
+    if cfg:
+        try:
+            client(cfg).head_bucket(Bucket=cfg["bucket"])
+            print(f"The key works: it can open the bucket {cfg['bucket']}")
+        except Exception as e:
+            print(f"Saved, but AWS refused it ({e}). Check that both parts come from the same key, then run this again.")
 
 
 def main():
