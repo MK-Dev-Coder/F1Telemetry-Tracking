@@ -18,11 +18,11 @@ MSc dissertation project, Big Data Engineering & Data Science (AthTech / Univers
   before it.
 - **The trained models are here** (`models/`), the race data isn't: it belongs to Formula 1. To run the app or
   train the models again, see [Install](#install) and [Get the data](#get-the-data) (about 30 minutes to download).
-- **The tests** (`python -m pytest tests`, 187 of them) run on GitHub Actions on every push (the badge above).
-  Without the data folder the 32 that read it are skipped and the other 155 run.
+- **The tests** (`python -m pytest tests`, 193 of them) run on GitHub Actions on every push (the badge above).
+  Without the data folder the 32 that read it are skipped and the other 161 run.
 - **The cloud data layer** (optional; the app runs without it): the data and models in Amazon S3 with versions, a
-  Lambda check on each table that arrives, and Athena for SQL ([AWS_SETUP.md](AWS_SETUP.md)); the desktop app
-  (`desktop.py`) fetches the newest data from it.
+  Lambda check on each table that arrives, Athena for SQL, and a daily Lambda that fetches each new race
+  ([AWS_SETUP.md](AWS_SETUP.md)); the desktop app (`desktop.py`) fetches the newest data from it and builds new races.
 - **Licence:** the code is under the [MIT licence](LICENSE); the data, names, logo and photos belong to their
   owners.
 
@@ -269,7 +269,8 @@ python build_timing.py
 - `build_dataset.py` joins both sources into `data/all_laps.parquet`, with a `Source` column.
 - To add a new race (for example the 2026 United States GP, round 18): `python collect_openf1.py 2026 18`, then
   `build_dataset.py`, `features.py`, `build_timing.py`, `race_preview.py` and `engineer.py` (the app builds its replay file and
-  the final results itself). The study's numbers don't change (see Results).
+  the final results itself). The study's numbers don't change (see Results). With the cloud set up, this happens by
+  itself: see "New races by themselves" in The cloud data layer.
 - `build_timing.py` saves what the live timing screen needs: sector times, mini-sectors (2023 on), speed traps,
   race control messages, team colours, driver names, and one lap of car positions per circuit to draw
   the track maps (downloaded once from OpenF1).
@@ -317,7 +318,7 @@ python engineer.py
 python -m pytest tests
 ```
 
-187 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
+193 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
 data. They check:
 
 - **The features:** real stops are found (not drive-throughs, not tyre changes under a red flag), and no feature
@@ -352,10 +353,13 @@ data. They check:
   a new PC gets every file exactly as sent; nothing changed, nothing sent; a file changed on one PC is never replaced
   by an older copy, and one changed on both sides is left alone; a download that doesn't match its SHA-256 is
   refused; the access key can't delete; the Lambda check finds laps listed twice and missing columns, and spots a
-  file that isn't the one sent; the Athena tables' columns; the app window is a program of its own.
+  file that isn't the one sent; the Athena tables' columns; the app window is a program of its own. New races: the
+  daily fetch takes only finished races that aren't built or waiting already (not cancelled ones, not ones OpenF1 has
+  no laps for yet) and stores them as `collect_openf1.py` does; the PC builds a new race with the README's steps in
+  order, runs them again after a failure, and never sends its note to the cloud.
 
 Most tests use small made-up races. The 32 in `tests/test_with_data.py` read the data folder and the trained
-models without changing them; without the data folder they are skipped and the other 155 still run. The tests
+models without changing them; without the data folder they are skipped and the other 161 still run. The tests
 don't listen for the game, so they can run while the app is open.
 
 ## Run the app
@@ -394,6 +398,14 @@ hour, step by step in [AWS_SETUP.md](AWS_SETUP.md).
 - **Athena** (`python aws_athena.py setup`, then `python aws_athena.py ask`): questions in SQL straight on the files
   in S3 (races and laps per season, tyre stints per race, the share of laps on each tyre, how long a set lasts), each
   with the time Athena took and the data it read.
+- **New races by themselves** (`aws_fetch.py`, `newraces.py`): every morning at 06:00 UTC an EventBridge schedule
+  runs a second Lambda, which fetches any Grand Prix that has finished from OpenF1 into the bucket, exactly as
+  `collect_openf1.py` saves a race. When the desktop app starts, it builds the new race in the background with the
+  usual steps (`collect_openf1.py`, `build_dataset.py`, `features.py`, `build_timing.py`, `race_preview.py`,
+  `engineer.py`), sends the results back so every PC gets it, and says when it's in. Tested by fetching the 2026
+  United States GP again: the cloud's copy was identical to the saved one, and rebuilt from it on a copy of the
+  project, the race, `all_laps.parquet` and `features.parquet` came out identical. The study doesn't change (its
+  test races stay 2026 rounds 1–17).
 - **Safe by design:** the bucket is private, the access key can use only that bucket (and Athena on its own
   database) and can't delete anything, and it is kept in your user folder's `.aws`, never in the project.
   `python aws_sync.py check` fetches everything into an empty folder as a new PC would, times it and compares every
@@ -717,6 +729,8 @@ Race ids look like `2026_17` (year and round). Add `?reveal=true` to see what re
 | `aws_sync.py` | The cloud data layer: the data and the models to and from S3, checked by SHA-256, with versions |
 | `aws_check.py` | The Lambda function that checks each table sent to S3 |
 | `aws_athena.py` | Athena: questions in SQL on the data in S3 |
+| `aws_fetch.py` | The daily Lambda that fetches each new race from OpenF1 into S3 |
+| `newraces.py` | Builds the new races the cloud fetched, with the usual steps, and sends them back |
 | `AWS_SETUP.md` | Setting up the cloud data layer, step by step |
 | `tests/` | The tests (`python -m pytest tests`, see Tests) |
 | `.github/workflows/tests.yml` | Runs the tests on GitHub on every push |

@@ -3,8 +3,9 @@
 When it starts, it fetches any newer race data from the cloud (if this PC is set up for AWS, see aws_sync.py; without
 it, or without the internet, it uses the data already here), starts the app on this PC only
 (http://127.0.0.1:8000) and opens it in a window of Microsoft Edge (or Chrome) with no address bar. Closing the
-window stops the app. If the app is already running (python api.py), it only opens a window on it. The game's
-telemetry still comes straight from the console to this PC, as before.
+window stops the app. If the app is already running (python api.py), it only opens a window on it. While it runs, it
+builds any new race the cloud fetched (newraces.py) and says when one is in. The game's telemetry still comes
+straight from the console to this PC, as before.
 
     python desktop.py              start it (the shortcut runs this without a console window)
     python desktop.py --shortcut   put the shortcut on the desktop (Windows)
@@ -73,6 +74,40 @@ def from_the_cloud():
         log(f"The cloud: skipped ({e}); the data here is used")
 
 
+def new_races():
+    """The races the cloud fetched since the last start (newraces.py), built while the app runs: a message says when
+    one is in (it shows the next time the app opens). One build at a time, whichever copy of the app starts it."""
+    lock = HOME / "newraces.lock"
+    try:
+        if lock.exists() and time.time() - lock.stat().st_mtime > 3600:
+            lock.unlink()                        # left by a build that was stopped
+        with open(lock, "x"):
+            pass
+    except OSError:
+        return
+    try:
+        import aws_sync
+        import newraces
+        cfg = aws_sync.settings()
+        added = newraces.add(aws_sync.client(cfg), cfg["bucket"], log=log) if cfg else []
+        if added:
+            log("New races added: " + ", ".join(added))
+            tell("New race added: " + ", ".join(r.split(" ", 1)[1] for r in added) +
+                 ".\nClose the app and open it again to see it.")
+    except BaseException as e:
+        log(f"New races: skipped ({e})")
+    finally:
+        lock.unlink(missing_ok=True)
+
+
+def tell(text):
+    if sys.platform == "win32":
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(0, text, NAME, 0x40)       # an information box
+    else:
+        log(text)
+
+
 def start_app():
     """The app, in this program: the same as python api.py, on this PC only."""
     os.environ.setdefault("F1_APP_LAN", "0")
@@ -119,6 +154,8 @@ def main():
         from_the_cloud()
         ours = start_app()
         log(f"The app is running at {URL}")
+    builder = threading.Thread(target=new_races, name="new-races")
+    builder.start()
     exe = browser()
     if exe:
         subprocess.run(window(exe))              # until the window is closed
@@ -134,6 +171,7 @@ def main():
         ours[0].should_exit = True               # stop the app this program started
         ours[1].join(timeout=10)
         log("The app stopped")
+    builder.join()                               # a new race being built is finished first
 
 
 if __name__ == "__main__":

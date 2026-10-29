@@ -14,6 +14,7 @@ Once (the steps are in AWS_SETUP.md):
     python aws_sync.py keys                    type your access key (kept in your user folder's .aws, not here)
     python aws_sync.py policy                  the permissions for that key, ready to paste into AWS
     python aws_sync.py policy check            the permissions for the Lambda check (aws_check.py)
+    python aws_sync.py policy fetch            the permissions for the daily fetch of new races (aws_fetch.py)
 Then:
     python aws_sync.py upload                  send what changed (after a new race; --all: every file again)
     python aws_sync.py download                fetch what changed
@@ -44,6 +45,7 @@ REGION = "eu-central-1"                          # Frankfurt, the closest to Gre
 FOLDERS = ["data", "models"]
 STAY_HERE = {"f1_25", "driver"}                  # the game's data never leaves this PC
 REBUILT = {"replay_laps.parquet"}                # the app builds it again from all_laps.parquet
+HERE_ONLY = {"building.json"}                    # newraces.py's note of a build still to finish
 THREADS = 8
 
 
@@ -70,7 +72,7 @@ def local_files(root=ROOT):
     for folder in FOLDERS:
         for p in sorted((root / folder).rglob("*")):
             first = p.relative_to(root / folder).parts[0]
-            if p.is_file() and first not in STAY_HERE and p.name not in REBUILT and p.suffix != ".part":
+            if p.is_file() and first not in STAY_HERE and p.name not in REBUILT | HERE_ONLY and p.suffix != ".part":
                 out.append(p.relative_to(root).as_posix())
     return out
 
@@ -286,6 +288,17 @@ def check_policy(bucket):
     ]}
 
 
+def fetch_policy(bucket):
+    """The permissions for the daily fetch (aws_fetch.py): read the list of races built, list and write new ones."""
+    arn = f"arn:aws:s3:::{bucket}"
+    return {"Version": "2012-10-17", "Statement": [
+        {"Sid": "ReadTheIndex", "Effect": "Allow", "Action": "s3:GetObject", "Resource": f"{arn}/data/openf1/sessions.json"},
+        {"Sid": "WriteNewRaces", "Effect": "Allow", "Action": "s3:PutObject", "Resource": f"{arn}/data/openf1/incoming/*"},
+        {"Sid": "ListNewRaces", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": arn,
+         "Condition": {"StringLike": {"s3:prefix": ["data/openf1/incoming/*", "data/openf1/sessions.json"]}}},
+    ]}
+
+
 def save_keys():
     """Ask for the access key (the secret part isn't shown as you type) and keep it in your user folder's
     .aws/credentials, as AWS's own tools do. It is never kept in the project folder."""
@@ -330,7 +343,8 @@ def main():
         if not cfg:
             raise SystemExit("First: python aws_sync.py setup YOUR-BUCKET-NAME  (see AWS_SETUP.md)")
         if command == "policy":
-            rules = check_policy(cfg["bucket"]) if words[1:2] == ["check"] else policy(cfg["bucket"], cfg["region"])
+            which = {"check": check_policy, "fetch": fetch_policy}.get(words[1] if len(words) > 1 else "")
+            rules = which(cfg["bucket"]) if which else policy(cfg["bucket"], cfg["region"])
             print(json.dumps(rules, indent=2))
             return
         s3 = client(cfg)

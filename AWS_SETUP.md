@@ -120,6 +120,25 @@ python aws_sync.py check
 It fetches everything into an empty folder, as a new PC would, times it and compares every file with this PC's
 (saved in `results/cloud.md`). `python aws_sync.py status` counts the versions S3 keeps.
 
+## 9. New races by themselves (optional, about 10 minutes)
+
+A second Lambda fetches each new Grand Prix from OpenF1 into the bucket the morning after it, exactly as
+`collect_openf1.py` saves a race; the desktop app then builds it on this PC with the usual steps (`newraces.py`),
+sends the results back and says when it's in.
+
+1. On this PC, the races you have already (so they aren't fetched again): `python newraces.py --index`, then
+   `python aws_sync.py upload`.
+2. **Lambda → Create function**: name `f1-strategy-fetch`, runtime **Python 3.12** → paste `aws_fetch.py` into
+   `lambda_function.py` → **Deploy**. **Configuration → General configuration**: 256 MB, timeout 5 min.
+   **Configuration → Environment variables**: `BUCKET` = your bucket's name. **Configuration → Permissions**: the
+   role → inline policy with what `python aws_sync.py policy fetch` prints.
+3. **EventBridge → Scheduler → Create schedule**: name `f1-strategy-daily-fetch`, recurring, cron `0 6 * * ? *`
+   (every day at 06:00 UTC), flexible time window off → target **AWS Lambda Invoke**, the function
+   `f1-strategy-fetch` → let it create its role → **Create schedule**.
+4. To try it: in the Lambda, **Test** with the event `{"session_key": 11396}` (the 2026 United States GP fetched
+   again); it appears in the bucket's `data/openf1/incoming/` in about 20 seconds. `python newraces.py` builds any
+   race that is new to this PC (the desktop app does it by itself when it starts).
+
 ## What it costs, and turning it off
 
 - **S3**: about 25 MB and a few older versions: a few cents a month at most.
