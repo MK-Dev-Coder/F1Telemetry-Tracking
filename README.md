@@ -18,8 +18,11 @@ MSc dissertation project, Big Data Engineering & Data Science (AthTech / Univers
   before it.
 - **The trained models are here** (`models/`), the race data isn't: it belongs to Formula 1. To run the app or
   train the models again, see [Install](#install) and [Get the data](#get-the-data) (about 30 minutes to download).
-- **The tests** (`python -m pytest tests`, 176 of them) run on GitHub Actions on every push (the badge above).
-  Without the data folder the 32 that read it are skipped and the other 144 run.
+- **The tests** (`python -m pytest tests`, 187 of them) run on GitHub Actions on every push (the badge above).
+  Without the data folder the 32 that read it are skipped and the other 155 run.
+- **The cloud data layer** (optional; the app runs without it): the data and models in Amazon S3 with versions, a
+  Lambda check on each table that arrives, and Athena for SQL ([AWS_SETUP.md](AWS_SETUP.md)); the desktop app
+  (`desktop.py`) fetches the newest data from it.
 - **Licence:** the code is under the [MIT licence](LICENSE); the data, names, logo and photos belong to their
   owners.
 
@@ -314,7 +317,7 @@ python engineer.py
 python -m pytest tests
 ```
 
-176 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
+187 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
 data. They check:
 
 - **The features:** real stops are found (not drive-throughs, not tyre changes under a red flag), and no feature
@@ -345,9 +348,14 @@ data. They check:
   start from the game's reaction time or from when the car first moves, and the places your quicker starts make.
 - **The app:** its web answers, as the pages get them (for example, a replay speed of 0 is refused), and without
   `team_colours.json` the drivers are just grey.
+- **The cloud and the desktop app** (with a made-up bucket in memory, no AWS needed): the game's data never goes up;
+  a new PC gets every file exactly as sent; nothing changed, nothing sent; a file changed on one PC is never replaced
+  by an older copy, and one changed on both sides is left alone; a download that doesn't match its SHA-256 is
+  refused; the access key can't delete; the Lambda check finds laps listed twice and missing columns, and spots a
+  file that isn't the one sent; the Athena tables' columns; the app window is a program of its own.
 
 Most tests use small made-up races. The 32 in `tests/test_with_data.py` read the data folder and the trained
-models without changing them; without the data folder they are skipped and the other 144 still run. The tests
+models without changing them; without the data folder they are skipped and the other 155 still run. The tests
 don't listen for the game, so they can run while the app is open.
 
 ## Run the app
@@ -361,6 +369,35 @@ Then open <http://127.0.0.1:8000>. The first start takes about 5 seconds while i
 
 The start menu has three buttons: **F1** for real races, **F1 25** for your own game sessions, and **F1 26**
 for your sessions with the 2026 cars (F1 25's 2026 Season Pack).
+
+### The desktop app
+
+`python desktop.py --shortcut` puts **F1 Strategy Predictor** on the desktop. A double-click starts the app on this
+PC and opens it in a window of its own (Edge or Chrome, with no address bar); closing the window stops it. If the app
+is already running, it just opens a window on it. It works without AWS; when this PC is set up for it (below), it
+first fetches any newer data from the cloud. What it did is in `desktop.log` (in `AppData\Local\F1 Strategy
+Predictor`).
+
+### The cloud data layer (AWS)
+
+Optional: a safe copy of the data and the models, which another PC can fetch in a minute. Setting it up takes about an
+hour, step by step in [AWS_SETUP.md](AWS_SETUP.md).
+
+- **S3** (`python aws_sync.py upload`): everything in `data/` except the game's recordings (`data/f1_25`) and the
+  driver report made from them (`data/driver`), which never leave this PC, plus `models/`: about 240 files, 25 MB.
+  Only what changed goes up. Each file goes with its SHA-256, and a download that doesn't match it is refused; with
+  the bucket's versioning on, S3 keeps every older copy. `python aws_sync.py download` fetches what changed: a file
+  changed on this PC since the last sync is never replaced, and an upload never replaces a newer copy in the cloud.
+- **Lambda** (`aws_check.py`, run by AWS on each table that arrives): did it arrive whole (its SHA-256), its rows,
+  seasons and races, and for the lap tables missing columns, laps listed twice, missing lap times and tyres the
+  timing didn't name. A report for each table goes in the bucket's `checks/`.
+- **Athena** (`python aws_athena.py setup`, then `python aws_athena.py ask`): questions in SQL straight on the files
+  in S3 (races and laps per season, tyre stints per race, the share of laps on each tyre, how long a set lasts), each
+  with the time Athena took and the data it read.
+- **Safe by design:** the bucket is private, the access key can use only that bucket (and Athena on its own
+  database) and can't delete anything, and it is kept in your user folder's `.aws`, never in the project.
+  `python aws_sync.py check` fetches everything into an empty folder as a new PC would, times it and compares every
+  file (`results/cloud.md`).
 
 ### F1: real races
 
@@ -676,9 +713,15 @@ Race ids look like `2026_17` (year and round). Add `?reveal=true` to see what re
 | `game_analysis.py` | The report, theoretical best, wear forecast, corners, lock-ups, energy, overtake mode, Time Trial, wet-tyre call and progress |
 | `start_app_lan.bat` | Starts the app for this PC and your home network (for the phone dash) |
 | `game_driver.py` | The driver report: a LightGBM model of your driving, corner by corner, that keeps learning |
+| `desktop.py` | The desktop app: the app in a window of its own, with the newest data from the cloud |
+| `aws_sync.py` | The cloud data layer: the data and the models to and from S3, checked by SHA-256, with versions |
+| `aws_check.py` | The Lambda function that checks each table sent to S3 |
+| `aws_athena.py` | Athena: questions in SQL on the data in S3 |
+| `AWS_SETUP.md` | Setting up the cloud data layer, step by step |
 | `tests/` | The tests (`python -m pytest tests`, see Tests) |
 | `.github/workflows/tests.yml` | Runs the tests on GitHub on every push |
 | `web/index.html` | The start menu |
+| `web/app.ico` | The app's icon (the desktop shortcut and the pages) |
 | `web/f1.html` | Real races: the pit-wall live timing page |
 | `web/f1-25.html` | F1 25 and F1 26: your game sessions (at `/app/f1-26.html` it shows the F1 26 ones) |
 | `web/dash.html` | The phone dash: your live race in big numbers for a second screen |

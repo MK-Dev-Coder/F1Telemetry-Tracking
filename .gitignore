@@ -10,3 +10,7 @@ data/
 
 # The F1 logo is a Formula 1 trademark, so it stays on this PC only
 web/f1-logo.png
+
+# This PC's AWS settings and its last sync (the keys themselves are in your user folder's .aws, never here)
+aws_settings.json
+aws_state.json

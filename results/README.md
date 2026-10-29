@@ -19,5 +19,6 @@ have from both sources.
 | `source_comparison.csv` | FastF1 against OpenF1 on two races (how far the two sources agree) | `python compare_sources.py` |
 | `horizon.md`, `horizon.csv` | Why "a stop in the next 3 laps": the model for 1, 2, 3 and 5 laps | `python evaluate_design.py` (writes here) |
 | `feature_groups.md`, `feature_groups.csv` | What each group of features adds (the model without each group) | `python evaluate_design.py` (writes here) |
+| `cloud.md` | The cloud data layer: a new PC's download from S3 (files, size, time, every file the same) | `python aws_sync.py check` (writes here, once AWS is set up) |
 
 The charts are in `figures/`.
