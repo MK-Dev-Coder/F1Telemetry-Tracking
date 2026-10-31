@@ -5,9 +5,9 @@ Settings > Telemetry Settings > UDP Telemetry: On, UDP IP Address: this PC's add
 UDP Format: 2025 (2024 also works). With the 2026 Season Pack choose 2026: it adds active aero, overtake mode
 and the 2026 teams (those sessions show in the app's F1 26 section).
 
-Run on its own to record without the app:   python game_telemetry.py
-Re-decode every saved session:               python game_telemetry.py rebuild
-The app (python api.py) also records while it runs.
+Run on its own to record without the app:   python src/game_telemetry.py
+Re-decode every saved session:               python src/game_telemetry.py rebuild
+The app (python src/api.py) also records while it runs.
 """
 import atexit
 import gzip

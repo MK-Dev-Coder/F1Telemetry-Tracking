@@ -22,7 +22,7 @@ MSc dissertation project, Big Data Engineering & Data Science (AthTech / Univers
   Without the data folder the 32 that read it are skipped and the other 161 run.
 - **The cloud data layer** (optional; the app runs without it): the data and models in Amazon S3 with versions, a
   Lambda check on each table that arrives, Athena for SQL, and a daily Lambda that fetches each new race
-  ([AWS_SETUP.md](AWS_SETUP.md)); the desktop app (`desktop.py`) fetches the newest data from it and builds new races.
+  ([AWS_SETUP.md](docs/AWS_SETUP.md)); the desktop app (`desktop.py`) fetches the newest data from it and builds new races.
 - **Licence:** the code is under the [MIT licence](LICENSE); the data, names, logo and photos belong to their
   owners.
 
@@ -86,7 +86,7 @@ behind them are in `results/` (the scripts write them to `data/`, which isn't in
 | Logistic regression | 66% | 88% |
 | **LightGBM** | **71%** | **88%** |
 
-**Evaluation** (`python evaluate.py`, all on 2026):
+**Evaluation** (`python src/evaluate.py`, all on 2026):
 
 - PR-AUC 0.32 with a 95% confidence interval of 0.27–0.39 (whole races resampled); LightGBM beats the
   logistic regression in 95% of the resamples and the tyre age rule in all of them.
@@ -102,7 +102,7 @@ behind them are in `results/` (the scripts write them to `data/`, which isn't in
 
 The full tables are in `results/evaluation.md`, and the charts are `figures/eval_*.png`.
 
-**Why "the next 3 laps", and what each group of features adds** (`python evaluate_design.py`, tables in
+**Why "the next 3 laps", and what each group of features adds** (`python src/evaluate_design.py`, tables in
 `results/horizon.md` and `results/feature_groups.md`, charts `figures/eval_horizon.png` and
 `figures/eval_feature_groups.png`). The same model, trained and tuned the same way, for a stop in the next 1, 2, 3
 or 5 laps. A longer window is easier to hit, so each PR-AUC is set against its own random guess:
@@ -132,7 +132,7 @@ features on the test races would use the test to choose.
 | Position only (where they are now) | 0.087 | 0.168 | 0.358 | 2.03 |
 | **LightGBM** | **0.066** | **0.152** | **0.346** | **1.86** |
 
-`python evaluate_race_model.py` (all on 2026, tables in `results/race_evaluation.md`, charts `figures/race_*.png`):
+`python src/evaluate_race_model.py` (all on 2026, tables in `results/race_evaluation.md`, charts `figures/race_*.png`):
 
 - Win log loss 0.066 with a 95% confidence interval of 0.048–0.086 (whole races resampled); LightGBM beats
   "position only" in 100% of the resamples for the win and 98% for the podium (81% for the points).
@@ -145,7 +145,7 @@ features on the test races would use the test to choose.
   a podium, 59% for points), and the reasons add up exactly to the model's chance.
 - Speed: all the chances and the reasons for one lap take about 0.2 s.
 
-**Do the models learn the 2026 rules?** (`python evaluate_rolling.py`, tables in `results/rolling_2026.md`, chart
+**Do the models learn the 2026 rules?** (`python src/evaluate_rolling.py`, tables in `results/rolling_2026.md`, chart
 `figures/rolling_2026.png`.) Each model is trained again before every 2026 race (rounds 2–17), with the 2026 races
 before it added, and tested on that race, as a team would through a season:
 
@@ -160,7 +160,7 @@ The models carried over to the new rules well: adding up to 16 races of 2026 (co
 moves them only a little, and the clearest gain is at the start of a race, where the grid beat the race outcome
 model. The tyre model still picks soft too rarely (26% against 31% really fitted).
 
-**Race preview** (`python race_preview.py`, tables in `results/preview_evaluation.md`, chart
+**Race preview** (`python src/race_preview.py`, tables in `results/preview_evaluation.md`, chart
 `figures/preview_backtest.png`). Before each of the 41 races of the study (2025, and 2026 up to round 17) the model
 was trained again on every race before it (from 2022), then asked about that race. The app also shows the races
 after them (the United States GP), but they aren't in these numbers:
@@ -181,7 +181,7 @@ are fitted together, as in the race outcome model; the after-qualifying features
 and the settings were picked the same way on 2024. One race has a lot of luck in it: a 30% favourite loses
 most of the time.
 
-**Undercut threat and battle forecast** (`python battle.py`, tables in `results/battle_evaluation.md`). What an
+**Undercut threat and battle forecast** (`python src/battle.py`, tables in `results/battle_evaluation.md`). What an
 undercut gains is learned from the 229 real undercuts of 2022–2025: the car behind pitted one lap before the car
 just ahead, both under green on dry tyres, and the gap is measured before the first stop and after the second.
 It gains more when the car ahead's tyres are worn (seconds slower than its best lap on this set):
@@ -253,10 +253,10 @@ without them it still works, just with no sector times, mini-sectors, race contr
 **B. Download it yourself** (about 30 minutes):
 
 ```bat
-python collect_openf1.py
-python save_cached_races.py
-python build_dataset.py
-python build_timing.py
+python src/collect_openf1.py
+python src/save_cached_races.py
+python src/build_dataset.py
+python src/build_timing.py
 ```
 
 - `collect_openf1.py` downloads every finished race from 2023 on from [OpenF1](https://openf1.org)
@@ -267,7 +267,7 @@ python build_timing.py
   F1 TV login ([FastF1 issue #978](https://github.com/theOehrly/Fast-F1/issues/978)), so
   `collect_data.py` would wait forever. Without a `fastf1_cache` folder, the dataset starts in 2023.
 - `build_dataset.py` joins both sources into `data/all_laps.parquet`, with a `Source` column.
-- To add a new race (for example the 2026 United States GP, round 18): `python collect_openf1.py 2026 18`, then
+- To add a new race (for example the 2026 United States GP, round 18): `python src/collect_openf1.py 2026 18`, then
   `build_dataset.py`, `features.py`, `build_timing.py`, `race_preview.py` and `engineer.py` (the app builds its replay file and
   the final results itself). The study's numbers don't change (see Results). With the cloud set up, this happens by
   itself: see "New races by themselves" in The cloud data layer.
@@ -275,42 +275,42 @@ python build_timing.py
   race control messages, team colours, driver names, and one lap of car positions per circuit to draw
   the track maps (downloaded once from OpenF1).
 
-To check the data: `python check_data.py` counts the saved races, and `python compare_sources.py`
+To check the data: `python src/check_data.py` counts the saved races, and `python src/compare_sources.py`
 compares FastF1 and OpenF1 lap by lap on the races we have from both.
 
 ## Train the models
 
 ```bat
-python features.py
-python train_pit_model.py
-python explain_pit_model.py
-python train_tyre_model.py
-python evaluate.py
-python evaluate_design.py
-python train_race_model.py
-python evaluate_race_model.py
-python evaluate_rolling.py
-python pit_now.py
-python race_preview.py
-python battle.py
-python engineer.py
+python src/features.py
+python src/train_pit_model.py
+python src/explain_pit_model.py
+python src/train_tyre_model.py
+python src/evaluate.py
+python src/evaluate_design.py
+python src/train_race_model.py
+python src/evaluate_race_model.py
+python src/evaluate_rolling.py
+python src/pit_now.py
+python src/race_preview.py
+python src/battle.py
+python src/engineer.py
 ```
 
 | Script | Takes | Saves |
 |---|---|---|
-| `features.py` | ~5 s | `data/features.parquet` |
-| `train_pit_model.py` | ~20 s | `models/pit_model.*`, `data/model_results.csv`, `figures/pr_curve_2026.png` |
-| `explain_pit_model.py` | ~10 s | SHAP charts and 5 case studies in `figures/`, `data/case_studies.txt` |
-| `train_tyre_model.py` | ~5 s | `models/tyre_model.*`, `data/tyre_model_results.csv`, `figures/tyre_confusion_2026.png` |
-| `evaluate.py` | ~30 s | `data/evaluation.md` (every table for the results chapter) and `figures/eval_*.png` |
-| `evaluate_design.py` | ~2 min | `results/horizon.md` and `results/feature_groups.md` (with their .csv), `figures/eval_horizon.png`, `figures/eval_feature_groups.png` |
-| `train_race_model.py` | ~2 min | `models/race_model.*`, `models/race_background.parquet` (SHAP's average driver), `data/race_results.parquet`, `data/race_model_results.csv`, `data/race_test_predictions.parquet` |
-| `evaluate_race_model.py` | ~3 min | `data/race_evaluation.md` and `figures/race_*.png` |
-| `evaluate_rolling.py` | ~10 min | `data/rolling_2026.md`, `data/rolling_2026.csv`, `figures/rolling_2026.png` (retrains all three models 32 times) |
-| `pit_now.py` | ~10 s | `models/pit_now.json`: what a stop costs under green, the safety car and the VSC |
-| `race_preview.py` | ~1 min | `data/preview_backtest.parquet`, `data/preview_evaluation.md`, `figures/preview_backtest.png`, `models/preview_next.json` (the next race) |
-| `battle.py` | ~5 s | `models/battle.json` (what the real undercuts gained), `data/battle_evaluation.md` |
-| `engineer.py` | ~5 s | `models/engineer.json`: each track's tyre life and wear, strategies, winners and facts |
+| `src/features.py` | ~5 s | `data/features.parquet` |
+| `src/train_pit_model.py` | ~20 s | `models/pit_model.*`, `data/model_results.csv`, `figures/pr_curve_2026.png` |
+| `src/explain_pit_model.py` | ~10 s | SHAP charts and 5 case studies in `figures/`, `data/case_studies.txt` |
+| `src/train_tyre_model.py` | ~5 s | `models/tyre_model.*`, `data/tyre_model_results.csv`, `figures/tyre_confusion_2026.png` |
+| `src/evaluate.py` | ~30 s | `data/evaluation.md` (every table for the results chapter) and `figures/eval_*.png` |
+| `src/evaluate_design.py` | ~2 min | `results/horizon.md` and `results/feature_groups.md` (with their .csv), `figures/eval_horizon.png`, `figures/eval_feature_groups.png` |
+| `src/train_race_model.py` | ~2 min | `models/race_model.*`, `models/race_background.parquet` (SHAP's average driver), `data/race_results.parquet`, `data/race_model_results.csv`, `data/race_test_predictions.parquet` |
+| `src/evaluate_race_model.py` | ~3 min | `data/race_evaluation.md` and `figures/race_*.png` |
+| `src/evaluate_rolling.py` | ~10 min | `data/rolling_2026.md`, `data/rolling_2026.csv`, `figures/rolling_2026.png` (retrains all three models 32 times) |
+| `src/pit_now.py` | ~10 s | `models/pit_now.json`: what a stop costs under green, the safety car and the VSC |
+| `src/race_preview.py` | ~1 min | `data/preview_backtest.parquet`, `data/preview_evaluation.md`, `figures/preview_backtest.png`, `models/preview_next.json` (the next race) |
+| `src/battle.py` | ~5 s | `models/battle.json` (what the real undercuts gained), `data/battle_evaluation.md` |
+| `src/engineer.py` | ~5 s | `models/engineer.json`: each track's tyre life and wear, strategies, winners and facts |
 
 ## Tests
 
@@ -365,7 +365,7 @@ don't listen for the game, so they can run while the app is open.
 ## Run the app
 
 ```bat
-python api.py
+python src/api.py
 ```
 
 Then open <http://127.0.0.1:8000>. The first start takes about 5 seconds while it builds
@@ -376,7 +376,7 @@ for your sessions with the 2026 cars (F1 25's 2026 Season Pack).
 
 ### The desktop app
 
-`python desktop.py --shortcut` puts **F1 Strategy Predictor** on the desktop. A double-click starts the app on this
+`python src/desktop.py --shortcut` puts **F1 Strategy Predictor** on the desktop. A double-click starts the app on this
 PC and opens it in a window of its own (Edge or Chrome, with no address bar); closing the window stops it. If the app
 is already running, it just opens a window on it. It works without AWS; when this PC is set up for it (below), it
 first fetches any newer data from the cloud. What it did is in `desktop.log` (in `AppData\Local\F1 Strategy
@@ -385,17 +385,17 @@ Predictor`).
 ### The cloud data layer (AWS)
 
 Optional: a safe copy of the data and the models, which another PC can fetch in a minute. Setting it up takes about an
-hour, step by step in [AWS_SETUP.md](AWS_SETUP.md).
+hour, step by step in [AWS_SETUP.md](docs/AWS_SETUP.md).
 
-- **S3** (`python aws_sync.py upload`): everything in `data/` except the game's recordings (`data/f1_25`) and the
+- **S3** (`python src/aws_sync.py upload`): everything in `data/` except the game's recordings (`data/f1_25`) and the
   driver report made from them (`data/driver`), which never leave this PC, plus `models/`: about 240 files, 25 MB.
   Only what changed goes up. Each file goes with its SHA-256, and a download that doesn't match it is refused; with
-  the bucket's versioning on, S3 keeps every older copy. `python aws_sync.py download` fetches what changed: a file
+  the bucket's versioning on, S3 keeps every older copy. `python src/aws_sync.py download` fetches what changed: a file
   changed on this PC since the last sync is never replaced, and an upload never replaces a newer copy in the cloud.
 - **Lambda** (`aws_check.py`, run by AWS on each table that arrives): did it arrive whole (its SHA-256), its rows,
   seasons and races, and for the lap tables missing columns, laps listed twice, missing lap times and tyres the
   timing didn't name. A report for each table goes in the bucket's `checks/`.
-- **Athena** (`python aws_athena.py setup`, then `python aws_athena.py ask`): questions in SQL straight on the files
+- **Athena** (`python src/aws_athena.py setup`, then `python src/aws_athena.py ask`): questions in SQL straight on the files
   in S3 (races and laps per season, tyre stints per race, the share of laps on each tyre, how long a set lasts), each
   with the time Athena took and the data it read.
 - **New races by themselves** (`aws_fetch.py`, `newraces.py`): every morning at 06:00 UTC an EventBridge schedule
@@ -408,7 +408,7 @@ hour, step by step in [AWS_SETUP.md](AWS_SETUP.md).
   test races stay 2026 rounds 1–17).
 - **Safe by design:** the bucket is private, the access key can use only that bucket (and Athena on its own
   database) and can't delete anything, and it is kept in your user folder's `.aws`, never in the project.
-  `python aws_sync.py check` fetches everything into an empty folder as a new PC would, times it and compares every
+  `python src/aws_sync.py check` fetches everything into an empty folder as a new PC would, times it and compares every
   file (`results/cloud.md`).
 
 ### F1: real races
@@ -499,7 +499,7 @@ other was too noisy in the data to model a strategy fairly). It's the app's own 
 
 ### F1 25: your game sessions
 
-While `python api.py` runs, the app also listens for F1 25 on port 20777 and records every session.
+While `python src/api.py` runs, the app also listens for F1 25 on port 20777 and records every session.
 
 1. Keep the PS5 (or Xbox or PC) and this PC on the same home network.
 2. In F1 25 go to **Settings → Telemetry Settings** and set: UDP Telemetry **On**, UDP Broadcast Mode
@@ -510,8 +510,8 @@ While `python api.py` runs, the app also listens for F1 25 on port 20777 and rec
 3. Drive any session. It appears on the F1 25 page by itself and updates every second.
 
 If nothing arrives, allow Python on private networks when Windows asks. Without a console,
-`python game_simulator.py` sends a short test race (marked TEST). Sessions are saved in `data/f1_25/`,
-with the raw packets, so `python game_telemetry.py rebuild` can decode them again (after an update of the
+`python src/game_simulator.py` sends a short test race (marked TEST). Sessions are saved in `data/f1_25/`,
+with the raw packets, so `python src/game_telemetry.py rebuild` can decode them again (after an update of the
 decoding, for example). Record sessions against the AI: in online sessions the app replaces the other
 players' names with "Driver 1", "Driver 2" and so on, and keeps no raw packets.
 
@@ -691,46 +691,48 @@ Race ids look like `2026_17` (year and round). Add `?reveal=true` to see what re
 
 ## Project files
 
+All the Python code is in `src/`. Run every script from the project folder, for example `python src/api.py`.
+
 | File | What it does |
 |---|---|
-| `config.py` | Folder names and the seasons to use |
-| `collect_data.py` | Downloads races with FastF1 (blocked since October 2026, see above) |
-| `save_cached_races.py` | Saves races from the FastF1 cache, with no internet |
-| `collect_openf1.py` | Downloads races from OpenF1 and turns them into the same table as FastF1 |
-| `openf1_sample.py` | Downloads one sample race from OpenF1 (Singapore 2026) |
-| `build_dataset.py` | Joins both sources into one table |
-| `build_timing.py` | Saves sector times, mini-sectors, race control messages and track maps |
-| `check_data.py`, `compare_sources.py` | Checks on the saved data |
-| `features.py` | Builds the features and the target (a pit stop in the next 3 laps) |
-| `train_pit_model.py` | Trains and tests the pit stop model and its baselines |
-| `explain_pit_model.py` | SHAP explanations, charts and case studies |
-| `train_tyre_model.py` | Trains and tests the tyre choice model and its baselines |
-| `evaluate.py` | The evaluation for the three research questions: tables and charts |
-| `race_outcome.py` | The race outcome model's parts: final results, features, fitting the chances together, SHAP, reasons in words |
-| `train_race_model.py` | Trains and tests the race outcome model and its baselines |
-| `evaluate_race_model.py` | The evaluation of the race outcome model: tables and charts |
-| `evaluate_rolling.py` | Do the models learn the 2026 rules? All three retrained race by race through 2026 |
-| `evaluate_design.py` | Why a stop "in the next 3 laps" (the model for 1, 2, 3 and 5 laps) and what each group of features adds |
-| `pit_now.py` | If they pit now: the stop's cost, where they'd rejoin, and the race outcome model asked again |
-| `race_preview.py` | The race preview: before a race, each driver's chances; tested race by race, then the next race |
-| `battle.py` | Car against car: the undercut threat (learned from the real undercuts), the battle forecast and the strategy battle |
-| `engineer.py` | The race engineer's track briefing: tyre life and wear (with the temperature), strategies, winners and facts |
-| `api.py` | The FastAPI backend and replay mode |
-| `live_timing.py` | Builds the live timing screen for one lap |
-| `game_telemetry.py` | Receives and decodes the game's telemetry packets (formats 2024, 2025 and 2026) and keeps every session |
-| `game_api.py` | The F1 25 part of the API |
-| `game_strategy.py` | Runs the pit stop, tyre and race outcome models live on F1 25 and F1 26 races |
-| `game_radio.py` | Team radio: the race engineer's answers (local AI or data) and its own calls |
-| `game_simulator.py` | A pretend F1 25 that sends a test race, to try the app without a console |
-| `game_analysis.py` | The report, theoretical best, wear forecast, corners, lock-ups, energy, overtake mode, Time Trial, wet-tyre call and progress |
+| `src/config.py` | Folder names and the seasons to use |
+| `src/collect_data.py` | Downloads races with FastF1 (blocked since October 2026, see above) |
+| `src/save_cached_races.py` | Saves races from the FastF1 cache, with no internet |
+| `src/collect_openf1.py` | Downloads races from OpenF1 and turns them into the same table as FastF1 |
+| `src/openf1_sample.py` | Downloads one sample race from OpenF1 (Singapore 2026) |
+| `src/build_dataset.py` | Joins both sources into one table |
+| `src/build_timing.py` | Saves sector times, mini-sectors, race control messages and track maps |
+| `src/check_data.py`, `src/compare_sources.py` | Checks on the saved data |
+| `src/features.py` | Builds the features and the target (a pit stop in the next 3 laps) |
+| `src/train_pit_model.py` | Trains and tests the pit stop model and its baselines |
+| `src/explain_pit_model.py` | SHAP explanations, charts and case studies |
+| `src/train_tyre_model.py` | Trains and tests the tyre choice model and its baselines |
+| `src/evaluate.py` | The evaluation for the three research questions: tables and charts |
+| `src/race_outcome.py` | The race outcome model's parts: final results, features, fitting the chances together, SHAP, reasons in words |
+| `src/train_race_model.py` | Trains and tests the race outcome model and its baselines |
+| `src/evaluate_race_model.py` | The evaluation of the race outcome model: tables and charts |
+| `src/evaluate_rolling.py` | Do the models learn the 2026 rules? All three retrained race by race through 2026 |
+| `src/evaluate_design.py` | Why a stop "in the next 3 laps" (the model for 1, 2, 3 and 5 laps) and what each group of features adds |
+| `src/pit_now.py` | If they pit now: the stop's cost, where they'd rejoin, and the race outcome model asked again |
+| `src/race_preview.py` | The race preview: before a race, each driver's chances; tested race by race, then the next race |
+| `src/battle.py` | Car against car: the undercut threat (learned from the real undercuts), the battle forecast and the strategy battle |
+| `src/engineer.py` | The race engineer's track briefing: tyre life and wear (with the temperature), strategies, winners and facts |
+| `src/api.py` | The FastAPI backend and replay mode |
+| `src/live_timing.py` | Builds the live timing screen for one lap |
+| `src/game_telemetry.py` | Receives and decodes the game's telemetry packets (formats 2024, 2025 and 2026) and keeps every session |
+| `src/game_api.py` | The F1 25 part of the API |
+| `src/game_strategy.py` | Runs the pit stop, tyre and race outcome models live on F1 25 and F1 26 races |
+| `src/game_radio.py` | Team radio: the race engineer's answers (local AI or data) and its own calls |
+| `src/game_simulator.py` | A pretend F1 25 that sends a test race, to try the app without a console |
+| `src/game_analysis.py` | The report, theoretical best, wear forecast, corners, lock-ups, energy, overtake mode, Time Trial, wet-tyre call and progress |
 | `start_app_lan.bat` | Starts the app for this PC and your home network (for the phone dash) |
-| `game_driver.py` | The driver report: a LightGBM model of your driving, corner by corner, that keeps learning |
-| `desktop.py` | The desktop app: the app in a window of its own, with the newest data from the cloud |
-| `aws_sync.py` | The cloud data layer: the data and the models to and from S3, checked by SHA-256, with versions |
-| `aws_check.py` | The Lambda function that checks each table sent to S3 |
-| `aws_athena.py` | Athena: questions in SQL on the data in S3 |
-| `aws_fetch.py` | The daily Lambda that fetches each new race from OpenF1 into S3 |
-| `newraces.py` | Builds the new races the cloud fetched, with the usual steps, and sends them back |
+| `src/game_driver.py` | The driver report: a LightGBM model of your driving, corner by corner, that keeps learning |
+| `src/desktop.py` | The desktop app: the app in a window of its own, with the newest data from the cloud |
+| `src/aws_sync.py` | The cloud data layer: the data and the models to and from S3, checked by SHA-256, with versions |
+| `src/aws_check.py` | The Lambda function that checks each table sent to S3 |
+| `src/aws_athena.py` | Athena: questions in SQL on the data in S3 |
+| `src/aws_fetch.py` | The daily Lambda that fetches each new race from OpenF1 into S3 |
+| `src/newraces.py` | Builds the new races the cloud fetched, with the usual steps, and sends them back |
 | `AWS_SETUP.md` | Setting up the cloud data layer, step by step |
 | `tests/` | The tests (`python -m pytest tests`, see Tests) |
 | `.github/workflows/tests.yml` | Runs the tests on GitHub on every push |
@@ -748,7 +750,7 @@ Race ids look like `2026_17` (year and round). Add `?reveal=true` to see what re
 | `web/flags.js` | The flag, event and weather icons of the pages |
 | `web/stints.js` | The tyre strategy graphic of the pages: every stint as a bar along the race |
 | `web/simple.html` | The first, simpler replay page |
-| `explore_one_race.py` | A first look at one race (Verstappen's lap times) |
+| `src/explore_one_race.py` | A first look at one race (Verstappen's lap times) |
 | `models/` | The trained models, and what the strategy tools learned (stop costs, real undercuts, track briefings) |
 | `results/` | The study's tables (copies of the ones the scripts write to `data/`, see `results/README.md`) |
 | `figures/` | The charts, and the architecture diagram (`architecture.png`, `architecture.svg`) |

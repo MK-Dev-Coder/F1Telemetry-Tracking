@@ -2,13 +2,13 @@
 database to run: Athena reads the Parquet files where they are and charges for the data it reads (5 dollars a
 terabyte; a question here reads a few megabytes).
 
-    python aws_athena.py setup             the database f1_strategy, with a table for each of the main files
-    python aws_athena.py ask               every saved question (seasons, stints, tyres, sets)
-    python aws_athena.py ask tyres         one of them
-    python aws_athena.py ask "SELECT ..."  your own question
+    python src/aws_athena.py setup             the database f1_strategy, with a table for each of the main files
+    python src/aws_athena.py ask               every saved question (seasons, stints, tyres, sets)
+    python src/aws_athena.py ask tyres         one of them
+    python src/aws_athena.py ask "SELECT ..."  your own question
 
 Each answer says how long Athena took and how much data it read. The tables take their columns from the files on
-this PC (data/), so send them first (python aws_sync.py upload). In the AWS console the same tables are in Athena's
+this PC (data/), so send them first (python src/aws_sync.py upload). In the AWS console the same tables are in Athena's
 query editor (database f1_strategy), for the video.
 """
 import sys
@@ -97,7 +97,7 @@ def show(rows):
 def main():
     cfg = aws_sync.settings()
     if not cfg:
-        raise SystemExit("First: python aws_sync.py setup YOUR-BUCKET-NAME  (see AWS_SETUP.md)")
+        raise SystemExit("First: python src/aws_sync.py setup YOUR-BUCKET-NAME  (see docs/AWS_SETUP.md)")
     athena, bucket = aws_sync.client(cfg, "athena"), cfg["bucket"]
     words = sys.argv[1:]
     if words[:1] == ["setup"]:

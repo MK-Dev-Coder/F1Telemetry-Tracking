@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))      # the app's own files (features.py, ...)
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))  # the app's own files (src/features.py, ...)
 
 LAPS = 10
 CARS = [("AAA", 0.0), ("BBB", 0.5), ("CCC", 1.0), ("DDD", 15.0)]      # each car's seconds a lap slower than AAA

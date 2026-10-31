@@ -8,7 +8,7 @@ before it added, and tested on that race - as a team would do through a season.
 
 Same settings and number of trees as the saved models (nothing is tuned on 2026). Round 1 has no 2026 races before
 it, so the comparison is on rounds 2-17.
-    python evaluate_rolling.py   -> data/rolling_2026.md, data/rolling_2026.csv, figures/rolling_2026.png
+    python src/evaluate_rolling.py   -> data/rolling_2026.md, data/rolling_2026.csv, figures/rolling_2026.png
 """
 import json
 import time
@@ -195,7 +195,7 @@ def main():
     for title, t in tables.items():
         md += [f"## {title}", "", table(t, 3, per={"Races better": 0, "Races": 0}), ""]
     md += ["## Soft tyres (the tyre model picked them too rarely in 2026)", "", table(soft, 1), "", f"![Rolling]({figure})", "",
-           f"Took {(time.time() - start) / 60:.0f} minutes. Written by `python evaluate_rolling.py`."]
+           f"Took {(time.time() - start) / 60:.0f} minutes. Written by `python src/evaluate_rolling.py`."]
     REPORT.write_text("\n".join(md), encoding="utf-8")
     for title, t in tables.items():
         print(f"\n{title}\n{t.round(3).to_string()}")

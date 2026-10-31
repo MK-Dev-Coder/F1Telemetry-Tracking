@@ -7,7 +7,7 @@ answers, gzipped JSON), into data/openf1/incoming/<session key>.json.gz. The PC 
 It knows which races are built already from data/openf1/sessions.json (OpenF1 session key -> race id, kept by
 newraces.py), and skips the ones still waiting in incoming/. Only the standard library and boto3: no layer.
 
-In AWS (AWS_SETUP.md): a Python 3.12 function, this file as lambda_function.py (handler
+In AWS (docs/AWS_SETUP.md): a Python 3.12 function, this file as lambda_function.py (handler
 lambda_function.lambda_handler), 256 MB, a 5-minute timeout, the environment variable BUCKET, and permission to read
 sessions.json, list and write incoming/. To fetch one race again, run it with {"session_key": 11396}.
 """

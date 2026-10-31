@@ -970,7 +970,7 @@ const ocCell = (o, t) => `<span class="oc-c ${t}${o.for === t ? " on" : ""}"><sp
 function viewOutcome() {
   banner("banner3");
   if (!S.snap.has_outcome) {
-    $("oc").innerHTML = `<div class="empty-note">No race outcome model yet: run <code>python train_race_model.py</code>, then start the app again.</div>`;
+    $("oc").innerHTML = `<div class="empty-note">No race outcome model yet: run <code>python src/train_race_model.py</code>, then start the app again.</div>`;
     $("op").innerHTML = ""; return;
   }
   if (S.sub.outcome === "now") { ocTable(); ocPanel(); } else ocChart(S.sub.outcome);
@@ -1196,7 +1196,7 @@ async function previewNext() {
      won ${s.favourite_won} of ${s.races}` : ""}${last ? ` (before the ${esc(last.name)}: ${esc(last["before qualifying"].favourite)} ` +
       `${pc(last["before qualifying"].chance)}; ${esc(last.winner)} won with ${pc(last["before qualifying"].winner_chance)})` : ""}. One race has a lot of luck in it:
      a 30% favourite loses most of the time.</small>${p.is_past ? `<small><b>This race has been run.</b> For the next one, add this race
-     (see the README) and run <code>python race_preview.py</code>, then start the app again.</small>` : ""}</div>` +
+     (see the README) and run <code>python src/race_preview.py</code>, then start the app again.</small>` : ""}</div>` +
     `<div class="lb2-row hd pv">${head}</div>` + rows;
   if (!p.drivers.some(d => d.driver === S.strat)) S.strat = p.drivers[0]?.driver;
   previewPanel(p.drivers.find(d => d.driver === S.strat) || p.drivers[0]);
@@ -1416,7 +1416,7 @@ function viewRC() {
     : `<div class="empty-note">No messages of this kind up to lap ${S.lap}. They appear as the race runs: pit stops, overtakes, fastest laps and race control.</div>`;
 }
 
-init().catch(err => { $("lb2").innerHTML = `<div class="err">Can't reach the server (${esc(err.message)}). Start it with: python api.py</div>`; });
+init().catch(err => { $("lb2").innerHTML = `<div class="err">Can't reach the server (${esc(err.message)}). Start it with: python src/api.py</div>`; });
 })();
 </script>
 </body>

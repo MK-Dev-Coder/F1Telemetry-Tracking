@@ -3,12 +3,12 @@
 When it starts, it fetches any newer race data from the cloud (if this PC is set up for AWS, see aws_sync.py; without
 it, or without the internet, it uses the data already here), starts the app on this PC only
 (http://127.0.0.1:8000) and opens it in a window of Microsoft Edge (or Chrome) with no address bar. Closing the
-window stops the app. If the app is already running (python api.py), it only opens a window on it. While it runs, it
+window stops the app. If the app is already running (python src/api.py), it only opens a window on it. While it runs, it
 builds any new race the cloud fetched (newraces.py) and says when one is in. The game's telemetry still comes
 straight from the console to this PC, as before.
 
-    python desktop.py              start it (the shortcut runs this without a console window)
-    python desktop.py --shortcut   put the shortcut on the desktop (Windows)
+    python src/desktop.py              start it (the shortcut runs this without a console window)
+    python src/desktop.py --shortcut   put the shortcut on the desktop (Windows)
 
 What it did each time is in desktop.log, in the app's folder in your user folder (AppData\\Local).
 """
@@ -109,7 +109,7 @@ def tell(text):
 
 
 def start_app():
-    """The app, in this program: the same as python api.py, on this PC only."""
+    """The app, in this program: the same as python src/api.py, on this PC only."""
     os.environ.setdefault("F1_APP_LAN", "0")
     import uvicorn
     import api                                   # after the download: api reads the data as it loads
@@ -131,7 +131,7 @@ def shortcut():
     made = ROOT / f"{NAME}.lnk"                  # made here, then moved: Windows' shortcut maker can't save into a
     script = ("[Console]::OutputEncoding = [Text.Encoding]::UTF8; "                 # folder with a Greek name
               f"$t = '{made}'; $s = (New-Object -ComObject WScript.Shell).CreateShortcut($t); "
-              f"$s.TargetPath = '{pythonw}'; $s.Arguments = '\"{ROOT / 'desktop.py'}\"'; "
+              f"$s.TargetPath = '{pythonw}'; $s.Arguments = '\"{Path(__file__).resolve()}\"'; "
               f"$s.WorkingDirectory = '{ROOT}'; $s.IconLocation = '{ICON}'; $s.Description = '{NAME}'; $s.Save(); "
               "$p = Join-Path ([Environment]::GetFolderPath('Desktop')) '" + NAME + ".lnk'; "
               "Move-Item -LiteralPath $t -Destination $p -Force; "

@@ -5,7 +5,7 @@ RQ2  Are the SHAP reasons sound?       Do they follow F1 logic, match real stops
 RQ3  Does it work live?                How long one lap takes: in replay, live on F1 25, and reading the game's packets.
 
 Everything is measured on the 17 races of 2026, which were never used to train or tune the model.
-    python evaluate.py        -> figures/eval_*.png and data/evaluation.md (tables ready for the write-up)
+    python src/evaluate.py        -> figures/eval_*.png and data/evaluation.md (tables ready for the write-up)
 """
 import json
 import tempfile
@@ -419,7 +419,7 @@ def main():
     threshold = info["threshold"]
     md = ["# Evaluation (2026 test races)", "",
           f"17 races, {len(test)} laps, never used to train or tune the models. Alert line: {threshold:.0%} "
-          f"(picked on 2025). Written by `python evaluate.py`.", ""]
+          f"(picked on 2025). Written by `python src/evaluate.py`.", ""]
 
     print("RQ1: scores with confidence intervals...")
     ov = overall(test)

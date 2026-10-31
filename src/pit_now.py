@@ -5,7 +5,7 @@ uses). Under a safety car or a VSC a stop costs less, because the cars that stay
 is learned from the same races. Then the race outcome model is asked again with the driver moved to where they'd
 rejoin, on new tyres (the tyre model's pick), with the stop done. It assumes nobody else pits on that lap and the
 others keep their gaps.
-    python pit_now.py   -> models/pit_now.json (what a stop costs under green, safety car and VSC)
+    python src/pit_now.py   -> models/pit_now.json (what a stop costs under green, safety car and VSC)
 """
 import json
 

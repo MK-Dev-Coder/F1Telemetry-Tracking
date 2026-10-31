@@ -12,7 +12,7 @@
 Each race is kept on its own, so a briefing can use only the races before one (a replay shows what an engineer
 would have known then, with no spoilers). What it is: what really happened here, not a simulation. The app's own
 view: the study's numbers don't use it.
-    python engineer.py   -> models/engineer.json
+    python src/engineer.py   -> models/engineer.json
 """
 import json
 

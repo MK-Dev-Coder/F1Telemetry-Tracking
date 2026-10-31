@@ -1,6 +1,6 @@
 # Evaluation of the race outcome model (2026 test races)
 
-17 races, 1022 laps, 19552 driver-laps, never used to train or tune the model (version: + Pace and tyres). Written by `python evaluate_race_model.py`.
+17 races, 1022 laps, 19552 driver-laps, never used to train or tune the model (version: + Pace and tyres). Written by `python src/evaluate_race_model.py`.
 
 Baselines: *Position only* = how often drivers in the same position at the same stage of a race finished in the top 1/3/10 in 2022-2025; *Grid only* = the same from the starting position (it never changes during the race).
 

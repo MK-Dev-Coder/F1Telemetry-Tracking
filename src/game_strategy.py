@@ -52,7 +52,7 @@ def models():
                        tyre_info=json.loads((MODELS_DIR / "tyre_model.json").read_text(encoding="utf-8")),
                        real_laps=races.groupby("Circuit")["TotalLaps"].median().round().to_dict(),
                        typical_laps=float(races["TotalLaps"].median()),
-                       outcome=ro.load_model() if ro.MODEL_FILE.exists() else None,   # python train_race_model.py
+                       outcome=ro.load_model() if ro.MODEL_FILE.exists() else None,   # python src/train_race_model.py
                        pit_now=pit_now.load() if ro.MODEL_FILE.exists() else None,
                        battle=battle.load() if ro.MODEL_FILE.exists() else None)
     return _models

@@ -10,7 +10,7 @@ Battle forecast: how many laps until the car behind is within 1 second (striking
 overtake mode in 2026), from each car's pace over its last 5 green laps (the race outcome model's pace).
 
 Both are tested on the 17 test races of 2026, like the models.
-    python battle.py   -> models/battle.json (the undercut gains) and data/battle_evaluation.md
+    python src/battle.py   -> models/battle.json (the undercut gains) and data/battle_evaluation.md
 """
 import json
 import math

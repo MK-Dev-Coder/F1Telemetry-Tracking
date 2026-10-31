@@ -25,4 +25,4 @@ Before each of the 41 races (2025, and 2026 up to round 17 as in the rest of the
 | grid, form and pace | 0.1273 | 0.2341 | 0.3737 | 37.5000 | 0.2565 |
 | grid only | 0.1270 | 0.2370 | 0.4254 | 45.8333 | 0.2496 |
 
-Written by `python race_preview.py`.
+Written by `python src/race_preview.py`.

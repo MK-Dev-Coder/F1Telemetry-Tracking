@@ -1,6 +1,6 @@
 """Train the race outcome model: each driver's chance to win, finish on the podium and score points, lap by lap.
 
-    python train_race_model.py   -> models/race_model.txt + .json, models/race_background.parquet (SHAP's average
+    python src/train_race_model.py   -> models/race_model.txt + .json, models/race_background.parquet (SHAP's average
                                     driver), data/race_results.parquet, data/race_model_results.csv,
                                     data/race_test_predictions.parquet (read by evaluate_race_model.py)
 Train on 2022-2024, pick the settings and the features on 2025, retrain on 2022-2025, test on 2026.

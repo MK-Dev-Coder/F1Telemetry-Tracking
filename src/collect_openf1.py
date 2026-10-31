@@ -220,8 +220,8 @@ def race_table(raw, year, rnd, event_name):
 
 
 # Recipe 7: every finished race from 2023 on, skipping the ones already saved.
-# Run "python collect_openf1.py 2026 17" to (re)build just one race, or
-# "python collect_openf1.py rebuild" to rebuild every race from the saved json files.
+# Run "python src/collect_openf1.py 2026 17" to (re)build just one race, or
+# "python src/collect_openf1.py rebuild" to rebuild every race from the saved json files.
 def main():
     CACHE_DIR.mkdir(exist_ok=True)
     OPENF1_JSON_DIR.mkdir(parents=True, exist_ok=True)

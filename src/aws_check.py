@@ -6,7 +6,7 @@ arrived whole (its SHA-256 against the one aws_sync.py sent with it), counts the
 the lap tables, looks for missing columns, laps listed twice, lap times missing and tyres it doesn't know. A report
 says "ok" or "problems found", with the problems.
 
-In AWS (AWS_SETUP.md has every step): a Python 3.12 function, this file pasted as lambda_function.py (the handler is
+In AWS (docs/AWS_SETUP.md has every step): a Python 3.12 function, this file pasted as lambda_function.py (the handler is
 lambda_function.lambda_handler, AWS's default), the layer AWSSDKPandas-Python312 (AWS's own, with pandas), 512 MB and
 a 1-minute timeout, and permission to read data/* and write checks/* in the bucket.
 """

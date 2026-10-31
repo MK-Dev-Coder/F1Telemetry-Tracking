@@ -4,8 +4,8 @@ README's "add a new race" does by hand: collect_openf1.py for the race (it reads
 downloaded twice), then build_dataset.py, features.py, build_timing.py, race_preview.py and engineer.py. Then it sends
 the results back (aws_sync.py), so every PC gets the race. The desktop app runs it after it starts. By hand:
 
-    python newraces.py           fetch the latest data, then build any new race
-    python newraces.py --index   write data/openf1/sessions.json (the races built here, for the Lambda to skip)
+    python src/newraces.py           fetch the latest data, then build any new race
+    python src/newraces.py --index   write data/openf1/sessions.json (the races built here, for the Lambda to skip)
 
 If a step fails, the steps run again next time (data/openf1/building.json lists the races they're for). The study
 doesn't change: its test races stay 2026 rounds 1-17 (TEST_LAST_ROUND in features.py).
@@ -14,11 +14,13 @@ import gzip
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import aws_fetch
 import aws_sync
 from config import CACHE_DIR, ROOT
 
+HERE = Path(__file__).resolve().parent  # src/, where the steps are
 STEPS = ["build_dataset.py", "features.py", "build_timing.py", "race_preview.py", "engineer.py"]
 INDEX = "data/openf1/sessions.json"      # OpenF1 session key -> race id, for the Lambda to skip the races built
 NOTE = "data/openf1/building.json"       # races whose steps haven't all run yet (never sent to the cloud)
@@ -53,7 +55,8 @@ def round_of(raw):
 
 def run(script, *args, root=ROOT):
     """One step, as it would run by hand; a failure stops the rest."""
-    done = subprocess.run([sys.executable, script, *map(str, args)], cwd=root, capture_output=True, text=True)
+    done = subprocess.run([sys.executable, str(HERE / script), *map(str, args)], cwd=root, capture_output=True,
+                          text=True)
     if done.returncode:
         last = (done.stderr or done.stdout).strip().splitlines()[-1:] or ["no message"]
         raise RuntimeError(f"{script} failed: {last[0]}")
@@ -95,7 +98,7 @@ def main():
         return
     cfg = aws_sync.settings()
     if not cfg:
-        raise SystemExit("This PC isn't set up for AWS: see AWS_SETUP.md")
+        raise SystemExit("This PC isn't set up for AWS: see docs/AWS_SETUP.md")
     s3 = aws_sync.client(cfg)
     aws_sync.download(s3, cfg["bucket"])                                     # another PC may have built it already
     added = add(s3, cfg["bucket"])

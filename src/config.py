@@ -1,6 +1,6 @@
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent     # the F1 App folder
+ROOT = Path(__file__).resolve().parent.parent     # the F1 App folder (the code is in src/)
 
 CACHE_DIR = ROOT / "fastf1_cache"          # FastF1's downloads
 DATA_DIR = ROOT / "data"                   # your own data files

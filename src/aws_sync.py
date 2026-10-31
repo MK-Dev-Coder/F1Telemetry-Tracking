@@ -9,17 +9,17 @@ bucket's manifest.json, so every download is checked against what was sent, and 
 keeps every older copy too. A download never replaces a file changed on this PC since the last sync, and an upload
 never replaces a newer copy in the cloud with an older one (aws_state.json remembers the last sync).
 
-Once (the steps are in AWS_SETUP.md):
-    python aws_sync.py setup BUCKET [REGION]   the bucket (kept in aws_settings.json, on this PC only)
-    python aws_sync.py keys                    type your access key (kept in your user folder's .aws, not here)
-    python aws_sync.py policy                  the permissions for that key, ready to paste into AWS
-    python aws_sync.py policy check            the permissions for the Lambda check (aws_check.py)
-    python aws_sync.py policy fetch            the permissions for the daily fetch of new races (aws_fetch.py)
+Once (the steps are in docs/AWS_SETUP.md):
+    python src/aws_sync.py setup BUCKET [REGION]   the bucket (kept in aws_settings.json, on this PC only)
+    python src/aws_sync.py keys                    type your access key (kept in your user folder's .aws, not here)
+    python src/aws_sync.py policy                  the permissions for that key, ready to paste into AWS
+    python src/aws_sync.py policy check            the permissions for the Lambda check (aws_check.py)
+    python src/aws_sync.py policy fetch            the permissions for the daily fetch of new races (aws_fetch.py)
 Then:
-    python aws_sync.py upload                  send what changed (after a new race; --all: every file again)
-    python aws_sync.py download                fetch what changed
-    python aws_sync.py status                  what's here and in the cloud, and how many versions S3 keeps
-    python aws_sync.py check                   fetch everything into an empty folder, as a new PC would, and time it
+    python src/aws_sync.py upload                  send what changed (after a new race; --all: every file again)
+    python src/aws_sync.py download                fetch what changed
+    python src/aws_sync.py status                  what's here and in the cloud, and how many versions S3 keeps
+    python src/aws_sync.py check                   fetch everything into an empty folder, as a new PC would, and time it
 Add --force to upload or download to take that side's copy of a file changed on both sides.
 """
 import configparser
@@ -171,7 +171,7 @@ def upload(s3, bucket, root=ROOT, force=False, everything=False, log=print):
     seconds, size = time.perf_counter() - start, sum((root / p).stat().st_size for p in send)
     log(f"Sent {len(send)} files ({size / 1e6:.1f} MB) in {seconds:.1f} s; "
         f"{Counter(s for s, _, _ in sides.values())['same']} were already the same in the cloud")
-    left(sides, "down", "Newer in the cloud, so not sent (python aws_sync.py download)", log)
+    left(sides, "down", "Newer in the cloud, so not sent (python src/aws_sync.py download)", log)
     left(sides, "both" if not force else None, "Changed here and in the cloud, so left alone (add --force to send yours)", log)
     return len(send), size, seconds
 
@@ -181,7 +181,7 @@ def download(s3, bucket, root=ROOT, force=False, log=print):
     here, and a file changed here since the last sync is kept. Returns the files and bytes fetched, and the seconds."""
     manifest, state = read_manifest(s3, bucket), read_state(root)
     if not manifest.get("files"):
-        raise SystemExit("The cloud has nothing yet: run python aws_sync.py upload on the PC with the data")
+        raise SystemExit("The cloud has nothing yet: run python src/aws_sync.py upload on the PC with the data")
     sides = compare(root, manifest, state)
     fetch = [p for p, (side, _, _) in sides.items() if side == "down" or (force and side == "both")]
     start = time.perf_counter()
@@ -206,7 +206,7 @@ def download(s3, bucket, root=ROOT, force=False, log=print):
     seconds, size = time.perf_counter() - start, sum(sides[p][2]["size"] for p in done)
     log(f"Fetched {len(done)} files ({size / 1e6:.1f} MB) in {seconds:.1f} s; "
         f"{Counter(s for s, _, _ in sides.values())['same']} were already the same here")
-    left(sides, "up", "Changed here, so not replaced (python aws_sync.py upload)", log)
+    left(sides, "up", "Changed here, so not replaced (python src/aws_sync.py upload)", log)
     left(sides, "both" if not force else None, "Changed here and in the cloud, so left alone (add --force to take the cloud's)", log)
     return len(done), size, seconds
 
@@ -341,7 +341,7 @@ def main():
     elif command in ("policy", "upload", "download", "status", "check"):
         cfg = settings()
         if not cfg:
-            raise SystemExit("First: python aws_sync.py setup YOUR-BUCKET-NAME  (see AWS_SETUP.md)")
+            raise SystemExit("First: python src/aws_sync.py setup YOUR-BUCKET-NAME  (see docs/AWS_SETUP.md)")
         if command == "policy":
             which = {"check": check_policy, "fetch": fetch_policy}.get(words[1] if len(words) > 1 else "")
             rules = which(cfg["bucket"]) if which else policy(cfg["bucket"], cfg["region"])

@@ -1,6 +1,6 @@
 # Evaluation (2026 test races)
 
-17 races, 18953 laps, never used to train or tune the models. Alert line: 29% (picked on 2025). Written by `python evaluate.py`.
+17 races, 18953 laps, never used to train or tune the models. Alert line: 29% (picked on 2025). Written by `python src/evaluate.py`.
 
 ## RQ1: can the model predict pit stops?
 

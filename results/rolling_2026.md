@@ -60,4 +60,4 @@ Each model is trained again before each 2026 race (rounds 2-17), with the 2026 r
 
 ![Rolling](figures/rolling_2026.png)
 
-Took 4 minutes. Written by `python evaluate_rolling.py`.
+Took 4 minutes. Written by `python src/evaluate_rolling.py`.

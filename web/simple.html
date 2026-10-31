@@ -476,7 +476,7 @@ function chart(series) {
 }
 
 init().catch(err => $("rows").replaceChildren(el("tr", {}, el("td", { colspan: 7, class: "empty error",
-  text: `The app couldn't reach the server (${err.message}). Start it with: python api.py` }))));
+  text: `The app couldn't reach the server (${err.message}). Start it with: python src/api.py` }))));
 </script>
 </body>
 </html>

@@ -44,16 +44,16 @@ def load_laps():
 PIT, PIT_INFO = load_model()
 TYRE = lgb.Booster(model_file=str(MODELS_DIR / "tyre_model.txt"))
 TYRE_INFO = json.loads((MODELS_DIR / "tyre_model.json").read_text(encoding="utf-8"))
-OUTCOME, OUTCOME_INFO = ro.load_model() if ro.MODEL_FILE.exists() else (None, None)   # python train_race_model.py
+OUTCOME, OUTCOME_INFO = ro.load_model() if ro.MODEL_FILE.exists() else (None, None)   # python src/train_race_model.py
 RESULTS = ro.load_results() if OUTCOME else None
-PIT_NOW = pit_now.load() if OUTCOME else None                            # what a stop costs (python pit_now.py)
-BATTLE = battle.load() if OUTCOME else None                               # what an undercut gains (python battle.py)
-ENGINEER = engineer.load() if OUTCOME else None                           # each track's briefing (python engineer.py)
-# The race preview (python race_preview.py): the next race, and what it said before each race of 2025 and 2026
+PIT_NOW = pit_now.load() if OUTCOME else None                            # what a stop costs (python src/pit_now.py)
+BATTLE = battle.load() if OUTCOME else None                               # what an undercut gains (python src/battle.py)
+ENGINEER = engineer.load() if OUTCOME else None                           # each track's briefing (python src/engineer.py)
+# The race preview (python src/race_preview.py): the next race, and what it said before each race of 2025 and 2026
 PREVIEW_FILE, PREVIEW_TEST_FILE = MODELS_DIR / "preview_next.json", DATA_DIR / "preview_backtest.parquet"
 PREVIEW = json.loads(PREVIEW_FILE.read_text(encoding="utf-8")) if PREVIEW_FILE.exists() else None
 PREVIEW_TEST = pd.read_parquet(PREVIEW_TEST_FILE) if PREVIEW_TEST_FILE.exists() else None
-COLOURS_FILE = DATA_DIR / "team_colours.json"                           # (python build_timing.py; without it, grey)
+COLOURS_FILE = DATA_DIR / "team_colours.json"                           # (python src/build_timing.py; without it, grey)
 COLOURS_BY_RACE = json.loads(COLOURS_FILE.read_text(encoding="utf-8")) if COLOURS_FILE.exists() else {}
 if RESULTS is not None and RESULTS.empty:              # no final results to work from: no race outcome
     print("No final results found (data/openf1/json): the race outcome model is off.")
@@ -364,7 +364,7 @@ def live(race_id: str, lap: int, reveal: bool = False, reasons: bool = False):
 
 def need_outcome():
     if not OUTCOME:
-        raise HTTPException(503, "No race outcome model yet: run python train_race_model.py")
+        raise HTTPException(503, "No race outcome model yet: run python src/train_race_model.py")
 
 
 @app.get("/races/{race_id}/outcome")
@@ -441,7 +441,7 @@ def preview():
     """The next race: each driver's chance to win, finish on the podium and score points before qualifying, with
     the reasons (SHAP), and how the preview did before each race of 2025 and 2026."""
     if PREVIEW is None:
-        raise HTTPException(503, "No race preview yet: run python race_preview.py")
+        raise HTTPException(503, "No race preview yet: run python src/race_preview.py")
     drivers = [{**d, **who(d["driver"])} for d in PREVIEW["drivers"]]
     past = pd.Timestamp(PREVIEW["date"]).date() < pd.Timestamp.now(tz="UTC").date()   # run race_preview.py again
     return {**PREVIEW, "drivers": drivers, "is_past": past, **(preview_record() if PREVIEW_TEST is not None else {})}
@@ -451,7 +451,7 @@ def preview():
 def preview_race(race_id: str):
     """What the preview said before one race of 2025 or 2026 (trained on the races before it), and the result."""
     if PREVIEW_TEST is None:
-        raise HTTPException(503, "No race preview yet: run python race_preview.py")
+        raise HTTPException(503, "No race preview yet: run python src/race_preview.py")
     race = PREVIEW_TEST[PREVIEW_TEST["RaceId"] == race_id].sort_values("before qualifying|win", ascending=False)
     if race.empty:
         raise HTTPException(404, f"The preview was tested on the races of 2025 and 2026, not {race_id}.")
@@ -466,7 +466,7 @@ def preview_race(race_id: str):
 # long), the strategies that worked, the track's facts, and the race prediction (the preview for the next race)
 def need_engineer():
     if ENGINEER is None:
-        raise HTTPException(503, "No engineer briefing yet: run python engineer.py")
+        raise HTTPException(503, "No engineer briefing yet: run python src/engineer.py")
 
 
 def event_name(race_id):
@@ -565,7 +565,7 @@ async def replay(race_id: str, start: int = 1, seconds: float = 2.0, reveal: boo
 
 
 if __name__ == "__main__":
-    # python api.py --lan (start_app_lan.bat): also open to phones and tablets on your home network, for the dash
+    # python src/api.py --lan (start_app_lan.bat): also open to phones and tablets on your home network, for the dash
     lan = "--lan" in sys.argv[1:]
     os.environ["F1_APP_LAN"] = "1" if lan else "0"
     uvicorn.run(app, host="0.0.0.0" if lan else "127.0.0.1", port=8000)   # this app object: not loaded a second time

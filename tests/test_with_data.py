@@ -245,7 +245,7 @@ def test_the_driver_report(app, tmp_path, monkeypatch):
 
 
 def test_the_undercut_and_forecast_report_is_frozen_to_the_study():
-    """data/battle_evaluation.md: tested on the 33 real undercuts of the 17 test races (python battle.py)."""
+    """data/battle_evaluation.md: tested on the 33 real undercuts of the 17 test races (python src/battle.py)."""
     text = (DATA_DIR / "battle_evaluation.md").read_text(encoding="utf-8")
     assert "rounds 1-17" in text and "On the 33 real undercuts" in text
 

@@ -8,7 +8,7 @@ field has one winner, three podium places and ten points places.
 
 It is tested the way it would be used: before each race of 2025 and 2026 it is trained again on the races before
 it, then asked about that race (the settings are picked the same way on 2024). Then the next race is predicted.
-    python race_preview.py   -> data/preview_backtest.parquet, data/preview_evaluation.md, figures/preview_*.png,
+    python src/race_preview.py   -> data/preview_backtest.parquet, data/preview_evaluation.md, figures/preview_*.png,
                                 models/preview_next.json (the next race, with the reasons)
 """
 import json
@@ -313,7 +313,7 @@ def report(bt, tune, chosen, tries):
           f"After qualifying it uses: {', '.join(VERSIONS['after qualifying'])} (picked on 2024).", "",
           table(res, 3, per={"Favourite won (%)": 1}), "", f"![Backtest]({chart})", "",
           "## Settings and after-qualifying features, tried race by race on 2024", "", table(tune, 4), "",
-          "Written by `python race_preview.py`."]
+          "Written by `python src/race_preview.py`."]
     REPORT.write_text("\n".join(md), encoding="utf-8")
     return res
 

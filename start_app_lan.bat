@@ -6,5 +6,5 @@ cd /d "%~dp0"
 call .venv\Scripts\activate.bat
 echo Starting the app for this PC and your home network... the browser opens in a few seconds.
 start "" cmd /c "timeout /t 8 >nul & start http://127.0.0.1:8000"
-python api.py --lan
+python src\api.py --lan
 pause

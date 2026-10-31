@@ -3,8 +3,10 @@ from pathlib import Path
 import fastf1
 import matplotlib.pyplot as plt                 # NEW: the drawing library
 
-Path("fastf1_cache").mkdir(exist_ok=True)       # make a folder for downloads
-fastf1.Cache.enable_cache("fastf1_cache")       # save every download, never fetch twice
+from config import CACHE_DIR
+
+CACHE_DIR.mkdir(exist_ok=True)                  # make a folder for downloads
+fastf1.Cache.enable_cache(CACHE_DIR)            # save every download, never fetch twice
 
 session = fastf1.get_session(2026, "Singapore", "R")   # year, race, "R" = the race
 session.load(laps=True, telemetry=False, weather=True, messages=False)

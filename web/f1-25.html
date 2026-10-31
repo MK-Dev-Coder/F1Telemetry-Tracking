@@ -2621,7 +2621,7 @@ function renderSetup() {
           <tr><td>Your Telemetry</td><td><b>Public</b></td></tr>
         </table>`)}
       ${step(2, "Drive", `<p class="muted">Any session: time trial, practice or a race against the AI. It shows up here by itself, live.
-        No PS5 to hand? <code>python game_simulator.py</code> sends a short test race.</p>`)}
+        No PS5 to hand? <code>python src/game_simulator.py</code> sends a short test race.</p>`)}
     </ol>
     <div class="cdash"><h3>A second screen: the dash</h3><p class="muted">Your race in big numbers (position, gaps, last lap, tyres, fuel
       and energy) on a phone or tablet next to the TV. ${st?.lan ? `On the phone, on the same Wi-Fi, open <span class="addr">http://${esc(ip)}:8000/app/dash.html</span>.`
@@ -2631,7 +2631,7 @@ function renderSetup() {
   const back = $("closeSetup"); if (back) back.onclick = () => { G.setup = false; render(); };
 }
 
-init().catch(err => { $("vSetup").hidden = false; $("vSetup").innerHTML = `<div class="setup"><h2>Can't reach the app</h2><p>${esc(err.message)}. Start it with <code>python api.py</code>.</p></div>`; });
+init().catch(err => { $("vSetup").hidden = false; $("vSetup").innerHTML = `<div class="setup"><h2>Can't reach the app</h2><p>${esc(err.message)}. Start it with <code>python src/api.py</code>.</p></div>`; });
 })();
 </script>
 </body>

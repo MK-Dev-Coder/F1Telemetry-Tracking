@@ -6,11 +6,11 @@ train again, then tested on 2026, which it never saw):
    easier to hit (more laps count as "a stop is coming"), so each PR-AUC is set against its own random guess (the
    share of such laps): the lift.
 2. The feature groups: the model again without each group of features (tyres, gaps, the safety car...), to see
-   how much each group adds: a second view of what SHAP says (python evaluate.py).
+   how much each group adds: a second view of what SHAP says (python src/evaluate.py).
 
 Intervals: 95%, from drawing whole races again 1,000 times (races aren't independent laps). The app, the saved
 models and the study's numbers don't change: this only writes results/horizon.md, results/feature_groups.md (and
-their .csv) and two charts. Run: python evaluate_design.py (about 2 minutes)."""
+their .csv) and two charts. Run: python src/evaluate_design.py (about 2 minutes)."""
 import json
 import time
 

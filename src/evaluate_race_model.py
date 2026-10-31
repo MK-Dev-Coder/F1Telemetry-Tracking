@@ -6,7 +6,7 @@ RQ4b  When does it know?           The scores by how far into the race; the winn
 RQ4c  Can the % be trusted?        Calibration of the win, podium and points chances.
 RQ4d  Are the SHAP reasons sound?  Do they follow racing logic, and which reasons matter most? Two case studies.
 RQ4e  Is it fast enough live?      Time for one lap: every driver's chances and their reasons.
-    python evaluate_race_model.py   -> figures/race_*.png and data/race_evaluation.md (run train_race_model.py first)
+    python src/evaluate_race_model.py   -> figures/race_*.png and data/race_evaluation.md (run train_race_model.py first)
 """
 import textwrap
 import time
@@ -299,7 +299,7 @@ def main():
     rows, shap, booster, info = load()
     md = ["# Evaluation of the race outcome model (2026 test races)", "",
           f"{rows['RaceId'].nunique()} races, {rows.groupby(['RaceId', 'LapNumber']).ngroups} laps, {len(rows)} driver-laps, "
-          f"never used to train or tune the model (version: {info['version']}). Written by `python evaluate_race_model.py`.", "",
+          f"never used to train or tune the model (version: {info['version']}). Written by `python src/evaluate_race_model.py`.", "",
           "Baselines: *Position only* = how often drivers in the same position at the same stage of a race finished in the "
           "top 1/3/10 in 2022-2025; *Grid only* = the same from the starting position (it never changes during the race).", ""]
 
