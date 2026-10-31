@@ -41,7 +41,7 @@ SETTINGS_FILE = ROOT / "aws_settings.json"
 STATE = "aws_state.json"                         # in the project folder: each file's SHA-256 at the last sync
 MANIFEST = "manifest.json"                       # in the bucket: every file, its size and SHA-256
 PROFILE = "f1-strategy"                          # the key's name in your user folder's .aws/credentials
-REGION = "eu-central-1"                          # Frankfurt, the closest to Greece
+REGION = "eu-north-1"                            # Stockholm: AWS's free plan allows only this region
 FOLDERS = ["data", "models"]
 STAY_HERE = {"f1_25", "driver"}                  # the game's data never leaves this PC
 REBUILT = {"replay_laps.parquet"}                # the app builds it again from all_laps.parquet
@@ -172,7 +172,8 @@ def upload(s3, bucket, root=ROOT, force=False, everything=False, log=print):
     log(f"Sent {len(send)} files ({size / 1e6:.1f} MB) in {seconds:.1f} s; "
         f"{Counter(s for s, _, _ in sides.values())['same']} were already the same in the cloud")
     left(sides, "down", "Newer in the cloud, so not sent (python src/aws_sync.py download)", log)
-    left(sides, "both" if not force else None, "Changed here and in the cloud, so left alone (add --force to send yours)", log)
+    if not force:
+        left(sides, "both", "Changed here and in the cloud, so left alone (add --force to send yours)", log)
     return len(send), size, seconds
 
 
@@ -207,7 +208,8 @@ def download(s3, bucket, root=ROOT, force=False, log=print):
     log(f"Fetched {len(done)} files ({size / 1e6:.1f} MB) in {seconds:.1f} s; "
         f"{Counter(s for s, _, _ in sides.values())['same']} were already the same here")
     left(sides, "up", "Changed here, so not replaced (python src/aws_sync.py upload)", log)
-    left(sides, "both" if not force else None, "Changed here and in the cloud, so left alone (add --force to take the cloud's)", log)
+    if not force:
+        left(sides, "both", "Changed here and in the cloud, so left alone (add --force to take the cloud's)", log)
     return len(done), size, seconds
 
 
@@ -234,9 +236,10 @@ def status(s3, bucket, root=ROOT, log=print):
     log(f"Bucket {bucket}: {len(manifest.get('files', []))} files ({size / 1e6:.1f} MB), last sent "
         f"{manifest.get('updated', 'never')}")
     log(f"Here: {counts['same']} the same, {counts['up']} to send, {counts['down']} to fetch, {counts['both']} changed on both sides")
-    kept = versions(s3, bucket)
+    sent = {e["key"] for e in manifest.get("files", [])}                # not the checks, Athena's answers, ...
+    kept = {k: n for k, n in versions(s3, bucket).items() if k in sent}
     many = sorted(((n, k) for k, n in kept.items() if n > 1), reverse=True)
-    log(f"Versions: {sum(kept.values())} copies of {len(kept)} files" +
+    log(f"Versions of the files sent: {sum(kept.values())} copies of {len(kept)} files" +
         (f"; most: {', '.join(f'{k} ({n})' for n, k in many[:5])}" if many else " (one each so far)"))
 
 

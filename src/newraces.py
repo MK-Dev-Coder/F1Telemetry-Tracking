@@ -27,10 +27,13 @@ NOTE = "data/openf1/building.json"       # races whose steps haven't all run yet
 
 
 def sessions(root=ROOT):
-    """OpenF1 session key -> race id, for every OpenF1 race built here (from the saved OpenF1 answers)."""
-    out = {}
-    for f in sorted((root / "data" / "openf1" / "json").glob("*.json.gz")):
-        out[str(json.loads(gzip.decompress(f.read_bytes()))["session"]["session_key"])] = f.name.split(".")[0]
+    """OpenF1 session key -> race id, for every OpenF1 race built here: its saved OpenF1 answers and its table (a race
+    whose table wasn't made isn't built, so it is tried again)."""
+    out, folder = {}, root / "data" / "openf1"
+    for f in sorted((folder / "json").glob("*.json.gz")):
+        race_id = f.name.split(".")[0]
+        if (folder / f"{race_id}.parquet").exists():
+            out[str(json.loads(gzip.decompress(f.read_bytes()))["session"]["session_key"])] = race_id
     return out
 
 
@@ -70,15 +73,25 @@ def add(s3, bucket, root=ROOT, log=print, step=run, number=round_of, send=True):
     pending = json.loads(note.read_text(encoding="utf-8")) if note.exists() else []
     here = set(sessions(root))
     waiting = {k[len(aws_fetch.INCOMING):].split(".")[0]: k for k in aws_fetch.keys_in(s3, bucket, aws_fetch.INCOMING)}
-    for key in sorted(k for k in waiting if k not in here):
-        body = s3.get_object(Bucket=bucket, Key=waiting[key])["Body"].read()
-        year, rnd, name = number(json.loads(gzip.decompress(body)))
-        target = root / "data" / "openf1" / "json" / f"{year}_{rnd:02d}.json.gz"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(body)
+    for key in sorted((k for k in waiting if k not in here), key=int):
+        try:
+            body = s3.get_object(Bucket=bucket, Key=waiting[key])["Body"].read()
+            year, rnd, name = number(json.loads(gzip.decompress(body)))
+        except Exception as e:               # one race that can't be read or found in the calendar waits; others go on
+            log(f"Race {key} from the cloud waits for next time: {e}")
+            continue
+        race_id, folder = f"{year}_{rnd:02d}", root / "data" / "openf1"
+        (folder / "json").mkdir(parents=True, exist_ok=True)
+        (folder / "json" / f"{race_id}.json.gz").write_bytes(body)
         log(f"New race from the cloud: {year} round {rnd}, {name}")
-        step("collect_openf1.py", year, rnd, root=root)
-        pending = sorted(set(pending) | {f"{year}_{rnd:02d} {name}"})
+        try:
+            step("collect_openf1.py", year, rnd, root=root)
+            if not (folder / f"{race_id}.parquet").exists():      # collect_openf1.py says "skipped" and carries on
+                raise RuntimeError("collect_openf1.py made no table for it")
+        except Exception as e:               # not built, so not in sessions(): it is tried again next time
+            log(f"   not built ({e}): it is tried again next time")
+            continue
+        pending = sorted(set(pending) | {f"{race_id} {name}"})
         note.write_text(json.dumps(pending), encoding="utf-8")                # in case a later step fails
     if not pending:
         return []

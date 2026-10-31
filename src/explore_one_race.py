@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import fastf1
 import matplotlib.pyplot as plt                 # NEW: the drawing library
 

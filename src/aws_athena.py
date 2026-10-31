@@ -21,6 +21,7 @@ import aws_sync
 from config import DATA_DIR
 
 DATABASE = "f1_strategy"
+WAIT = 300                                          # seconds to wait for an answer (a question here takes about 1)
 TABLES = {"laps": "all_laps", "features": "features", "timing": "timing", "race_control": "race_control",
           "race_results": "race_results"}           # Athena's name: the file in data/
 DRY = "compound IN ('SOFT', 'MEDIUM', 'HARD')"
@@ -71,10 +72,13 @@ def run(athena, sql, bucket, database=DATABASE):
     context = {"QueryExecutionContext": {"Database": database}} if database else {}
     qid = athena.start_query_execution(QueryString=sql, WorkGroup="primary", **context,
                                        ResultConfiguration={"OutputLocation": f"s3://{bucket}/athena-results/"})["QueryExecutionId"]
+    deadline = time.monotonic() + WAIT
     while True:
         e = athena.get_query_execution(QueryExecutionId=qid)["QueryExecution"]
         if e["Status"]["State"] in ("SUCCEEDED", "FAILED", "CANCELLED"):
             break
+        if time.monotonic() > deadline:
+            raise SystemExit(f"Athena: no answer after {WAIT} s (still {e['Status']['State']}); try again later")
         time.sleep(0.4)
     if e["Status"]["State"] != "SUCCEEDED":
         raise SystemExit(f"Athena: {e['Status']['State']}: {e['Status'].get('StateChangeReason', '')}")

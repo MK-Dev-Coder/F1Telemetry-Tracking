@@ -230,6 +230,13 @@ def test_drivers_without_the_team_colours_file(app, monkeypatch):
     assert api.who("VER", "2026_17")["colour"] == "#888888"
 
 
+def test_a_race_without_colours_is_grey_not_another_seasons(app):
+    import api
+    assert api.who("VER", "2026_17")["colour"] != "#888888"                  # the study's races have their colours
+    assert api.who("VER", "1999_01")["colour"] == "#888888"                  # not the latest race's
+    assert api.who("VER") == api.who("VER", max(api.COLOURS_BY_RACE))        # the next race: the latest race's
+
+
 def test_the_driver_report(app, tmp_path, monkeypatch):
     """The driver report learns from the recorded sessions (its own files go to a temporary folder here)."""
     import game_driver

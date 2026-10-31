@@ -1,7 +1,6 @@
 """The cloud data layer (aws_sync.py), its check in the cloud (aws_check.py) and the Athena tables (aws_athena.py),
 against a made-up bucket in memory: no AWS account, internet or keys are needed, and the real data isn't touched."""
 import hashlib
-import io
 import json
 
 import pandas as pd
@@ -10,35 +9,7 @@ import pytest
 import aws_athena
 import aws_check
 import aws_sync
-from conftest import make_race
-
-
-class NoSuchKey(Exception):
-    pass
-
-
-class FakeS3:
-    """A bucket in memory, with the calls aws_sync.py and aws_check.py make."""
-
-    def __init__(self):
-        self.objects = {}                        # key -> (bytes, metadata)
-
-    def upload_file(self, filename, bucket, key, ExtraArgs=None):
-        with open(filename, "rb") as f:
-            self.objects[key] = (f.read(), (ExtraArgs or {}).get("Metadata", {}))
-
-    def download_file(self, bucket, key, filename):
-        with open(filename, "wb") as f:
-            f.write(self.objects[key][0])
-
-    def put_object(self, Bucket, Key, Body, ContentType=None):
-        self.objects[Key] = (Body, {})
-
-    def get_object(self, Bucket, Key):
-        if Key not in self.objects:
-            raise NoSuchKey(Key)
-        body, meta = self.objects[Key]
-        return {"Body": io.BytesIO(body), "Metadata": meta}
+from conftest import FakeS3, make_race
 
 
 def project(root, laps=None):

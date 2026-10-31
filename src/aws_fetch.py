@@ -25,7 +25,8 @@ ENDPOINTS = ["drivers", "laps", "stints", "pit", "position", "weather", "race_co
 PAUSE = 2.1                              # seconds between requests (free users: 30 requests a minute)
 INCOMING = "data/openf1/incoming/"
 INDEX = "data/openf1/sessions.json"
-SETTLE = timedelta(hours=1)              # OpenF1's history opens 30 minutes after a session ends
+SETTLE = timedelta(hours=6)              # OpenF1's history opens 30 minutes after a session ends; a race is stored once,
+                                         # so it waits until OpenF1 has surely filled in every lap and stop
 
 
 def get(endpoint, **params):

@@ -18,8 +18,8 @@ MSc dissertation project, Big Data Engineering & Data Science (AthTech / Univers
   before it.
 - **The trained models are here** (`models/`), the race data isn't: it belongs to Formula 1. To run the app or
   train the models again, see [Install](#install) and [Get the data](#get-the-data) (about 30 minutes to download).
-- **The tests** (`python -m pytest tests`, 193 of them) run on GitHub Actions on every push (the badge above).
-  Without the data folder the 32 that read it are skipped and the other 161 run.
+- **The tests** (`python -m pytest tests`, 201 of them) run on GitHub Actions on every push (the badge above).
+  Without the data folder the 33 that read it are skipped and the other 168 run.
 - **The cloud data layer** (optional; the app runs without it): the data and models in Amazon S3 with versions, a
   Lambda check on each table that arrives, Athena for SQL, and a daily Lambda that fetches each new race
   ([AWS_SETUP.md](docs/AWS_SETUP.md)); the desktop app (`desktop.py`) fetches the newest data from it and builds new races.
@@ -318,7 +318,7 @@ python src/engineer.py
 python -m pytest tests
 ```
 
-193 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
+201 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
 data. They check:
 
 - **The features:** real stops are found (not drive-throughs, not tyre changes under a red flag), and no feature
@@ -348,18 +348,20 @@ data. They check:
   so; it keeps learning (a new or longer session is added, nothing else is read again, the live one waits); your
   start from the game's reaction time or from when the car first moves, and the places your quicker starts make.
 - **The app:** its web answers, as the pages get them (for example, a replay speed of 0 is refused), and without
-  `team_colours.json` the drivers are just grey.
+  `team_colours.json` the drivers are just grey (so is a race the file doesn't have, not in another season's colours).
 - **The cloud and the desktop app** (with a made-up bucket in memory, no AWS needed): the game's data never goes up;
   a new PC gets every file exactly as sent; nothing changed, nothing sent; a file changed on one PC is never replaced
   by an older copy, and one changed on both sides is left alone; a download that doesn't match its SHA-256 is
   refused; the access key can't delete; the Lambda check finds laps listed twice and missing columns, and spots a
-  file that isn't the one sent; the Athena tables' columns; the app window is a program of its own. New races: the
-  daily fetch takes only finished races that aren't built or waiting already (not cancelled ones, not ones OpenF1 has
-  no laps for yet) and stores them as `collect_openf1.py` does; the PC builds a new race with the README's steps in
-  order, runs them again after a failure, and never sends its note to the cloud.
+  file that isn't the one sent; the Athena tables' columns; the app window is a program of its own, and without the
+  internet it opens at once. New races: the daily fetch takes only finished races that aren't built or waiting
+  already (not cancelled ones, not ones OpenF1 has no laps for yet, not ones that ended less than 6 hours ago) and
+  stores them as `collect_openf1.py` does; the PC fetches the latest data first, builds a new race with the README's
+  steps in order, runs them again after a failure, tries a race again when `collect_openf1.py` made no table for it,
+  builds the others when one isn't in the calendar yet, and never sends its note to the cloud.
 
-Most tests use small made-up races. The 32 in `tests/test_with_data.py` read the data folder and the trained
-models without changing them; without the data folder they are skipped and the other 161 still run. The tests
+Most tests use small made-up races. The 33 in `tests/test_with_data.py` read the data folder and the trained
+models without changing them; without the data folder they are skipped and the other 168 still run. The tests
 don't listen for the game, so they can run while the app is open.
 
 ## Run the app

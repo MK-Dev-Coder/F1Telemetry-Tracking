@@ -3,6 +3,7 @@
 The tests use small made-up races, so they never read or change the real data. Only test_with_data.py reads the
 real data folder (without changing it), and it is skipped when the folder isn't there (it isn't on GitHub).
 """
+import io
 import sys
 from pathlib import Path
 
@@ -58,3 +59,35 @@ def race():
 def lap(laps, driver, n):
     """One driver's row on one lap."""
     return laps[(laps["Driver"] == driver) & (laps["LapNumber"] == n)].iloc[0]
+
+
+class NoSuchKey(Exception):
+    pass
+
+
+class FakeS3:
+    """A bucket in memory, with the calls aws_sync.py, aws_check.py, aws_fetch.py and newraces.py make: no AWS account,
+    internet or keys are needed."""
+
+    def __init__(self):
+        self.objects = {}                        # key -> (bytes, metadata)
+
+    def upload_file(self, filename, bucket, key, ExtraArgs=None):
+        with open(filename, "rb") as f:
+            self.objects[key] = (f.read(), (ExtraArgs or {}).get("Metadata", {}))
+
+    def download_file(self, bucket, key, filename):
+        with open(filename, "wb") as f:
+            f.write(self.objects[key][0])
+
+    def put_object(self, Bucket, Key, Body, ContentType=None):
+        self.objects[Key] = (Body, {})
+
+    def get_object(self, Bucket, Key):
+        if Key not in self.objects:
+            raise NoSuchKey(Key)
+        body, meta = self.objects[Key]
+        return {"Body": io.BytesIO(body), "Metadata": meta}
+
+    def list_objects_v2(self, Bucket, Prefix, **_):
+        return {"Contents": [{"Key": k} for k in sorted(self.objects) if k.startswith(Prefix)], "IsTruncated": False}

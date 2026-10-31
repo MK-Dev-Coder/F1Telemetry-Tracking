@@ -415,7 +415,12 @@ def lap_driver_outcome(race_id: str, lap: int, driver: str, reveal: bool = False
 
 # Recipe 5: the race preview - before a race, each driver's chance to win, finish on the podium and score points
 def who(code, race_id=None):
-    colours = COLOURS_BY_RACE.get(race_id) or (COLOURS_BY_RACE[max(COLOURS_BY_RACE)] if COLOURS_BY_RACE else {})
+    """A driver's name and team colour: in that race's colours, or (no race: the next race, the game) the latest
+    race's. A race the colours file doesn't have shows grey, not another season's teams."""
+    if race_id:
+        colours = COLOURS_BY_RACE.get(race_id, {})
+    else:
+        colours = COLOURS_BY_RACE[max(COLOURS_BY_RACE)] if COLOURS_BY_RACE else {}
     return {"name": live_timing.NAMES.get(code, code), "colour": "#" + str(colours.get(code, "888888"))}
 
 

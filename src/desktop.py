@@ -13,6 +13,7 @@ straight from the console to this PC, as before.
 What it did each time is in desktop.log, in the app's folder in your user folder (AppData\\Local).
 """
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -61,16 +62,28 @@ def window(exe, url=URL, profile=HOME / "window"):
             "--window-size=1440,900"]
 
 
+def online(cfg, timeout=2.0):
+    """Can this PC reach the bucket's region? Asked first, so that without the internet the app opens at once instead
+    of waiting for the cloud's connection attempts."""
+    try:
+        socket.create_connection((f"s3.{cfg.get('region', 'eu-north-1')}.amazonaws.com", 443), timeout=timeout).close()
+        return True
+    except OSError:
+        return False
+
+
 def from_the_cloud():
-    """Newer data from the cloud, if this PC is set up for it. It never stops the app from starting."""
+    """Newer data from the cloud, if this PC is set up for it and online. It never stops the app from starting."""
     try:
         import aws_sync
         cfg = aws_sync.settings()
-        if cfg:
-            aws_sync.download(aws_sync.client(cfg), cfg["bucket"], log=log)
-        else:
+        if not cfg:
             log("The cloud: this PC isn't set up for AWS, so the data here is used")
-    except BaseException as e:                   # offline, no key yet, or no permission
+        elif not online(cfg):
+            log("The cloud: no internet, so the data here is used")
+        else:
+            aws_sync.download(aws_sync.client(cfg), cfg["bucket"], log=log)
+    except BaseException as e:                   # no key yet, or no permission
         log(f"The cloud: skipped ({e}); the data here is used")
 
 
@@ -89,7 +102,11 @@ def new_races():
         import aws_sync
         import newraces
         cfg = aws_sync.settings()
-        added = newraces.add(aws_sync.client(cfg), cfg["bucket"], log=log) if cfg else []
+        added = []
+        if cfg and online(cfg):
+            s3 = aws_sync.client(cfg)
+            aws_sync.download(s3, cfg["bucket"], log=log)      # another PC may have built a race already
+            added = newraces.add(s3, cfg["bucket"], log=log)
         if added:
             log("New races added: " + ", ".join(added))
             tell("New race added: " + ", ".join(r.split(" ", 1)[1] for r in added) +

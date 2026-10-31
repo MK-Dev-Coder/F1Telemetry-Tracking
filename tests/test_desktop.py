@@ -1,7 +1,9 @@
 """desktop.py: the app in a window of its own. The tests don't open a window or start the app."""
 import socket
 
+import aws_sync
 import desktop
+import newraces
 
 
 def test_the_window_is_an_app_of_its_own():
@@ -16,3 +18,30 @@ def test_it_knows_when_the_app_is_not_running():
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
     assert desktop.running(f"http://127.0.0.1:{port}/", timeout=0.5) is False
+
+
+def cloud(monkeypatch, tmp_path, online):
+    """A PC set up for AWS, with or without the internet; returns what the cloud was asked, in order."""
+    asked = []
+    monkeypatch.setattr(desktop, "HOME", tmp_path)
+    monkeypatch.setattr(desktop, "log", asked.append)
+    monkeypatch.setattr(desktop, "online", lambda cfg: online)
+    monkeypatch.setattr(aws_sync, "settings", lambda: {"bucket": "b", "region": "eu-north-1"})
+    monkeypatch.setattr(aws_sync, "client", lambda cfg: "s3")
+    monkeypatch.setattr(aws_sync, "download", lambda *a, **k: asked.append("download"))
+    monkeypatch.setattr(newraces, "add", lambda *a, **k: asked.append("add") or [])
+    return asked
+
+
+def test_without_the_internet_the_app_opens_at_once(monkeypatch, tmp_path):
+    asked = cloud(monkeypatch, tmp_path, online=False)
+    desktop.from_the_cloud()
+    desktop.new_races()
+    assert asked == ["The cloud: no internet, so the data here is used"]     # no waiting on the cloud
+    assert not (tmp_path / "newraces.lock").exists()
+
+
+def test_new_races_fetch_the_latest_data_first(monkeypatch, tmp_path):
+    asked = cloud(monkeypatch, tmp_path, online=True)
+    desktop.new_races()
+    assert asked == ["download", "add"]                         # another PC may have built the race already

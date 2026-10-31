@@ -4,8 +4,8 @@ The app works without any of this. With it, the race data and the models have a 
 older version kept), a Lambda function checks each table that arrives, Athena answers questions about the data in
 SQL, and the desktop app fetches the newest data when it starts. The game's recordings never go to AWS.
 
-About an hour, once. Do every step in one region: **Europe (Frankfurt) eu-central-1**, or **Europe (Stockholm)
-eu-north-1** on AWS's free plan, which allows only that one (the menu at the top right of the AWS console). On the
+About an hour, once. Do every step in one region: **Europe (Stockholm) eu-north-1**, the app's default and the only
+one AWS's free plan allows (the menu at the top right of the AWS console), or another one on a paid plan. On the
 free plan each project is an AWS account of its own: open the console from the project that holds the bucket (the
 account ID is at the top right). Keep the keys to yourself: never put them in the project folder, an email or a chat.
 
@@ -31,7 +31,7 @@ On this PC, in the project folder:
 python src/aws_sync.py setup f1-strategy-yourname-2026
 ```
 
-In Stockholm, add the region: `python src/aws_sync.py setup f1-strategy-yourname-2026 eu-north-1`.
+In another region, add it: for Frankfurt, `python src/aws_sync.py setup f1-strategy-yourname-2026 eu-central-1`.
 
 ## 3. A key for the app (5 minutes)
 
