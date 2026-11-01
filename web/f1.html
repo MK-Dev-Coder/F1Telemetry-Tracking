@@ -72,7 +72,7 @@ button,select,input{font:inherit;color:inherit}
 .tp-chip:hover,.tp-chip[aria-expanded="true"]{background:rgba(255,255,255,.26)}
 .tp-chip b{font-family:var(--f-num);font-size:14px;font-weight:600}
 .tp-chip small{font-size:11px;letter-spacing:.07em;text-transform:uppercase;opacity:.88}
-.spd-menu{position:absolute;left:0;top:calc(100% + 10px);z-index:40;min-width:290px;background:#1d1f2b;border:1px solid #2c2f3d;border-radius:10px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.spd-menu{position:absolute;right:0;top:calc(100% + 10px);z-index:40;min-width:290px;background:#1d1f2b;border:1px solid #2c2f3d;border-radius:10px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.5)}
 .spd-menu h5{margin:4px 8px 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9aa0ae;font-weight:600}
 .spd-menu button{display:grid;grid-template-columns:44px minmax(0,1fr) 16px;align-items:center;gap:6px;width:100%;padding:8px 10px;border:0;background:none;color:#e9ecf2;border-radius:6px;cursor:pointer;text-align:left}
 .spd-menu button:hover,.spd-menu button:focus-visible{background:#2a2c3a}
@@ -673,6 +673,9 @@ function speedMenu(open) {
   const tick = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   m.innerHTML = `<h5>Replay speed</h5>` + SPEEDS.map(([f, label, note], k) => `<button type="button" role="option" data-speed="${k}" aria-selected="${k === S.speed}">` +
     `<b>${label}</b><span>${note ? note + " · " : ""}a lap every ${fmtWait(typicalLap() / f)}</span>${k === S.speed ? tick : "<i></i>"}</button>`).join("");
+  m.style.right = "0";                                          // opens to the left of the button; on a narrow screen
+  const edge = m.closest(".panel").getBoundingClientRect().left + 8 - m.getBoundingClientRect().left;
+  if (edge > 0) m.style.right = `${-edge}px`;                   // it moves right so it stays inside the page
   m.querySelector('[aria-selected="true"]')?.focus();
 }
 const fmtWait = s => s >= 60 ? `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}` : `${Math.max(1, Math.round(s))} s`;
