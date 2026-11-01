@@ -18,8 +18,8 @@ MSc dissertation project, Big Data Engineering & Data Science (AthTech / Univers
   before it.
 - **The trained models are here** (`models/`), the race data isn't: it belongs to Formula 1. To run the app or
   train the models again, see [Install](#install) and [Get the data](#get-the-data) (about 30 minutes to download).
-- **The tests** (`python -m pytest tests`, 201 of them) run on GitHub Actions on every push (the badge above).
-  Without the data folder the 33 that read it are skipped and the other 168 run.
+- **The tests** (`python -m pytest tests`, 202 of them) run on GitHub Actions on every push (the badge above).
+  Without the data folder the 33 that read it are skipped and the other 169 run.
 - **The cloud data layer** (optional; the app runs without it): the data and models in Amazon S3 with versions, a
   Lambda check on each table that arrives, Athena for SQL, and a daily Lambda that fetches each new race
   ([AWS_SETUP.md](docs/AWS_SETUP.md)); the desktop app (`desktop.py`) fetches the newest data from it and builds new races.
@@ -318,7 +318,7 @@ python src/engineer.py
 python -m pytest tests
 ```
 
-201 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
+202 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
 data. They check:
 
 - **The features:** real stops are found (not drive-throughs, not tyre changes under a red flag), and no feature
@@ -337,8 +337,9 @@ data. They check:
 - **The engineer:** a hotter day wears the tyres faster and they last less (at most 40% either way), a shorter game
   race as many laps less, a stop under the safety car costs less, rain adds the intermediates and wets, a replay
   knows only the races before it, and the game's first pit window is kept as its plan.
-- **F1 25 / F1 26:** bad packets are skipped, online players' names are never kept, short races are scaled, and
-  the team radio sends each question to the right topic ("chance of rain?" is about the weather).
+- **F1 25 / F1 26:** bad packets are skipped, online players' names are never kept, a paused game is still live
+  (paused, not over: the game sends nothing while paused, and "Session ended" when a session is), short races are
+  scaled, and the team radio sends each question to the right topic ("chance of rain?" is about the weather).
 - **Your game, analysed:** clean laps leave out the start, pit laps and slow laps; the theoretical best is the best
   three sectors; the wear forecast reaches 70% on time; a corner where you're slower loses time; lock-ups and
   wheelspin are found (and hot spots on two laps); energy from the battery and from the game's counters; a pass
@@ -361,7 +362,7 @@ data. They check:
   builds the others when one isn't in the calendar yet, and never sends its note to the cloud.
 
 Most tests use small made-up races. The 33 in `tests/test_with_data.py` read the data folder and the trained
-models without changing them; without the data folder they are skipped and the other 168 still run. The tests
+models without changing them; without the data folder they are skipped and the other 169 still run. The tests
 don't listen for the game, so they can run while the app is open.
 
 ## Run the app

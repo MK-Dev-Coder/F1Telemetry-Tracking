@@ -89,7 +89,7 @@ function show(d) {
   const i = d.info || {}, rows = d.leaderboard || [], k = rows.findIndex(r => r.player), me = rows[k], c = d.car || {};
   $("wait").hidden = true; $("dash").hidden = false;
   $("game").textContent = d.session?.game || "F1 25";
-  $("where").textContent = `${i.track || ""} · ${i.session_type || ""}${me ? ` · Lap ${me.lap}${d.race && i.total_laps ? " / " + i.total_laps : ""}` : ""}`;
+  $("where").textContent = `${i.track || ""} · ${i.session_type || ""}${me ? ` · Lap ${me.lap}${d.race && i.total_laps ? " / " + i.total_laps : ""}` : ""}${d.paused ? " · Paused" : ""}`;
   const f = { "SAFETY CAR": ["Safety car", "sc"], VSC: ["Virtual safety car", "vsc"], "FORMATION LAP": ["Formation lap", "vsc"] }[i.safety_car];
   $("flag").hidden = !d.race; $("flag").textContent = f ? f[0] : "Green"; $("flag").className = "flag" + (f ? " " + f[1] : "");
   if (!me) return;

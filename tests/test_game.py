@@ -1,5 +1,6 @@
 """F1 25 / F1 26: reading the game's packets, its laps, and keeping online players' names out."""
 import math
+import time
 
 import pytest
 
@@ -17,6 +18,28 @@ def test_a_new_session_starts_with_its_first_packet():
     r = gt.Recorder(resume=False)
     r.handle(packet(pid=3), arrived=0.0, record=False)                       # an event packet
     assert list(r.sessions) == [123] and r.live_uid == 123
+
+
+def event(code, fmt=2026):
+    p = bytearray(packet(fmt=fmt, pid=3))
+    p[gt.HEADER.size:gt.HEADER.size + 4] = code.encode()
+    return bytes(p)
+
+
+def test_a_paused_game_is_paused_not_over():
+    """While it's paused the game sends nothing at all; when a session is over (the flag, or quitting to the menu)
+    it says "Session ended" first. So a quiet session it hasn't ended stays live, as paused."""
+    now = time.time()
+    r = gt.Recorder(resume=False)
+    r.handle(event("SSTA"), now - 60, record=False)                         # driving, then a minute without packets
+    assert r.is_live(123) and r.is_paused(123)
+    r.handle(packet(fmt=2026, pid=0), now, record=False)                     # you carry on
+    assert r.is_live(123) and not r.is_paused(123)
+    r.handle(event("SEND"), now - 60, record=False)                          # the session ended a minute ago
+    assert not r.is_live(123) and not r.is_paused(123)
+    r = gt.Recorder(resume=False)
+    r.handle(event("SSTA"), now - gt.PAUSE_MAX - 1, record=False)            # the console was switched off
+    assert not r.is_live(123)
 
 
 def test_bad_packets_are_skipped():

@@ -46,6 +46,7 @@ def session_view(s, latest_events=None):
     with RECORDER.lock:
         events = s.events[-latest_events:] if latest_events else s.events
         return {"session": s.summary(), "info": s.info, "race": s.is_race(), "live": RECORDER.is_live(s.uid),
+                "paused": RECORDER.is_paused(s.uid),
                 "leaderboard": s.leaderboard(), "laps": s.player_laps(), "best": s.best_times(),
                 "car": s.car_now(), "events": list(reversed(events)), "events_total": len(s.events),
                 "classification": s.classification, "setup": s.setup, "tyre_sets": s.tyre_set_list(),
@@ -99,7 +100,7 @@ def sessions():
     """Every recorded game session, newest first."""
     out = RECORDER.all_sessions()
     for s in out:
-        s["live"] = RECORDER.is_live(s["id"])
+        s["live"], s["paused"] = RECORDER.is_live(s["id"]), RECORDER.is_paused(s["id"])
     return out
 
 

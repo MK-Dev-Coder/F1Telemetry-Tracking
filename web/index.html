@@ -346,7 +346,7 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
   let liveId = null;
   async function checkLive() {
     try {
-      const id = (await getJSON("/game/status")).live_session;
+      const st = await getJSON("/game/status"), id = st.live_session;
       if (!id) { liveCard.classList.remove("on"); liveId = null; return; }
       const [v, all] = await Promise.all([getJSON(`/game/sessions/${id}`), getJSON("/game/sessions")]);
       const s = v.session, me = v.leaderboard.find(r => r.player) || {}, [code, gp] = P.place(s.track);
@@ -357,7 +357,8 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
         getJSON(`/game/sessions/${id}/map`).then(m => { if (liveId === id) liveCard.querySelector(".art-slot").innerHTML = gameArt(m); }).catch(() => {});
       }
       liveCard.href = `${PAGE[gameOf(s)]}?session=${encodeURIComponent(id)}`;
-      liveCard.querySelector(".kicker").textContent = `${gameOf(s)} · recording now`;
+      liveCard.querySelector(".kicker").textContent = `${gameOf(s)} · ${st.paused ? "paused" : "recording now"}`;
+      liveCard.querySelector(".live-badge").lastChild.textContent = st.paused ? "PAUSED" : "LIVE";
       liveCard.querySelector("h2").innerHTML = `${P.flag(code)}<span>${esc(gp)} - ${esc(kind(s, all))}</span>`;
       const lap = me.lap ? (v.race && v.info.total_laps ? `Lap ${me.lap} / ${v.info.total_laps}` : `Lap ${me.lap}`) : "";
       liveCard.querySelector(".meta").textContent = [lap, me.position ? `P${me.position}` : "", s.best_lap ? `best ${fmtLap(s.best_lap)}` : ""].filter(Boolean).join(" · ");

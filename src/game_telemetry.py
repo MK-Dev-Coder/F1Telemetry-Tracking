@@ -31,6 +31,8 @@ GAME_DIR = DATA_DIR / "f1_25"                 # one folder per session
 PORT = 20777
 KEEP_RAW = True                               # also keep the raw packets (compressed), to re-decode later
 SAVE_EVERY = 30                               # seconds between saves of a live session
+QUIET = 5                                     # seconds without a packet: the game is paused, or the session is over
+PAUSE_MAX = 30 * 60                           # a pause this long counts as the end (the console was switched off)
 RUN = time.strftime("%Y%m%d-%H%M%S")          # each run of the app writes its own raw packets file
 EARLY_MAX = 5000                              # packets held before the session packet arrives (about 10 s' worth)
 
@@ -452,6 +454,12 @@ class Session:
 
     def is_race(self):
         return self.info.get("session_type_id") in (15, 16, 17)
+
+    def ended(self):
+        """Has the game said this session is over? It sends "Session ended" at the end and when you quit to the menu;
+        while it's paused it sends nothing at all."""
+        said = [e["code"] for e in self.events if e["code"] in ("SSTA", "SEND")]
+        return bool(said) and said[-1] == "SEND"
 
     # -- views for the app ------------------------------------------------------------------------
     def best_times(self):
@@ -1006,13 +1014,25 @@ class Recorder:
         return sprint
 
     def is_live(self, uid):
-        return self.last_packet is not None and str(self.live_uid) == str(uid) and time.time() - self.last_packet < 5
+        """The session you're driving: the game sent a packet in the last few seconds, or it's paused."""
+        if self.last_packet is None or str(self.live_uid) != str(uid):
+            return False
+        return time.time() - self.last_packet < QUIET or self.is_paused(uid)
+
+    def is_paused(self, uid):
+        """The game sends nothing while it's paused, so a live session that went quiet without the game saying it
+        ended is paused (for up to PAUSE_MAX), not over: it stays live, and carries on when you do."""
+        s = self.sessions.get(self.live_uid)
+        if self.last_packet is None or s is None or str(self.live_uid) != str(uid):
+            return False
+        return QUIET <= time.time() - self.last_packet < PAUSE_MAX and not s.ended()
 
     def status(self):
         return {"listening": self.listening, "port": PORT, "error": self.error, "save_error": self.save_error,
                 "packets": self.packets,
                 "seconds_since_last_packet": None if self.last_packet is None else round(time.time() - self.last_packet, 1),
                 "live_session": str(self.live_uid) if self.live_uid and self.is_live(self.live_uid) else None,
+                "paused": bool(self.live_uid) and self.is_paused(self.live_uid),
                 "pc_addresses": local_addresses(), "suggested_address": suggested_address(),
                 "wrong_size_packets": [{"format": f, "packet": p, "size": n, "count": c}
                                        for (f, p, n), c in sorted(self.bad_size.items())][:10]}

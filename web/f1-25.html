@@ -901,7 +901,7 @@ function renderChips() {
     rainChip(i),
     i.track_temp != null ? `<span class="chip"><span class="k">Track</span><span class="v">${i.track_temp}°C</span></span>` : "",
     i.air_temp != null ? `<span class="chip"><span class="k">Air</span><span class="v">${i.air_temp}°C</span></span>` : "",
-    v.live ? `<span class="chip live">LIVE</span>` : `<span class="chip note">Recorded ${new Date(v.session.started * 1000).toLocaleDateString()}</span>`,
+    v.live ? `<span class="chip live">${v.paused ? "PAUSED" : "LIVE"}</span>` : `<span class="chip note">Recorded ${new Date(v.session.started * 1000).toLocaleDateString()}</span>`,
     v.session.test ? `<span class="chip note">TEST DATA</span>` : "",
     i.aero && v.car?.modes ? `<span class="chip"><span class="k">Active aero</span><span class="v">${i.aero === "PARTIAL" ? "Partial" : "Full"}</span></span>` : "",
     i.overtake_mode != null && v.car?.modes ? `<span class="chip"><span class="k">Overtake mode</span><span class="v">${i.overtake_mode ? "On" : "Off"}</span></span>` : "",
@@ -909,8 +909,8 @@ function renderChips() {
     other,
   ].join("");
   renderTicker();
-  $("live").className = "lt-live" + (v.live ? " on" : "");
-  $("live").firstChild.textContent = v.live ? "LIVE " : "RECORDED ";
+  $("live").className = "lt-live" + (v.live && !v.paused ? " on" : "");    // paused: the game sends nothing until you carry on
+  $("live").firstChild.textContent = v.paused ? "PAUSED " : v.live ? "LIVE " : "RECORDED ";
 }
 
 /* ---------------- events, forecast and the bottom strip ---------------- */
@@ -2595,6 +2595,7 @@ function renderSetup() {
   const [state, icon, title, text] = !st ? ["bad", "✕", "The app isn't running", "Start it with start_app.bat, then open this page again."]
     : !st.listening ? ["bad", "✕", "Can't listen for the game", st.error || "Another program may be using the port."]
     : unknown ? ["warn", "!", `The game sends UDP Format ${unknown.format}`, `This app reads 2024, 2025 and 2026: set UDP Format to ${fmt} in the game's Telemetry Settings.`]
+    : st.live_session && st.paused ? ["ok", "‖", "The game is paused", "It sends nothing while paused: your session carries on when you do."]
     : st.live_session ? ["ok", "✓", "Receiving the game", `${st.packets.toLocaleString()} packets so far. Your session shows up by itself.`]
     : st.packets ? ["idle", "…", "Connected before", `The last packet came ${ago(st.seconds_since_last_packet)} ago. Start a session in the game.`]
     : ["wait", "", "Waiting for the game on this network…", `This PC is ${esc(ip)}, listening on port ${port}. Change the game's settings below and drive.`];

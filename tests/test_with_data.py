@@ -248,7 +248,7 @@ def test_the_driver_report(app, tmp_path, monkeypatch):
         if d["ready"]:
             assert len(d["habits"]) == len(game_driver.HABITS) and d["laps"] > 0 and d["history"]
         if d["starts"] and d["starts"]["timed"]:
-            assert all(0.1 < r["reaction"] < 2 for r in d["starts"]["races_list"])
+            assert all(0.1 <= r["reaction"] < 2 for r in d["starts"]["races_list"])     # the game's own can be 0.100
 
 
 def test_the_undercut_and_forecast_report_is_frozen_to_the_study():
