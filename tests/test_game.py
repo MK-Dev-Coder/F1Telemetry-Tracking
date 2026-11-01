@@ -31,6 +31,7 @@ def test_a_paused_game_is_paused_not_over():
     it says "Session ended" first. So a quiet session it hasn't ended stays live, as paused."""
     now = time.time()
     r = gt.Recorder(resume=False)
+    r.handle(packet(fmt=2026, pid=1), now - 61, record=False)                # the session packet
     r.handle(event("SSTA"), now - 60, record=False)                         # driving, then a minute without packets
     assert r.is_live(123) and r.is_paused(123)
     r.handle(packet(fmt=2026, pid=0), now, record=False)                     # you carry on
@@ -38,8 +39,17 @@ def test_a_paused_game_is_paused_not_over():
     r.handle(event("SEND"), now - 60, record=False)                          # the session ended a minute ago
     assert not r.is_live(123) and not r.is_paused(123)
     r = gt.Recorder(resume=False)
+    r.handle(packet(fmt=2026, pid=1), now - gt.PAUSE_MAX - 2, record=False)
     r.handle(event("SSTA"), now - gt.PAUSE_MAX - 1, record=False)            # the console was switched off
     assert not r.is_live(123)
+
+
+def test_stray_packets_are_not_a_paused_session():
+    """After a race the game can send a few packets under a new session number, with no session packet: once they
+    stop, that isn't a session waiting for you."""
+    r = gt.Recorder(resume=False)
+    r.handle(event("SSTA"), time.time() - 60, record=False)
+    assert not r.is_paused(123) and not r.is_live(123)
 
 
 def test_bad_packets_are_skipped():

@@ -2,11 +2,14 @@
 PC (newraces.py) builds it with the usual steps. A made-up bucket and made-up OpenF1 answers: no internet or AWS."""
 import gzip
 import json
-from datetime import datetime, timezone
+import subprocess
+from datetime import date, datetime, timezone
 
 import pytest
 
 import aws_fetch
+import aws_sync
+import collect_openf1
 import newraces
 from conftest import FakeS3
 
@@ -164,6 +167,60 @@ def test_a_race_that_cant_be_placed_doesnt_hold_up_the_others(tmp_path):
     assert newraces.add(s3, "b", root, log=QUIET, step=steps(root, []), number=number,
                         send=False) == ["2026_19 Mexico City Grand Prix"]
     assert newraces.sessions(root) == {"11396": "2026_18", "11420": "2026_19", "11440": "2026_20"}
+
+
+def test_a_failed_upload_runs_again_next_time(tmp_path, monkeypatch):
+    root = project(tmp_path)
+    s3 = bucket_with_index({11396: "2026_18"})
+    aws_fetch.lambda_handler({"bucket": "b"}, None, s3=s3, fetch=openf1(), now=NOW)
+
+    def offline(*args, **kwargs):
+        raise OSError("the connection dropped")
+    monkeypatch.setattr(aws_sync, "upload", offline)
+    with pytest.raises(OSError):
+        newraces.add(s3, "b", root, log=QUIET, step=steps(root, []), number=mexico)
+    assert (root / newraces.NOTE).exists()                                   # built, not sent: kept for next time
+    sent = []
+    monkeypatch.setattr(aws_sync, "upload", lambda *a, **k: sent.append(True))
+    assert newraces.add(s3, "b", root, log=QUIET, step=steps(root, []), number=mexico) == ["2026_19 Mexico City Grand Prix"]
+    assert sent == [True] and not (root / newraces.NOTE).exists()
+
+
+def test_a_folder_made_by_hand_in_the_bucket_is_left_alone(tmp_path):
+    root = project(tmp_path)
+    s3 = bucket_with_index({11396: "2026_18"})
+    aws_fetch.lambda_handler({"bucket": "b"}, None, s3=s3, fetch=openf1(), now=NOW)
+    s3.put_object(Bucket="b", Key=aws_fetch.INCOMING, Body=b"")              # "Create folder" in the S3 console
+    assert newraces.add(s3, "b", root, log=QUIET, step=steps(root, []), number=mexico,
+                        send=False) == ["2026_19 Mexico City Grand Prix"]
+
+
+def test_a_saved_race_is_built_without_asking_openf1(tmp_path, monkeypatch):
+    """OpenF1 is closed to free users while an F1 session is live: a race the cloud fetched doesn't need it again."""
+    session = race(11420, "2026-11-01T22:00:00+00:00")
+    (tmp_path / "2026_19.json.gz").write_bytes(gzip.compress(json.dumps({"session": session}).encode()))
+    monkeypatch.setattr(collect_openf1, "OPENF1_JSON_DIR", tmp_path)
+    monkeypatch.setattr(collect_openf1, "rounds_by_date",
+                        lambda year: {date(2026, 11, 1): {"RoundNumber": 19, "EventName": "Mexico City Grand Prix"}})
+    monkeypatch.setattr(collect_openf1, "get", lambda *a, **k: pytest.fail("OpenF1 was asked"))
+    assert collect_openf1.races_of(2026, (2026, 19)) == [(19, "Mexico City Grand Prix", session)]
+
+
+def test_an_automatic_build_never_waits_for_openf1(monkeypatch):
+    """By hand, the download waits while OpenF1 is closed (10 minutes at a time); the app's own build tries again
+    next time instead."""
+    class Closed:
+        status_code = 401
+    monkeypatch.setattr(collect_openf1, "QUICK", True)
+    monkeypatch.setattr(collect_openf1.requests, "get", lambda *a, **k: Closed())
+    monkeypatch.setattr(collect_openf1.time, "sleep", lambda s: s < 60 or pytest.fail(f"it waited {s} s"))
+    with pytest.raises(RuntimeError, match="closed"):
+        collect_openf1.get("sessions", year=2026)
+    asked = {}
+    monkeypatch.setattr(newraces.subprocess, "run",
+                        lambda command, **kwargs: asked.update(kwargs) or subprocess.CompletedProcess(command, 0, "", ""))
+    newraces.run("features.py")
+    assert asked["env"]["F1_OPENF1_QUICK"] == "1"                           # the steps it runs are quick too
 
 
 def test_the_steps_are_where_newraces_runs_them(tmp_path):

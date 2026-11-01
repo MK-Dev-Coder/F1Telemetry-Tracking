@@ -311,7 +311,7 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
     for (const [note, game] of notes) {
       const mine = sessions.filter(s => gameOf(s) === game), live = mine.find(s => s.live), last = mine[0];   // newest first
       document.getElementById(game === "F1 26" ? "g26Live" : "g25Live").hidden = !live;
-      if (live) note.innerHTML = `<span class="live-dot"></span>Live now: <b>${esc(live.track)}</b> ${esc(live.type)}`;
+      if (live) note.innerHTML = `<span class="live-dot"></span>${live.paused ? "Paused" : "Live now"}: <b>${esc(live.track)}</b> ${esc(live.type)}`;
       else if (!st.listening) note.textContent = st.error || "Not receiving the game";
       else if (!mine.length) note.textContent = game === "F1 26" ? "No sessions yet · set UDP Format 2026" : "No sessions yet · drive and it records";
       else note.innerHTML = `<span class="stat"><b>${mine.length}</b> session${mine.length === 1 ? "" : "s"} · latest <b>${esc(last.track)}</b>` +

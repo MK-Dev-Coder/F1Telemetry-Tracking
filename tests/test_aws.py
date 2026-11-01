@@ -104,6 +104,27 @@ def test_the_key_can_use_only_the_bucket():
     s3 = [r for r in rules if any(a.startswith("s3:") for a in r["Action"])]
     assert {r["Resource"] for r in s3} == {"arn:aws:s3:::my-bucket", "arn:aws:s3:::my-bucket/*"}
     assert not any("Delete" in a for r in s3 for a in r["Action"])    # with versioning on, nothing is ever lost
+    assert any("athena:StopQueryExecution" in r["Action"] for r in rules)   # a question that takes too long
+
+
+def test_athena_gives_up_and_stops_the_question(monkeypatch):
+    class Stuck:
+        def __init__(self):
+            self.stopped = []
+
+        def start_query_execution(self, **kwargs):
+            return {"QueryExecutionId": "q1"}
+
+        def get_query_execution(self, QueryExecutionId):
+            return {"QueryExecution": {"Status": {"State": "QUEUED"}}}
+
+        def stop_query_execution(self, QueryExecutionId):
+            self.stopped.append(QueryExecutionId)
+    monkeypatch.setattr(aws_athena, "WAIT", 0)
+    athena = Stuck()
+    with pytest.raises(SystemExit, match="no answer"):
+        aws_athena.run(athena, "SELECT 1", "b")
+    assert athena.stopped == ["q1"]                                     # not left running in Athena
 
 
 def test_the_cloud_check():

@@ -1,6 +1,10 @@
-"""game_radio.py: which topic a question to the race engineer is about."""
+"""game_radio.py: which topic a question to the race engineer is about, and the engineer's own calls."""
+import threading
+
 import pytest
 
+import game_radio
+import game_telemetry as gt
 from game_radio import topic_of
 
 
@@ -22,3 +26,13 @@ from game_radio import topic_of
 ])
 def test_the_question_goes_to_the_right_topic(question, topic):
     assert topic_of(question) == topic
+
+
+def test_the_radio_after_a_flashback():
+    """A flashback takes the events after that moment away: what happens next is still called on the radio."""
+    s, radio, lock = gt.Session(1, 2026), game_radio.Radio(), threading.RLock()
+    s.events = [{"t": float(k), "code": "OVTK", "text": "A passes B"} for k in range(5)]
+    assert radio.calls_for(s, lock) == []
+    s.on_flashback(1.5)                                                      # back to before the third pass
+    s.events.append({"t": 2.0, "code": "RDFL", "text": "Red flag"})          # then a red flag
+    assert [c["text"] for c in radio.calls_for(s, lock)] == ["Red flag, red flag. Into the pits."]

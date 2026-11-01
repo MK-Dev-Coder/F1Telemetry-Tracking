@@ -274,7 +274,7 @@ def policy(bucket, region=REGION):
          "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"]},
         {"Sid": "Athena", "Effect": "Allow", "Resource": f"arn:aws:athena:{region}:*:workgroup/primary",
          "Action": ["athena:StartQueryExecution", "athena:GetQueryExecution", "athena:GetQueryResults",
-                    "athena:GetWorkGroup"]},
+                    "athena:StopQueryExecution", "athena:GetWorkGroup"]},
         {"Sid": "AthenaTables", "Effect": "Allow",
          "Resource": [glue + "catalog", glue + "database/f1_strategy", glue + "table/f1_strategy/*"],
          "Action": ["glue:GetDatabase", "glue:GetDatabases", "glue:CreateDatabase", "glue:GetTable", "glue:GetTables",

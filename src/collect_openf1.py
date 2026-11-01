@@ -1,5 +1,6 @@
 import gzip
 import json
+import os
 import sys
 import time
 
@@ -16,11 +17,13 @@ FIRST_YEAR = 2023                    # OpenF1 has no data before 2023
 PAUSE = 2.1                          # seconds between requests (free users: 30 requests a minute)
 TYPICAL_LANE = 22.0                  # seconds in the pit lane, when OpenF1 doesn't say
 COLUMNS = LAP_COLUMNS + WEATHER_COLUMNS + ["Year", "Round", "EventName", "TotalLaps", "Source"]
+QUICK = os.environ.get("F1_OPENF1_QUICK") == "1"   # an automatic build (newraces.py): it tries again next time
+                                                    # instead of waiting for hours
 
 
 # Recipe 1: ask OpenF1 for one thing, and wait politely if it says no
 def get(endpoint, **params):
-    for attempt in range(30):
+    for attempt in range(3 if QUICK else 30):
         try:
             answer = requests.get(f"{OPENF1}/{endpoint}", params=params, timeout=60)
         except requests.RequestException:
@@ -36,6 +39,8 @@ def get(endpoint, **params):
             print("   too many requests - waiting 30 seconds...")
             time.sleep(30)
         elif answer.status_code == 401:                     # closed to free users during a live session
+            if QUICK:
+                raise RuntimeError("OpenF1 is closed while an F1 session is live")
             print("   OpenF1 is closed while an F1 session is live - waiting 10 minutes...")
             time.sleep(10 * 60)
         else:
@@ -51,20 +56,42 @@ def rounds_by_date(year):
     return {row["Session5DateUtc"].date(): row for _, row in schedule.iterrows() if pd.notna(row["Session5DateUtc"])}
 
 
+def round_for(race, by_date):
+    """FastF1's round number and name for an OpenF1 race (matched on its race day, in UTC), or None."""
+    event = by_date.get(pd.Timestamp(race["date_start"]).tz_convert("UTC").date())
+    return None if event is None else (int(event["RoundNumber"]), event["EventName"])
+
+
 def race_list(year):
     by_date = rounds_by_date(year)
     now = pd.Timestamp.now(tz="UTC")
     races = []
     for race in get("sessions", year=year, session_name="Race"):
-        start = pd.Timestamp(race["date_start"])
         if race.get("is_cancelled") or pd.Timestamp(race["date_end"]) > now:
             continue                                        # cancelled, or not raced yet
-        event = by_date.get(start.tz_convert("UTC").date())
-        if event is None:
+        found = round_for(race, by_date)
+        if found is None:
             print("   no FastF1 round for", year, race["country_name"], "- skipped")
             continue
-        races.append((int(event["RoundNumber"]), event["EventName"], race))
+        races.append((*found, race))
     return sorted(races, key=lambda r: r[0])
+
+
+def saved_race(year, rnd):
+    """One race whose OpenF1 answers are saved already (newraces.py saves the ones the cloud fetched): its round, name
+    and session from the file and FastF1's schedule, without asking OpenF1 again. None if it isn't saved."""
+    file = OPENF1_JSON_DIR / f"{year}_{rnd:02d}.json.gz"
+    if not file.exists():
+        return None
+    race = json.loads(gzip.decompress(file.read_bytes()))["session"]
+    found = round_for(race, rounds_by_date(year))
+    return (*found, race) if found and found[0] == rnd else None
+
+
+def races_of(year, only=None):
+    """The races to build: one saved race straight from its file, else the year's finished races (from OpenF1)."""
+    saved = saved_race(*only) if only else None
+    return [saved] if saved else race_list(year)
 
 
 # Recipe 3: download everything about one race (or read it back if we already have it)
@@ -232,7 +259,7 @@ def main():
     years = [only[0]] if only else [y for y in SEASONS if y >= FIRST_YEAR]
 
     for year in years:
-        for rnd, name, race in race_list(year):
+        for rnd, name, race in races_of(year, only):
             out_file = OPENF1_DIR / f"{year}_{rnd:02d}.parquet"
             if only and rnd != only[1]:
                 continue

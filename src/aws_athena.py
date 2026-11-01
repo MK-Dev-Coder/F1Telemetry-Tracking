@@ -78,6 +78,10 @@ def run(athena, sql, bucket, database=DATABASE):
         if e["Status"]["State"] in ("SUCCEEDED", "FAILED", "CANCELLED"):
             break
         if time.monotonic() > deadline:
+            try:
+                athena.stop_query_execution(QueryExecutionId=qid)      # not left running (and reading data) in Athena
+            except Exception:                                          # (a key from before it was allowed to)
+                pass
             raise SystemExit(f"Athena: no answer after {WAIT} s (still {e['Status']['State']}); try again later")
         time.sleep(0.4)
     if e["Status"]["State"] != "SUCCEEDED":

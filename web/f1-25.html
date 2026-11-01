@@ -752,7 +752,8 @@ async function refreshStatus() {
   $("ftAddr").textContent = st ? `${st.suggested_address || "this PC"} : ${st.port}` : "-";
   $("ftPackets").textContent = st ? st.packets.toLocaleString() : "-";
   $("conn").textContent = !st ? "The app isn't running" : !st.listening ? (st.error || "Not listening")
-    : st.save_error ? `Can't save (trying again): ${st.save_error}` : st.live_session ? "Receiving the game" : st.packets ? `Last packet ${st.seconds_since_last_packet}s ago` : "Waiting for the game";
+    : st.save_error ? `Can't save (trying again): ${st.save_error}` : st.live_session ? (st.paused ? "The game is paused" : "Receiving the game")
+    : st.packets ? `Last packet ${st.seconds_since_last_packet}s ago` : "Waiting for the game";
   if (G.setup) renderSetup();
 }
 
@@ -794,7 +795,7 @@ function openSessionPicker() {
         id: s.id, flag: RacePicker.place(s.track)[0], title: `${RacePicker.place(s.track)[1]} - ${kind(s)}`,
         sub: [new Date(s.started * 1000).toLocaleTimeString([], { timeStyle: "short" }), s.laps ? `${s.laps} lap${s.laps === 1 ? "" : "s"}` : "",
               s.best_lap ? `best ${fmtLap(s.best_lap)}` : ""].filter(Boolean).join(" · "),
-        chip: s.live ? "Live" : s.test ? "Test" : s.id === G.id ? "Showing" : "", chipClass: s.live ? "live" : "",
+        chip: s.live ? (s.paused ? "Paused" : "Live") : s.test ? "Test" : s.id === G.id ? "Showing" : "", chipClass: s.live ? "live" : "",
         current: s.id === G.id })) };
   });
   RacePicker.open({

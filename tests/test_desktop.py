@@ -1,5 +1,6 @@
 """desktop.py: the app in a window of its own. The tests don't open a window or start the app."""
 import socket
+import time
 
 import aws_sync
 import desktop
@@ -45,3 +46,23 @@ def test_new_races_fetch_the_latest_data_first(monkeypatch, tmp_path):
     asked = cloud(monkeypatch, tmp_path, online=True)
     desktop.new_races()
     assert asked == ["download", "add"]                         # another PC may have built the race already
+    asked.clear()
+    desktop.new_races(fetched=True)                             # fetched as the app started: not again
+    assert asked == ["add"]
+
+
+def test_the_internet_check_has_a_time_limit(monkeypatch):
+    """Looking up the cloud's address has no time limit of its own: the check gives up after its own."""
+    def no_answer(*args, **kwargs):
+        time.sleep(3)
+        raise OSError("the name lookup failed")
+    monkeypatch.setattr(desktop.socket, "create_connection", no_answer)
+    start = time.monotonic()
+    assert desktop.online({"region": "eu-north-1"}, timeout=0.2) is False
+    assert time.monotonic() - start < 1
+
+    class Connection:
+        def close(self):
+            pass
+    monkeypatch.setattr(desktop.socket, "create_connection", lambda *a, **k: Connection())
+    assert desktop.online({"region": "eu-north-1"}, timeout=0.5) is True

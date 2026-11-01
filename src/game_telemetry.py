@@ -219,6 +219,7 @@ class Session:
         self.modes_now = {}                   # car index -> latest active aero and overtake mode (2026 format)
         self.laps = {}                        # car index -> {lap number -> lap record}
         self.events, self.classification = [], []
+        self.flashbacks, self.events_kept = 0, 0  # flashbacks so far, and the events the last one kept
         self.samples = []                     # the player's telemetry, every frame
         self.car_samples = []                 # the player's tyres, fuel and ERS, twice a second
         self.positions = []                   # every car's position, twice a second
@@ -400,6 +401,7 @@ class Session:
         self.car_samples = [x for x in self.car_samples if x[0] <= t]
         self.positions = [x for x in self.positions if x[0] <= t]
         self.events = [e for e in self.events if e["t"] <= t]
+        self.flashbacks, self.events_kept = self.flashbacks + 1, len(self.events)   # (the radio carries on from here)
         for laps in self.laps.values():                           # laps finished after that moment
             for n in [n for n, r in laps.items() if r.get("t", 0) > t]:
                 del laps[n]
@@ -934,7 +936,7 @@ class Recorder:
                     continue                     # nothing new since the last good save
                 since = now - self._last_save.get(uid, 0)
                 wait = 5 if uid in self._failed else SAVE_EVERY
-                if force or since >= wait or (now - s.last_seen > 5 and since >= 5):
+                if force or since >= wait or (now - s.last_seen > QUIET and since >= 5):
                     self._last_save[uid], seen = now, s.last_seen
                     try:
                         s.save()
@@ -1021,9 +1023,10 @@ class Recorder:
 
     def is_paused(self, uid):
         """The game sends nothing while it's paused, so a live session that went quiet without the game saying it
-        ended is paused (for up to PAUSE_MAX), not over: it stays live, and carries on when you do."""
+        ended is paused (for up to PAUSE_MAX), not over: it stays live, and carries on when you do. Only a session the
+        game sent its session packet for: not a few stray packets under a new session number after a race."""
         s = self.sessions.get(self.live_uid)
-        if self.last_packet is None or s is None or str(self.live_uid) != str(uid):
+        if self.last_packet is None or s is None or str(self.live_uid) != str(uid) or "session_type_id" not in s.info:
             return False
         return QUIET <= time.time() - self.last_packet < PAUSE_MAX and not s.ended()
 

@@ -104,6 +104,8 @@ def test_the_app_lists_the_races(app):
 def test_replay_speed_must_make_sense(app):
     assert app.get(f"/races/{RACE}/live_replay?speed=0").status_code == 422
     assert app.get(f"/races/{RACE}/live_replay?speed=101").status_code == 422
+    assert app.get(f"/races/{RACE}/live_replay?seconds=0").status_code == 422           # every lap at once
+    assert app.get(f"/races/{RACE}/replay?seconds=-1").status_code == 422
 
 
 def test_unknown_race_or_driver(app):

@@ -18,8 +18,8 @@ MSc dissertation project, Big Data Engineering & Data Science (AthTech / Univers
   before it.
 - **The trained models are here** (`models/`), the race data isn't: it belongs to Formula 1. To run the app or
   train the models again, see [Install](#install) and [Get the data](#get-the-data) (about 30 minutes to download).
-- **The tests** (`python -m pytest tests`, 202 of them) run on GitHub Actions on every push (the badge above).
-  Without the data folder the 33 that read it are skipped and the other 169 run.
+- **The tests** (`python -m pytest tests`, 210 of them) run on GitHub Actions on every push (the badge above).
+  Without the data folder the 33 that read it are skipped and the other 177 run.
 - **The cloud data layer** (optional; the app runs without it): the data and models in Amazon S3 with versions, a
   Lambda check on each table that arrives, Athena for SQL, and a daily Lambda that fetches each new race
   ([AWS_SETUP.md](docs/AWS_SETUP.md)); the desktop app (`desktop.py`) fetches the newest data from it and builds new races.
@@ -318,7 +318,7 @@ python src/engineer.py
 python -m pytest tests
 ```
 
-202 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
+210 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
 data. They check:
 
 - **The features:** real stops are found (not drive-throughs, not tyre changes under a red flag), and no feature
@@ -338,8 +338,9 @@ data. They check:
   race as many laps less, a stop under the safety car costs less, rain adds the intermediates and wets, a replay
   knows only the races before it, and the game's first pit window is kept as its plan.
 - **F1 25 / F1 26:** bad packets are skipped, online players' names are never kept, a paused game is still live
-  (paused, not over: the game sends nothing while paused, and "Session ended" when a session is), short races are
-  scaled, and the team radio sends each question to the right topic ("chance of rain?" is about the weather).
+  (paused, not over: the game sends nothing while paused, and "Session ended" when a session is) but a few stray
+  packets aren't a session, short races are scaled, the team radio sends each question to the right topic ("chance
+  of rain?" is about the weather), and its own calls carry on after a flashback.
 - **Your game, analysed:** clean laps leave out the start, pit laps and slow laps; the theoretical best is the best
   three sectors; the wear forecast reaches 70% on time; a corner where you're slower loses time; lock-ups and
   wheelspin are found (and hot spots on two laps); energy from the battery and from the game's counters; a pass
@@ -354,15 +355,18 @@ data. They check:
   a new PC gets every file exactly as sent; nothing changed, nothing sent; a file changed on one PC is never replaced
   by an older copy, and one changed on both sides is left alone; a download that doesn't match its SHA-256 is
   refused; the access key can't delete; the Lambda check finds laps listed twice and missing columns, and spots a
-  file that isn't the one sent; the Athena tables' columns; the app window is a program of its own, and without the
-  internet it opens at once. New races: the daily fetch takes only finished races that aren't built or waiting
+  file that isn't the one sent; the Athena tables' columns, and a question that takes too long is stopped; the app
+  window is a program of its own, and without the internet it opens at once (the check has a time limit of its own)
+  and fetches the data once. New races: the daily fetch takes only finished races that aren't built or waiting
   already (not cancelled ones, not ones OpenF1 has no laps for yet, not ones that ended less than 6 hours ago) and
   stores them as `collect_openf1.py` does; the PC fetches the latest data first, builds a new race with the README's
-  steps in order, runs them again after a failure, tries a race again when `collect_openf1.py` made no table for it,
-  builds the others when one isn't in the calendar yet, and never sends its note to the cloud.
+  steps in order, runs them again after a failure (of a step or of the upload), tries a race again when
+  `collect_openf1.py` made no table for it, builds the others when one isn't in the calendar yet, leaves a folder made
+  by hand in the bucket alone, builds a fetched race without asking OpenF1 again and never waits for OpenF1 while it
+  is closed, and never sends its note to the cloud.
 
 Most tests use small made-up races. The 33 in `tests/test_with_data.py` read the data folder and the trained
-models without changing them; without the data folder they are skipped and the other 169 still run. The tests
+models without changing them; without the data folder they are skipped and the other 177 still run. The tests
 don't listen for the game, so they can run while the app is open.
 
 ## Run the app

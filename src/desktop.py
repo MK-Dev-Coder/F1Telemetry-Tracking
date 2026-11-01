@@ -63,17 +63,26 @@ def window(exe, url=URL, profile=HOME / "window"):
 
 
 def online(cfg, timeout=2.0):
-    """Can this PC reach the bucket's region? Asked first, so that without the internet the app opens at once instead
-    of waiting for the cloud's connection attempts."""
-    try:
-        socket.create_connection((f"s3.{cfg.get('region', 'eu-north-1')}.amazonaws.com", 443), timeout=timeout).close()
-        return True
-    except OSError:
-        return False
+    """Can this PC reach the bucket's region within `timeout` seconds, the name lookup included? Asked first, so that
+    without the internet the app opens at once instead of waiting for the cloud's connection attempts."""
+    host, reached = f"s3.{cfg.get('region', 'eu-north-1')}.amazonaws.com", []
+
+    def reach():
+        try:
+            socket.create_connection((host, 443), timeout=timeout).close()
+            reached.append(True)
+        except OSError:
+            pass
+
+    worker = threading.Thread(target=reach, daemon=True)        # the name lookup has no time limit of its own
+    worker.start()
+    worker.join(timeout)
+    return bool(reached)
 
 
 def from_the_cloud():
-    """Newer data from the cloud, if this PC is set up for it and online. It never stops the app from starting."""
+    """Newer data from the cloud, if this PC is set up for it and online. It never stops the app from starting.
+    True if it fetched (then the new races don't fetch again)."""
     try:
         import aws_sync
         cfg = aws_sync.settings()
@@ -83,13 +92,16 @@ def from_the_cloud():
             log("The cloud: no internet, so the data here is used")
         else:
             aws_sync.download(aws_sync.client(cfg), cfg["bucket"], log=log)
+            return True
     except BaseException as e:                   # no key yet, or no permission
         log(f"The cloud: skipped ({e}); the data here is used")
+    return False
 
 
-def new_races():
+def new_races(fetched=False):
     """The races the cloud fetched since the last start (newraces.py), built while the app runs: a message says when
-    one is in (it shows the next time the app opens). One build at a time, whichever copy of the app starts it."""
+    one is in (it shows the next time the app opens). One build at a time, whichever copy of the app starts it.
+    fetched: the data here was just fetched from the cloud (else it's fetched first)."""
     lock = HOME / "newraces.lock"
     try:
         if lock.exists() and time.time() - lock.stat().st_mtime > 3600:
@@ -105,7 +117,8 @@ def new_races():
         added = []
         if cfg and online(cfg):
             s3 = aws_sync.client(cfg)
-            aws_sync.download(s3, cfg["bucket"], log=log)      # another PC may have built a race already
+            if not fetched:                                     # another PC may have built a race already
+                aws_sync.download(s3, cfg["bucket"], log=log)
             added = newraces.add(s3, cfg["bucket"], log=log)
         if added:
             log("New races added: " + ", ".join(added))
@@ -164,14 +177,14 @@ def main():
     if sys.stdout is None:                       # started from the shortcut (no console): write to desktop.log
         sys.stdout = sys.stderr = open(HOME / "desktop.log", "a", encoding="utf-8", buffering=1)
     log(f"{NAME}: starting")
-    ours = None
+    ours, fetched = None, False
     if running():
         log("The app is already running: opening a window on it")
     else:
-        from_the_cloud()
+        fetched = from_the_cloud()
         ours = start_app()
         log(f"The app is running at {URL}")
-    builder = threading.Thread(target=new_races, name="new-races")
+    builder = threading.Thread(target=new_races, args=(fetched,), name="new-races")
     builder.start()
     exe = browser()
     if exe:

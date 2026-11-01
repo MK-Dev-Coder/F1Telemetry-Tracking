@@ -7,11 +7,14 @@ the results back (aws_sync.py), so every PC gets the race. The desktop app runs 
     python src/newraces.py           fetch the latest data, then build any new race
     python src/newraces.py --index   write data/openf1/sessions.json (the races built here, for the Lambda to skip)
 
-If a step fails, the steps run again next time (data/openf1/building.json lists the races they're for). The study
-doesn't change: its test races stay 2026 rounds 1-17 (TEST_LAST_ROUND in features.py).
+If a step or the upload fails, the steps run again next time (data/openf1/building.json lists the races they're
+for). OpenF1 isn't asked about a race the cloud fetched, and while it is closed (a live F1 session) a build tries
+again next time instead of waiting. The study doesn't change: its test races stay 2026 rounds 1-17
+(TEST_LAST_ROUND in features.py).
 """
 import gzip
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -23,7 +26,7 @@ from config import CACHE_DIR, ROOT
 HERE = Path(__file__).resolve().parent  # src/, where the steps are
 STEPS = ["build_dataset.py", "features.py", "build_timing.py", "race_preview.py", "engineer.py"]
 INDEX = "data/openf1/sessions.json"      # OpenF1 session key -> race id, for the Lambda to skip the races built
-NOTE = "data/openf1/building.json"       # races whose steps haven't all run yet (never sent to the cloud)
+NOTE = "data/openf1/building.json"       # races not built and sent yet (the note itself never goes to the cloud)
 
 
 def sessions(root=ROOT):
@@ -44,22 +47,24 @@ def write_index(root=ROOT):
 
 
 def round_of(raw):
-    """The race's year, round and name in FastF1's calendar, numbered as collect_openf1.py numbers them."""
+    """The race's year, round and name in FastF1's calendar, numbered as collect_openf1.py numbers them (from
+    FastF1's schedule: OpenF1 isn't asked again)."""
     import fastf1
     import collect_openf1
     CACHE_DIR.mkdir(exist_ok=True)
     fastf1.Cache.enable_cache(CACHE_DIR)
     year, key = raw["session"]["year"], raw["session"]["session_key"]
-    for rnd, name, race in collect_openf1.race_list(year):
-        if race["session_key"] == key:
-            return year, rnd, name
-    raise LookupError(f"OpenF1 session {key} isn't in FastF1's {year} calendar yet")
+    found = collect_openf1.round_for(raw["session"], collect_openf1.rounds_by_date(year))
+    if found is None:
+        raise LookupError(f"OpenF1 session {key} isn't in FastF1's {year} calendar yet")
+    return year, *found
 
 
 def run(script, *args, root=ROOT):
-    """One step, as it would run by hand; a failure stops the rest."""
+    """One step, as it would run by hand (but never waiting for hours while OpenF1 is closed); a failure stops the
+    rest."""
     done = subprocess.run([sys.executable, str(HERE / script), *map(str, args)], cwd=root, capture_output=True,
-                          text=True)
+                          text=True, env={**os.environ, "F1_OPENF1_QUICK": "1"})
     if done.returncode:
         last = (done.stderr or done.stdout).strip().splitlines()[-1:] or ["no message"]
         raise RuntimeError(f"{script} failed: {last[0]}")
@@ -72,7 +77,8 @@ def add(s3, bucket, root=ROOT, log=print, step=run, number=round_of, send=True):
     note = root / NOTE
     pending = json.loads(note.read_text(encoding="utf-8")) if note.exists() else []
     here = set(sessions(root))
-    waiting = {k[len(aws_fetch.INCOMING):].split(".")[0]: k for k in aws_fetch.keys_in(s3, bucket, aws_fetch.INCOMING)}
+    names = {k: k[len(aws_fetch.INCOMING):].split(".")[0] for k in aws_fetch.keys_in(s3, bucket, aws_fetch.INCOMING)}
+    waiting = {name: k for k, name in names.items() if name.isdigit()}     # session keys (not a folder made by hand)
     for key in sorted((k for k in waiting if k not in here), key=int):
         try:
             body = s3.get_object(Bucket=bucket, Key=waiting[key])["Body"].read()
@@ -99,9 +105,9 @@ def add(s3, bucket, root=ROOT, log=print, step=run, number=round_of, send=True):
         log(f"   {script}")
         step(script, root=root)
     write_index(root)
-    note.unlink()
     if send:
         aws_sync.upload(s3, bucket, root, log=log)
+    note.unlink()                            # built and sent (until then, the steps and the upload run again next time)
     return pending
 
 

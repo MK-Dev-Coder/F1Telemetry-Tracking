@@ -624,7 +624,10 @@ class Radio:
     def calls_for(self, s, lock, strategy=None):
         """New things to call out on the radio for this session, since the last time (kept per session)."""
         with self.lock, lock:
-            seen = self.seen.setdefault(s.uid, {"events": len(s.events), "box": None, "last_lap": False, "rain": False})
+            seen = self.seen.setdefault(s.uid, {"events": len(s.events), "flashbacks": s.flashbacks, "box": None,
+                                                "last_lap": False, "rain": False})
+            if seen["flashbacks"] != s.flashbacks:           # a flashback took events away: on from the ones it kept
+                seen["events"], seen["flashbacks"] = min(seen["events"], s.events_kept), s.flashbacks
             calls = self.calls.setdefault(s.uid, [])
             me = s.drivers.get(s.player, {}).get("code")
             for e in s.events[seen["events"]:]:              # events since the last check

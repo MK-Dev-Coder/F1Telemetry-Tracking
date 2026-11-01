@@ -557,14 +557,14 @@ def stream(race_id, start, seconds, make_snapshot, speed=None):
 
 
 @app.get("/races/{race_id}/live_replay")
-async def live_replay(race_id: str, start: int = 1, seconds: float = 2.0, reveal: bool = False, reasons: bool = False,
-                      speed: float | None = Query(None, gt=0, le=100)):
+async def live_replay(race_id: str, start: int = 1, seconds: float = Query(2.0, gt=0, le=60), reveal: bool = False,
+                      reasons: bool = False, speed: float | None = Query(None, gt=0, le=100)):
     """Replay mode for the live timing screen (speed=1: real time, each lap as long as it really took)."""
     return stream(race_id, start, seconds, lambda n: live_snapshot(race_id, n, reveal, reasons), speed)
 
 
 @app.get("/races/{race_id}/replay")
-async def replay(race_id: str, start: int = 1, seconds: float = 2.0, reveal: bool = False):
+async def replay(race_id: str, start: int = 1, seconds: float = Query(2.0, gt=0, le=60), reveal: bool = False):
     """Replay mode for the simple page."""
     return stream(race_id, start, seconds, lambda n: lap_snapshot(race_id, n, reveal))
 
