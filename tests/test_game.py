@@ -98,10 +98,30 @@ def test_nothing_is_saved_before_the_game_says_if_the_session_is_online(tmp_path
     assert "RealGamertag" not in saved and "Driver 2" in saved
 
 
-def lap_data(lap, last_ms, status=2):
+def lap_data(lap, last_ms, status=2, pit=0):
     """One car in a lap data packet: what the laps need."""
     return dict(result_status=status, last_lap_ms=last_ms, lap=lap, sector=0, s1_ms=0, s1_min=0, s2_ms=0, s2_min=0,
-                position=1, leader_ms=0, leader_min=0, pit_stops=0, pit_status=0, lap_distance=10.0, driver_status=4)
+                position=1, leader_ms=0, leader_min=0, pit_stops=0, pit_status=pit, lap_distance=10.0, driver_status=4)
+
+
+def test_a_flashback_takes_away_what_came_after_it():
+    """A flashback to before the pit lane takes the stop away when the car then stays out, and a finish it undoes
+    is made again."""
+    s = gt.Session(1, 2025)
+    s.on_lap_data(90.0, [lap_data(10, 90_000)])
+    s.on_lap_data(100.0, [lap_data(10, 90_000, pit=1)])                      # into the pit lane on lap 10
+    assert s.laps[0][10]["pitted"] and s.laps[0][10]["pit_entry"]
+    s.on_flashback(95.0)                                                     # back to before it...
+    s.on_lap_data(95.1, [lap_data(10, 90_000)])                              # ...and the car stays out
+    assert not any(k in s.laps[0][10] for k in ("pitted", "pit_entry", "pit_exit"))
+    f = gt.Session(2, 2025)
+    f.on_lap_data(100.0, [lap_data(5, 90_000)])
+    f.on_lap_data(190.0, [lap_data(5, 91_500, status=3)])                    # took the flag...
+    f.on_flashback(150.0)                                                    # ...undone
+    assert 5 not in f.laps[0]
+    f.on_lap_data(150.1, [lap_data(5, 90_000)])
+    f.on_lap_data(192.0, [lap_data(5, 91_200, status=3)])                    # and taken again
+    assert f.laps[0][5]["time"] == 91.2 and f.laps[0][5]["t"] == 192.0
 
 
 def test_the_last_lap_at_the_flag_is_kept():

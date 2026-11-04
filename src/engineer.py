@@ -156,8 +156,8 @@ def brief(table, circuit, track_temp=None, rain=False, distance=100, game_laps=N
     scale = lambda v: None if v is None else round(v / factor, 1)
     tyres = {}
     for c in DRY:
-        n = [x[2] for x in t["stints"] if x[0] in keep and COMPOUND[x[1]] == c]
-        worn = [x[2] for x in t["wear"] if x[0] in keep and COMPOUND[x[1]] == c]
+        n = [x[2] for x in t["stints"] if x[0] in keep and COMPOUND.get(x[1]) == c]      # ("?": a tyre OpenF1
+        worn = [x[2] for x in t["wear"] if x[0] in keep and COMPOUND.get(x[1]) == c]      # didn't name)
         life = quantiles(n) if len(n) >= FEWEST else [None] * 3
         base = float(np.median(worn)) if len(worn) >= FEWEST else table["all_wear"][c]
         hot = base + table["temperature_effect"][c] * (temp - usual)              # the wear on this day

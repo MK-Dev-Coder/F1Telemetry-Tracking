@@ -230,6 +230,7 @@ class Session:
         self._sector = {}                     # car index -> sector times of the lap in progress
         self._finished = set()                # cars whose last lap (at the flag) is already recorded
         self._timed = set()                   # cars given a lap time without a new lap (at the flag, until recorded)
+        self._rewound = False                 # a flashback: the next lap data isn't compared with the one before it
         self._overtake = {}                   # car index -> {lap: when overtake mode was first used on it} (2026)
         self._last_pos_t = self._last_car_t = -1.0
         self.packets = 0
@@ -243,10 +244,11 @@ class Session:
     def on_lap_data(self, t, cars):
         # Every slot: when a car retires the game lowers its count of active cars, but the other cars
         # keep their slots (in a real Jeddah race the player, in slot 19, was lost after the first retirement)
+        rewound, self._rewound = self._rewound, False
         for i, d in enumerate(cars):
             if d["result_status"] in (0, 1):                     # an empty or inactive slot
                 continue
-            before = self.lap_now.get(i)
+            before = None if rewound else self.lap_now.get(i)   # (after a flashback: no lap, time or pit change)
             new_time = bool(before) and d["last_lap_ms"] != before["last_lap_ms"]   # the game just set a lap time
             crossed = bool(before) and d["lap"] > before["lap"]  # crossed the line: the lap before is complete
             # At the flag the game stops counting laps: the last lap ends when the finished car gets its time. That
@@ -300,12 +302,15 @@ class Session:
             if d["pit_status"] and d["lap_distance"] >= 0 and d["driver_status"] != 0:
                 rec = self.lap_record(i, d["lap"])
                 rec["pitted"] = True
+                rec.setdefault("pit_at", round(t, 2))           # (a flashback to before it takes the marks away)
                 # The lap the car came into the pit lane on (the in-lap), and the lap it came out on
                 if before and not before["pit_status"]:
                     rec["pit_entry"] = True
                     self.version += 1
             elif before and before["pit_status"] and not d["pit_status"] and d["lap_distance"] >= 0:
-                self.lap_record(i, d["lap"])["pit_exit"] = True
+                rec = self.lap_record(i, d["lap"])
+                rec["pit_exit"] = True
+                rec.setdefault("pit_at", round(t, 2))
                 self.version += 1
             self.lap_now[i] = d
 
@@ -408,9 +413,17 @@ class Session:
         self.positions = [x for x in self.positions if x[0] <= t]
         self.events = [e for e in self.events if e["t"] <= t]
         self.flashbacks, self.events_kept = self.flashbacks + 1, len(self.events)   # (the radio carries on from here)
-        for laps in self.laps.values():                           # laps finished after that moment
-            for n in [n for n, r in laps.items() if r.get("t", 0) > t]:
+        for car, laps in self.laps.items():                       # laps finished after that moment
+            gone = [n for n, r in laps.items() if r.get("t", 0) > t]
+            for n in gone:
                 del laps[n]
+            if gone:
+                self._finished.discard(car)                       # (a finish undone: it gets to the flag again)
+            for r in laps.values():                               # the pit lane, if it came after that moment
+                if r.get("pit_at", -1) > t:
+                    for k in ("pitted", "pit_entry", "pit_exit", "pit_at"):
+                        r.pop(k, None)
+        self._rewound = True
         if lap_again is not None:                                 # the track outline of the laps driven again
             for n in [n for n in self.outline if n != "saved" and n >= lap_again]:
                 del self.outline[n]
@@ -596,12 +609,10 @@ class Session:
 
     def save(self):
         """Save the session. Each file is swapped in whole, so a crash or a full disk never leaves half a file."""
-        folder = self.folder()
-        folder.mkdir(parents=True, exist_ok=True)
-        for name, rows, columns in [("telemetry", self.samples, SAMPLE_COLUMNS), ("car", self.car_samples, CAR_COLUMNS),
-                                    ("positions", self.positions, POSITION_COLUMNS)]:
-            table = pd.DataFrame(rows, columns=columns)
-            _write(folder / f"{name}.parquet", lambda path: table.to_parquet(path, index=False))
+        self.write(self.snapshot())
+
+    def snapshot(self):
+        """What a save writes, copied: quick, so the recorder takes it under its lock and writes the files after."""
         state = {"uid": str(self.uid), "format": self.format, "test": self.test, "started": self.started,
                  "last_seen": self.last_seen, "info": self.info, "player": self.player, "num_cars": self.num_cars,
                  "drivers": self.drivers, "lap_now": self.lap_now, "status_now": self.status_now,
@@ -609,7 +620,19 @@ class Session:
                  "classification": self.classification, "packets": self.packets,
                  "outline": self.best_outline(), "setup": self.setup, "tyre_sets": self.tyre_sets,
                  "overtake_laps": self._overtake}
-        _write(folder / "session.json", lambda path: path.write_text(json.dumps(state), encoding="utf-8"))
+        tables = [(name, list(rows), columns) for name, rows, columns in
+                  [("telemetry", self.samples, SAMPLE_COLUMNS), ("car", self.car_samples, CAR_COLUMNS),
+                   ("positions", self.positions, POSITION_COLUMNS)]]       # (rows are never changed once added)
+        return self.folder(), tables, json.dumps(state)
+
+    @staticmethod
+    def write(snapshot):
+        folder, tables, state = snapshot
+        folder.mkdir(parents=True, exist_ok=True)
+        for name, rows, columns in tables:
+            table = pd.DataFrame(rows, columns=columns)
+            _write(folder / f"{name}.parquet", lambda path: table.to_parquet(path, index=False))
+        _write(folder / "session.json", lambda path: path.write_text(state, encoding="utf-8"))
 
     def best_outline(self):
         """The player's path on one complete lap: the shape of the track for the map."""
@@ -678,6 +701,7 @@ class Recorder:
         self._last_save = {}                  # uid -> when a save was last tried
         self._saved_seen = {}                 # uid -> the session's last packet time in its last good save
         self._failed = set()                  # sessions whose last save failed (tried again sooner)
+        self._saving = threading.Lock()       # one save at a time (the packets' thread, or the app stopping)
         self._loaded, self._loaded_lock = OrderedDict(), threading.Lock()   # saved sessions recently opened
         self._sprint = {}                     # uid -> is this race a sprint (see is_sprint)
         self._started = False
@@ -695,6 +719,10 @@ class Recorder:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.bind(("0.0.0.0", port))      # every network card, so a PS5 or Xbox on the network can reach it
             sock.settimeout(1.0)
+            try:                              # room for several seconds of packets while a save writes its files
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
+            except OSError:
+                pass
         except OSError as err:
             self.error = f"Can't listen on port {port}: {err}"
             return
@@ -757,8 +785,8 @@ class Recorder:
                 for when, early in self._early.pop(uid):                     # them if the session is online
                     if s.info["online"] is False:
                         self._write_raw(s, early, when)
-            if record:
-                self.save_due()
+        if record:                                   # (after the lock: a save writes its files without it)
+            self.save_due()
 
     @staticmethod
     def _resume(uid):
@@ -935,27 +963,38 @@ class Recorder:
 
     def save_due(self, force=False):
         """Save the sessions that changed: every SAVE_EVERY seconds while live, and once when they go quiet.
-        A save that fails (e.g. OneDrive or antivirus holding a file) is tried again 5 seconds later."""
-        with self.lock:
-            now = time.time()
-            for uid, s in self.sessions.items():
-                if s.last_seen <= self._saved_seen.get(uid, 0):
-                    continue                     # nothing new since the last good save
-                if s.info.get("online") is None:
-                    continue                     # not before the session packet says if it's online: until then
+        A save that fails (e.g. OneDrive or antivirus holding a file) is tried again 5 seconds later. The copy is taken
+        under the lock and the files are written after it, so the pages and the packets don't wait for the disk; one
+        save at a time, in the order the copies were taken."""
+        with self._saving:
+            due = []
+            with self.lock:
+                now = time.time()
+                for uid, s in self.sessions.items():
+                    if s.last_seen <= self._saved_seen.get(uid, 0):
+                        continue                 # nothing new since the last good save
+                    if s.info.get("online") is None:
+                        continue                 # not before the session packet says if it's online: until then
                                                  # other players' names can't be hidden (it comes within a second)
-                since = now - self._last_save.get(uid, 0)
-                wait = 5 if uid in self._failed else SAVE_EVERY
-                if force or since >= wait or (now - s.last_seen > QUIET and since >= 5):
-                    self._last_save[uid], seen = now, s.last_seen
-                    try:
-                        s.save()
-                        if uid in self._raw:
-                            self._raw[uid].flush()
-                    except OSError as err:
+                    since = now - self._last_save.get(uid, 0)
+                    wait = 5 if uid in self._failed else SAVE_EVERY
+                    if force or since >= wait or (now - s.last_seen > QUIET and since >= 5):
+                        self._last_save[uid] = now
+                        due.append((uid, s.last_seen, s.snapshot()))
+                        try:
+                            if uid in self._raw:
+                                self._raw[uid].flush()
+                        except OSError as err:
+                            self.save_error = f"session {uid}: {err}"
+            for uid, seen, snapshot in due:
+                try:
+                    Session.write(snapshot)
+                except OSError as err:
+                    with self.lock:
                         self.save_error = f"session {uid}: {err}"
                         self._failed.add(uid)
-                        continue
+                    continue
+                with self.lock:
                     self._failed.discard(uid)
                     self._saved_seen[uid], self.save_error = seen, None
 

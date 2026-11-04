@@ -18,8 +18,8 @@ MSc dissertation project, Big Data Engineering & Data Science (AthTech / Univers
   before it.
 - **The trained models are here** (`models/`), the race data isn't: it belongs to Formula 1. To run the app or
   train the models again, see [Install](#install) and [Get the data](#get-the-data) (about 30 minutes to download).
-- **The tests** (`python -m pytest tests`, 213 of them) run on GitHub Actions on every push (the badge above).
-  Without the data folder the 33 that read it are skipped and the other 180 run.
+- **The tests** (`python -m pytest tests`, 216 of them) run on GitHub Actions on every push (the badge above).
+  Without the data folder the 33 that read it are skipped and the other 183 run.
 - **The cloud data layer** (optional; the app runs without it): the data and models in Amazon S3 with versions, a
   Lambda check on each table that arrives, Athena for SQL, and a daily Lambda that fetches each new race
   ([AWS_SETUP.md](docs/AWS_SETUP.md)); the desktop app (`desktop.py`) fetches the newest data from it and builds new races.
@@ -319,7 +319,7 @@ python src/engineer.py
 python -m pytest tests
 ```
 
-213 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
+216 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
 data. They check:
 
 - **The features:** real stops are found (not drive-throughs, not tyre changes under a red flag), and no feature
@@ -336,10 +336,10 @@ data. They check:
   battle's gaps, stops and stints.
 - **The race preview:** each race's preview uses only the races before it.
 - **The engineer:** a hotter day wears the tyres faster and they last less (at most 40% either way), a shorter game
-  race as many laps less, a stop under the safety car costs less, rain adds the intermediates and wets, a replay
-  knows only the races before it, and the game's first pit window is kept as its plan.
+  race as many laps less, a stop under the safety car costs less, rain adds the intermediates and wets, a tyre
+  OpenF1 didn't name is left out, a replay knows only the races before it, and the game's first pit window is kept as its plan.
 - **F1 25 / F1 26:** bad packets are skipped, online players' names are never kept (nothing is saved before the
-  game says whether a session is online), a race's last lap is kept at the flag, a paused game is still live
+  game says whether a session is online), a race's last lap is kept at the flag, a flashback takes away a stop or a finish that came after it, a paused game is still live
   (paused, not over: the game sends nothing while paused, and "Session ended" when a session is) but a few stray
   packets aren't a session, short races are scaled, the team radio sends each question to the right topic ("chance
   of rain?" is about the weather), and its own calls carry on after a flashback.
@@ -356,7 +356,7 @@ data. They check:
 - **The cloud and the desktop app** (with a made-up bucket in memory, no AWS needed): the game's data never goes up;
   a new PC gets every file exactly as sent; nothing changed, nothing sent; a file changed on one PC is never replaced
   by an older copy, and one changed on both sides is left alone; a download that doesn't match its SHA-256 is
-  refused; the access key can't delete; the Lambda check finds laps listed twice and missing columns, and spots a
+  refused, and an upload cut off halfway still lists the files that went up, so other PCs can fetch them; the access key can't delete; the Lambda check finds laps listed twice and missing columns, and spots a
   file that isn't the one sent; the Athena tables' columns, and a question that takes too long is stopped; the app
   window is a program of its own, and without the internet it opens at once (the check has a time limit of its own)
   and fetches the data once. New races: the daily fetch takes only finished races that aren't built or waiting
@@ -368,7 +368,7 @@ data. They check:
   is closed (the race preview then fails, so the build runs again later instead of keeping the old race's preview), and never sends its note to the cloud.
 
 Most tests use small made-up races. The 33 in `tests/test_with_data.py` read the data folder and the trained
-models without changing them; without the data folder they are skipped and the other 180 still run. The tests
+models without changing them; without the data folder they are skipped and the other 183 still run. The tests
 don't listen for the game, so they can run while the app is open.
 
 ## Run the app

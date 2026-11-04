@@ -157,17 +157,28 @@ def upload(s3, bucket, root=ROOT, force=False, everything=False, log=print):
         s3.upload_file(str(root / path), bucket, key_for(path), ExtraArgs={"Metadata": {"sha256": sha}})
         return {"path": path, "key": key_for(path), "size": (root / path).stat().st_size, "sha256": sha}
 
+    # If a file fails (the connection drops), the ones that went up still get into the manifest: their new copies are
+    # already in the bucket, and another PC checks each file against it. The failed ones go up next time.
+    done, error = [], None
     with ThreadPoolExecutor(THREADS) as pool:
-        for entry in pool.map(one, send):
-            entries[entry["path"]] = entry
-    if send:
+        for future in [pool.submit(one, path) for path in send]:
+            try:
+                done.append(future.result())
+            except Exception as e:
+                error = error or e
+    for entry in done:
+        entries[entry["path"]] = entry
+    if done:
         new = {"updated": now(), "files": sorted(entries.values(), key=lambda e: e["path"])}
         s3.put_object(Bucket=bucket, Key=MANIFEST, Body=json.dumps(new, indent=1).encode("utf-8"),
                       ContentType="application/json")
+    went = {entry["path"] for entry in done}
     for path, (side, mine, _) in sides.items():
-        if side == "same" or path in send:
+        if side == "same" or path in went:
             state[path] = mine
     save_state(root, state)
+    if error:
+        raise error
     seconds, size = time.perf_counter() - start, sum((root / p).stat().st_size for p in send)
     log(f"Sent {len(send)} files ({size / 1e6:.1f} MB) in {seconds:.1f} s; "
         f"{Counter(s for s, _, _ in sides.values())['same']} were already the same in the cloud")

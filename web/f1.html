@@ -765,9 +765,11 @@ function viewBoard() {
     head = `<span>Position</span><span class="r">Lap time</span><span class="r">Gap</span><span class="r">Interval</span>` +
       [0, 1, 2].map(k => `<span class="sh">Sector ${k + 1}${s.best.sectors[k] ? `<b class="pill-p">${esc(s.best.sectors[k].driver)}</b>` : ""}</span>`).join("") + `<span class="r">Tyre</span>`;
     rows = ord.map((d, i) => {
-      const lapCell = i === 0 ? `<span class="r">${fmtLap(d.last_lap)}</span>` : d.last_lap == null ? '<span></span>' : `<span class="r"><i class="dpill">${sgn(d.last_lap - lead.last_lap)}</i></span>`;
+      // Against the leader's time; when the leader has none, the time itself (not the whole time as a gap)
+      const lapCell = i === 0 || (lead.last_lap == null && d.last_lap != null) ? `<span class="r">${fmtLap(d.last_lap)}</span>` : d.last_lap == null ? '<span></span>' : `<span class="r"><i class="dpill">${sgn(d.last_lap - lead.last_lap)}</i></span>`;
       const sect = k => { const sec = d.sectors[k] || {}, bars = (d.segments[k] || []).map(c => `<i class="${esc(c)}"></i>`).join("");
-        const val = sec.time == null ? "" : i === 0 ? fmtS(sec.time) : sgn(sec.time - (lead.sectors[k] || {}).time);
+        const ref = (lead.sectors[k] || {}).time;
+        const val = sec.time == null ? "" : i === 0 || ref == null ? fmtS(sec.time) : sgn(sec.time - ref);
         return `<span class="sg"><span class="sg-bars">${bars}</span><span class="sg-v ${sec.time == null ? "dim" : tcls(sec.col)}">${val}</span></span>`; };
       const gap = i === 0 ? '<span class="r">–</span>' : `<span class="r">${esc(d.gap_text || "")}</span>`;
       const intv = statusCell(d) || (i === 0 ? '<span class="r">–</span>' : `<span class="r">${esc(d.interval_text || "")}</span>`);

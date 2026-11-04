@@ -81,6 +81,31 @@ def test_a_change_is_never_lost(tmp_path):
     assert '"A"' in (laptop / "models" / "pit_model.json").read_text(encoding="utf-8")
 
 
+def test_a_failed_upload_leaves_the_cloud_in_order(tmp_path):
+    """The connection drops while the PC sends a new race: the files that did go up are in the manifest, so another
+    PC can still fetch them (each is checked against it); the failed one goes up next time."""
+    pc, laptop = project(tmp_path / "pc"), tmp_path / "laptop"
+    laptop.mkdir()
+    s3, quiet = FakeS3(), (lambda *_: None)
+    aws_sync.upload(s3, "b", pc, log=quiet)
+    aws_sync.download(s3, "b", laptop, log=quiet)
+    edit(pc / "data" / "team_colours.json", '{"2025_01": {}, "2025_02": {}}')
+    edit(pc / "models" / "pit_model.json", '{"features": ["New"]}')
+    sent = s3.upload_file
+
+    def dropped(filename, bucket, key, ExtraArgs=None):
+        if key.endswith("pit_model.json"):
+            raise OSError("the connection dropped")
+        sent(filename, bucket, key, ExtraArgs)
+    s3.upload_file = dropped
+    with pytest.raises(OSError):
+        aws_sync.upload(s3, "b", pc, log=quiet)
+    assert aws_sync.download(s3, "b", laptop, log=quiet)[0] == 1                  # the colours, not refused
+    assert "2025_02" in (laptop / "data" / "team_colours.json").read_text(encoding="utf-8")
+    s3.upload_file = sent
+    assert aws_sync.upload(s3, "b", pc, log=quiet)[0] == 1                         # the model, next time
+
+
 def test_a_broken_download_is_refused(tmp_path):
     here, new = project(tmp_path / "here"), tmp_path / "new"
     new.mkdir()

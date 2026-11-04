@@ -13,6 +13,7 @@ own laps for the gaps and the laps left - catching a car takes real laps - and s
 """
 import json
 import math
+import threading
 import time
 from collections import Counter, defaultdict
 
@@ -41,6 +42,7 @@ WINDOW_COUNTS = ["FieldStopsLast2", "AheadStoppedRecently", "BehindStoppedRecent
                  "FitSoftRecent", "FitMediumRecent", "FitHardRecent", "FitWetRecent"]
 
 _models, _cache = {}, {}
+_work = threading.Lock()                      # one worker at a time: two pages asking at once share one run
 
 
 def models():
@@ -334,11 +336,31 @@ def worked_out(s, lock):
     if not rows:
         return None, status, drivers, player
     key = (len(rows), sum(r["Time"] for r in rows), "".join(r["TrackStatus"] for r in rows))
-    if hit is None or hit["key"] != key:
-        hit = {"key": key, **model_all_laps(rows, sprint, grid)}
-    hit["version"] = version
-    _cache[s.uid] = hit
+    with _work:
+        hit = _cache.get(s.uid) or hit        # (another page may have just worked it out)
+        if hit is None or hit["key"] != key:
+            new = {"key": key, **model_all_laps(rows, sprint, grid)}
+            keep_why(hit, new)
+            hit = new
+        hit["version"] = version
+        _cache[s.uid] = hit
     return hit, status, drivers, player
+
+
+def keep_why(old, new):
+    """A lap's race outcome reasons (three SHAP runs: the slow part) carry over to the new results while the model's
+    inputs on that lap are the same (the same inputs give the same SHAP values). The models run again each time any
+    car finishes a lap, but the lap the outcome is shown for changes only once the whole field has finished it."""
+    a, b = (old or {}).get("outcome"), new.get("outcome")
+    if not a or not b:
+        return
+    feats = models()["outcome"][1]["features"]
+    for lap, (here, why) in a["why"].items():
+        now = b["rows"][b["rows"]["LapNumber"] == lap]
+        if len(now) == len(here) and all(ro.stack(now, feats, [k]).equals(ro.stack(here, feats, [k]))
+                                         for k in ro.SHOWN.values()):
+            b["why"][lap] = (now, {t: (values.set_axis(now.index), start, ro.at_k(now, ro.SHOWN[t]))
+                                   for t, (values, start, _) in why.items()})
 
 
 def reason_text(name, seen, game, info, effect, scale):

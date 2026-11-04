@@ -32,6 +32,13 @@ def test_a_usual_day_is_what_happened_here():
     assert m["range"] == [22.5, 27.5] and m["stints"] == 10
 
 
+def test_a_tyre_openf1_didnt_name_is_left_out():
+    """OpenF1 sometimes sends no compound for a stint (saved as "?"): the briefing leaves it out instead of failing."""
+    table = {**TABLE, "tracks": {"Austin": {**TABLE["tracks"]["Austin"],
+                                            "stints": STINTS + [["2025_19", "?", 12]], "wear": WEAR + [["2025_19", "?", 0.1]]}}}
+    assert engineer.brief(table, "Austin")["tyres"]["MEDIUM"] == engineer.brief(TABLE, "Austin")["tyres"]["MEDIUM"]
+
+
 def test_a_hotter_day_wears_the_tyres_faster():
     m = engineer.brief(TABLE, "Austin", track_temp=50)["tyres"]["MEDIUM"]
     assert m["wear_today"] == pytest.approx(0.06 + 0.002 * 10)               # 10 °C hotter
