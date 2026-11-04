@@ -400,3 +400,13 @@ def describe(name, row, effect=0.0, k=None):
         "DriverForm": f"averaged P{v:.1f} in the last races",
     }
     return text.get(name, f"{name} = {v}")
+
+
+def main():
+    """python src/race_outcome.py: the final results again, with any new race (one of the new-race steps)."""
+    results = build_results()[0]
+    print(f"saved {RESULTS_FILE} ({results['RaceId'].nunique()} races, the last {results['RaceId'].max()})")
+
+
+if __name__ == "__main__":
+    main()

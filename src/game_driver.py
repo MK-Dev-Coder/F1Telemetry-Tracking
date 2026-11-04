@@ -25,7 +25,8 @@ import game_telemetry as game
 from config import DATA_DIR
 
 DRIVER_DIR = DATA_DIR / "driver"             # the report's own files: rows.parquet, starts.json, history.json
-VERSION = 2                     # the row format: rows made by an older version are made again
+VERSION = 3                     # the row format: rows made by an older version are made again (3: the grid slot
+                                # of a race with no classification)
 MIN_CORNERS, MIN_SESSIONS = 120, 2
 HABITS = {                      # the habits the model weighs, and what each measures
     "brake_early": "Braking point",         # m earlier than on your best lap (+)
@@ -155,7 +156,8 @@ def session_start(sid, state, tele):
         return None
     me = state["player"]
     lap1 = state["laps"].get(str(me), {}).get("1", {}).get("position")
-    grid = next((c.get("grid") for c in state.get("classification") or [] if c.get("car") == me and c.get("grid")), None)
+    grid = next((c.get("grid") for c in state.get("classification") or [] if c.get("car") == me and c.get("grid")),
+                None) or (state.get("lap_now") or {}).get(str(me), {}).get("grid") or None   # (often no classification)
     lights = next((e["t"] for e in state.get("events") or [] if e["code"] == "LGOT"), None)    # lights out
     estimate = None
     if tele is not None and lights is not None and "speed" in tele:
@@ -165,6 +167,8 @@ def session_start(sid, state, tele):
             v = float(moved["t"].iloc[0]) - lights if len(moved) else None
             estimate = round(v, 3) if v is not None and 0.15 <= v <= 1.5 else None    # (else rolling, or stalled)
     game_value = info.get("start_reaction")
+    if game_value is not None and not 0.1 <= game_value <= 1.5:   # (the game said 3.0 s in a race from P22: not a
+        game_value = None                                          # reaction from the grid, like the estimate's limit)
     return {"sid": sid, "track": info.get("track"), "started": state.get("started"), "game": _game_of(info),
             "type": info.get("session_type"), "reaction": game_value or estimate,
             "source": "game" if game_value else "estimate" if estimate else None, "game_value": game_value,
@@ -387,7 +391,8 @@ def _track(out, rows, track):
     marks = {"brake_early": 5, "speed_loss": 2, "throttle_late": 10, "coast_more": 10}
     corners = []
     for spot, r in top.iterrows():
-        why = max(marks, key=lambda k: (r[k] or 0) / marks[k])
+        known = [k for k in marks if pd.notna(r[k])]          # (a corner taken without braking has no brake_early)
+        why = max(known, key=lambda k: r[k] / marks[k]) if known else None
         corners.append({"at": int(spot), "lost": round(float(r["lost"]), 3), "laps": int(r["laps"]), "why": why,
-                        "value": round(float(r[why]), 1)})
+                        "value": round(float(r[why]), 1) if why else None})
     return {"track": track, "corners": corners}

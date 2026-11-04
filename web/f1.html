@@ -553,10 +553,12 @@ async function init() {
     if (e.key === "ArrowLeft") { stop(); setLap(S.lap - 1, -1); }
   });
   ["lb2", "strat", "trkPos", "oc", "pv"].forEach(id => {
-    $(id).addEventListener("click", e => { const r = e.target.closest("[data-d]"); if (r) selectDriver(r.dataset.d, e.shiftKey); });
+    // The next race's preview has drivers who may not be in the replay: picking one there changes only the preview
+    const pick = (code, shift) => { if (id === "pv" && S.sub.preview === "next") { S.pvNext = code; viewPreview(); } else selectDriver(code, shift); };
+    $(id).addEventListener("click", e => { const r = e.target.closest("[data-d]"); if (r) pick(r.dataset.d, e.shiftKey); });
     $(id).addEventListener("keydown", e => {                       // Enter or Space on a focused row
       const r = e.target.closest("[data-d]"); if (!r || (e.key !== "Enter" && e.key !== " ")) return;
-      e.preventDefault(); const code = r.dataset.d; selectDriver(code, e.shiftKey);
+      e.preventDefault(); const code = r.dataset.d; pick(code, e.shiftKey);
       $(id).querySelector(`[data-d="${CSS.escape(code)}"]`)?.focus(); });
   });
   $("pp").addEventListener("click", e => { const b = e.target.closest("[data-oc]"); if (b) { S.pvFor = b.dataset.oc; viewPreview(); } });
@@ -1177,7 +1179,7 @@ async function viewEngineer() {
 // trained on every race before it), the reasons (SHAP), and how it did before the races of 2025 and 2026
 let pvTicket = 0;
 function viewPreview() { if (S.sub.preview === "next") previewNext(); else previewPast(); }
-const pvRow = (d, i, cls, cells) => `<div class="lb2-row ${cls}${d.driver === S.strat ? " sel" : ""}" data-d="${esc(d.driver)}" tabindex="0" role="button" ` +
+const pvRow = (d, i, cls, cells) => `<div class="lb2-row ${cls}${d.driver === (S.sub.preview === "next" ? S.pvNext : S.strat) ? " sel" : ""}" data-d="${esc(d.driver)}" tabindex="0" role="button" ` +
   `aria-label="${esc(d.name)}. Press Enter for the reasons."><span class="lb-pos">${i + 1}</span><span class="lb-bar" style="background:${esc(d.colour)}"></span>` +
   `<span class="pv-name">${face(d.driver, d.colour)}<span class="pv-t">${esc(d.name)}<small>${esc(d.team || "")}</small></span></span>${cells}</div>`;
 
@@ -1190,6 +1192,8 @@ async function previewNext() {
   const when = new Date(p.date + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const s = p.summary?.["before qualifying"], last = p.races?.at(-1);
   const head = `<span>Driver</span><span>Win</span><span>Podium</span><span>Points</span><span class="r">Likely</span><span>Main reason (SHAP)</span>`;
+  // The next race's drivers can differ from the replay's: its own pick, so the replay's driver stays as it was
+  if (!p.drivers.some(d => d.driver === S.pvNext)) S.pvNext = p.drivers.some(d => d.driver === S.strat) ? S.strat : p.drivers[0]?.driver;
   const rows = p.drivers.map((d, i) => { const r = d.why[d.for].reasons[0];
     return pvRow(d, i, "pv", ocCell(d, "win") + ocCell(d, "podium") + ocCell(d, "points") + `<span class="oc-f">P${d.likely}</span>` +
       (r ? `<span class="reason" title="${OC[d.for]}: ${esc(r.text)}"><b class="for">${OC[d.for]}</b><em class="${r.points >= 0 ? "up" : "down"}">${lab(r.points)}</em>${esc(r.text)}</span>` : "<span></span>")); }).join("");
@@ -1201,8 +1205,7 @@ async function previewNext() {
      a 30% favourite loses most of the time.</small>${p.is_past ? `<small><b>This race has been run.</b> For the next one, add this race
      (see the README) and run <code>python src/race_preview.py</code>, then start the app again.</small>` : ""}</div>` +
     `<div class="lb2-row hd pv">${head}</div>` + rows;
-  if (!p.drivers.some(d => d.driver === S.strat)) S.strat = p.drivers[0]?.driver;
-  previewPanel(p.drivers.find(d => d.driver === S.strat) || p.drivers[0]);
+  previewPanel(p.drivers.find(d => d.driver === S.pvNext) || p.drivers[0]);
 }
 
 function previewPanel(d) {

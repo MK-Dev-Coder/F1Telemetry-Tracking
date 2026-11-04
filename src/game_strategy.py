@@ -210,8 +210,10 @@ def outcome_lap(o, status, lap):
     """The last lap (up to `lap`) that every car still racing has finished: the chances need the whole field on one
     lap. While live that's the leader's lap or one before it (a lapped car holds it a lap back)."""
     latest = o["rows"].groupby("Driver")["LapNumber"].max()
-    racing = [d for d in latest.index if status.get(int(d)) not in (*OUT, 3)]           # 3 = finished
-    full = min(lap, latest[racing].min() if racing else latest.max())
+    # Every car still racing, also one that hasn't finished lap 1 yet (it has no row: lap 0, so nothing is shown
+    # until the whole field is across the line, not the chances of the few cars already there)
+    racing = [car for car, st in status.items() if st not in (*OUT, 3)]                 # 3 = finished
+    full = min(lap, min(int(latest.get(str(car), 0)) for car in racing) if racing else latest.max())
     shown = [n for n in o["whole"] if n <= full]
     return int(max(shown)) if shown else None
 

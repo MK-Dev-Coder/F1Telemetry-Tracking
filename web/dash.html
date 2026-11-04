@@ -110,9 +110,9 @@ function show(d) {
   $("ring").textContent = l; $("ring").style.setProperty("--c", col);
   $("wear").innerHTML = [2, 3, 0, 1].map(j => `<span class="${wearCol(w[j])}" title="${["Rear left", "Rear right", "Front left", "Front right"][j]}">${w[j] != null ? Math.round(w[j]) + "%" : "–"}</span>`).join("");
   $("tyreSub").innerHTML = `<b>${c.tyre_age ?? "–"}</b> laps old${c.actual_compound ? ` · ${c.actual_compound}` : ""}`;
-  // Fuel against the laps to go (a race): + means a little to spare
-  const toGo = d.race && i.total_laps ? Math.max(0, i.total_laps - me.lap + 1 - Math.min(1, (me.lap_distance || 0) / (i.track_length || 1e9))) : null;
-  const spare = c.fuel_laps != null && toGo != null ? c.fuel_laps - toGo : null;
+  // The game's fuel reading, as on its wheel display: in a race it's already the margin over the laps to go
+  // (+ means a little to spare), in other sessions the laps the fuel in the tank lasts
+  const spare = d.race && c.fuel_laps != null ? c.fuel_laps : null;
   set("fuel", spare != null ? `${spare >= 0 ? "+" : "−"}${Math.abs(spare).toFixed(1)}` : c.fuel_laps != null ? c.fuel_laps.toFixed(1) : "–", spare == null ? "" : spare < 0 ? "r" : spare < 0.3 ? "y" : "g");
   $("fuelSub").innerHTML = spare != null ? `laps to spare · <b>${c.fuel?.toFixed(1) ?? "–"} kg</b> in the tank` : `laps of fuel · <b>${c.fuel?.toFixed(1) ?? "–"} kg</b>`;
   // F1 26: the energy harvested this lap against the most the rules allow, and overtake mode; F1 25: the battery

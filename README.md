@@ -18,8 +18,8 @@ MSc dissertation project, Big Data Engineering & Data Science (AthTech / Univers
   before it.
 - **The trained models are here** (`models/`), the race data isn't: it belongs to Formula 1. To run the app or
   train the models again, see [Install](#install) and [Get the data](#get-the-data) (about 30 minutes to download).
-- **The tests** (`python -m pytest tests`, 210 of them) run on GitHub Actions on every push (the badge above).
-  Without the data folder the 33 that read it are skipped and the other 177 run.
+- **The tests** (`python -m pytest tests`, 213 of them) run on GitHub Actions on every push (the badge above).
+  Without the data folder the 33 that read it are skipped and the other 180 run.
 - **The cloud data layer** (optional; the app runs without it): the data and models in Amazon S3 with versions, a
   Lambda check on each table that arrives, Athena for SQL, and a daily Lambda that fetches each new race
   ([AWS_SETUP.md](docs/AWS_SETUP.md)); the desktop app (`desktop.py`) fetches the newest data from it and builds new races.
@@ -268,8 +268,8 @@ python src/build_timing.py
   `collect_data.py` would wait forever. Without a `fastf1_cache` folder, the dataset starts in 2023.
 - `build_dataset.py` joins both sources into `data/all_laps.parquet`, with a `Source` column.
 - To add a new race (for example the 2026 United States GP, round 18): `python src/collect_openf1.py 2026 18`, then
-  `build_dataset.py`, `features.py`, `build_timing.py`, `race_preview.py` and `engineer.py` (the app builds its replay file and
-  the final results itself). The study's numbers don't change (see Results). With the cloud set up, this happens by
+  `build_dataset.py`, `features.py`, `build_timing.py`, `race_outcome.py` (the final results), `race_preview.py` and
+  `engineer.py` (the app builds its replay file itself). The study's numbers don't change (see Results). With the cloud set up, this happens by
   itself: see "New races by themselves" in The cloud data layer.
 - `build_timing.py` saves what the live timing screen needs: sector times, mini-sectors (2023 on), speed traps,
   race control messages, team colours, driver names, and one lap of car positions per circuit to draw
@@ -308,6 +308,7 @@ python src/engineer.py
 | `src/evaluate_race_model.py` | ~3 min | `data/race_evaluation.md` and `figures/race_*.png` |
 | `src/evaluate_rolling.py` | ~10 min | `data/rolling_2026.md`, `data/rolling_2026.csv`, `figures/rolling_2026.png` (retrains all three models 32 times) |
 | `src/pit_now.py` | ~10 s | `models/pit_now.json`: what a stop costs under green, the safety car and the VSC |
+| `src/race_outcome.py` | ~10 s | `data/race_results.parquet` again: the final results, with any new race (`train_race_model.py` makes it too) |
 | `src/race_preview.py` | ~1 min | `data/preview_backtest.parquet`, `data/preview_evaluation.md`, `figures/preview_backtest.png`, `models/preview_next.json` (the next race) |
 | `src/battle.py` | ~5 s | `models/battle.json` (what the real undercuts gained), `data/battle_evaluation.md` |
 | `src/engineer.py` | ~5 s | `models/engineer.json`: each track's tyre life and wear, strategies, winners and facts |
@@ -318,7 +319,7 @@ python src/engineer.py
 python -m pytest tests
 ```
 
-210 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
+213 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
 data. They check:
 
 - **The features:** real stops are found (not drive-throughs, not tyre changes under a red flag), and no feature
@@ -337,7 +338,8 @@ data. They check:
 - **The engineer:** a hotter day wears the tyres faster and they last less (at most 40% either way), a shorter game
   race as many laps less, a stop under the safety car costs less, rain adds the intermediates and wets, a replay
   knows only the races before it, and the game's first pit window is kept as its plan.
-- **F1 25 / F1 26:** bad packets are skipped, online players' names are never kept, a paused game is still live
+- **F1 25 / F1 26:** bad packets are skipped, online players' names are never kept (nothing is saved before the
+  game says whether a session is online), a race's last lap is kept at the flag, a paused game is still live
   (paused, not over: the game sends nothing while paused, and "Session ended" when a session is) but a few stray
   packets aren't a session, short races are scaled, the team radio sends each question to the right topic ("chance
   of rain?" is about the weather), and its own calls carry on after a flashback.
@@ -363,10 +365,10 @@ data. They check:
   steps in order, runs them again after a failure (of a step or of the upload), tries a race again when
   `collect_openf1.py` made no table for it, builds the others when one isn't in the calendar yet, leaves a folder made
   by hand in the bucket alone, builds a fetched race without asking OpenF1 again and never waits for OpenF1 while it
-  is closed, and never sends its note to the cloud.
+  is closed (the race preview then fails, so the build runs again later instead of keeping the old race's preview), and never sends its note to the cloud.
 
 Most tests use small made-up races. The 33 in `tests/test_with_data.py` read the data folder and the trained
-models without changing them; without the data folder they are skipped and the other 177 still run. The tests
+models without changing them; without the data folder they are skipped and the other 180 still run. The tests
 don't listen for the game, so they can run while the app is open.
 
 ## Run the app
@@ -408,8 +410,8 @@ hour, step by step in [AWS_SETUP.md](docs/AWS_SETUP.md).
 - **New races by themselves** (`aws_fetch.py`, `newraces.py`): every morning at 06:00 UTC an EventBridge schedule
   runs a second Lambda, which fetches any Grand Prix that has finished from OpenF1 into the bucket, exactly as
   `collect_openf1.py` saves a race. When the desktop app starts, it builds the new race in the background with the
-  usual steps (`collect_openf1.py`, `build_dataset.py`, `features.py`, `build_timing.py`, `race_preview.py`,
-  `engineer.py`), sends the results back so every PC gets it, and says when it's in. Tested by fetching the 2026
+  usual steps (`collect_openf1.py`, `build_dataset.py`, `features.py`, `build_timing.py`, `race_outcome.py`,
+  `race_preview.py`, `engineer.py`), sends the results back so every PC gets it, and says when it's in. Tested by fetching the 2026
   United States GP again: the cloud's copy was identical to the saved one, and rebuilt from it on a copy of the
   project, the race, `all_laps.parquet` and `features.parquet` came out identical. The study doesn't change (its
   test races stay 2026 rounds 1–17).

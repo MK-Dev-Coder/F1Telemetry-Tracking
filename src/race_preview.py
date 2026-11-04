@@ -210,6 +210,8 @@ def next_race(rows):
             print(f"   {which} of {year} isn't saved yet: add it first (collect_openf1.py {year} {rnd - 1}, see the README)")
         return {"name": name, "date": s["date_start"][:10], "circuit": s["circuit_short_name"], "year": season, "round": rnd}
     except Exception as err:                                                        # no internet: no next race
+        if collect_openf1.QUICK and isinstance(err, RuntimeError):    # an automatic build while OpenF1 is closed (a
+            raise                                                      # live session): it fails, and runs again next time
         print("   no next race from OpenF1:", err)
         return None
 

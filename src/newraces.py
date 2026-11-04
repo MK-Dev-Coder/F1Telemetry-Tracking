@@ -1,7 +1,8 @@
 """New races from the cloud. Each morning AWS fetches any new race from OpenF1 into the bucket (aws_fetch.py, a Lambda
 function on a daily schedule). This finds the ones waiting there and builds them here with the usual steps, as the
 README's "add a new race" does by hand: collect_openf1.py for the race (it reads the fetched answers, so nothing is
-downloaded twice), then build_dataset.py, features.py, build_timing.py, race_preview.py and engineer.py. Then it sends
+downloaded twice), then build_dataset.py, features.py, build_timing.py, race_outcome.py (the final results),
+race_preview.py and engineer.py. Then it sends
 the results back (aws_sync.py), so every PC gets the race. The desktop app runs it after it starts. By hand:
 
     python src/newraces.py           fetch the latest data, then build any new race
@@ -24,7 +25,7 @@ import aws_sync
 from config import CACHE_DIR, ROOT
 
 HERE = Path(__file__).resolve().parent  # src/, where the steps are
-STEPS = ["build_dataset.py", "features.py", "build_timing.py", "race_preview.py", "engineer.py"]
+STEPS = ["build_dataset.py", "features.py", "build_timing.py", "race_outcome.py", "race_preview.py", "engineer.py"]
 INDEX = "data/openf1/sessions.json"      # OpenF1 session key -> race id, for the Lambda to skip the races built
 NOTE = "data/openf1/building.json"       # races not built and sent yet (the note itself never goes to the cloud)
 

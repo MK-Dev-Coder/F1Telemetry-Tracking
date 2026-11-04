@@ -229,6 +229,7 @@ class Session:
         self._g = self._slip = None           # the player's latest g-forces and wheel slip
         self._sector = {}                     # car index -> sector times of the lap in progress
         self._finished = set()                # cars whose last lap (at the flag) is already recorded
+        self._timed = set()                   # cars given a lap time without a new lap (at the flag, until recorded)
         self._overtake = {}                   # car index -> {lap: when overtake mode was first used on it} (2026)
         self._last_pos_t = self._last_car_t = -1.0
         self.packets = 0
@@ -248,15 +249,20 @@ class Session:
             before = self.lap_now.get(i)
             new_time = bool(before) and d["last_lap_ms"] != before["last_lap_ms"]   # the game just set a lap time
             crossed = bool(before) and d["lap"] > before["lap"]  # crossed the line: the lap before is complete
-            # At the flag the game stops counting laps: the last lap ends when the finished car gets its time.
+            # At the flag the game stops counting laps: the last lap ends when the finished car gets its time. That
+            # time often comes a frame before the "finished" status, so a time without a new lap is remembered.
             # A car already in the garage when the session ends gets no new time, so no lap is made up for it.
-            flag = d["result_status"] == 3 and new_time and i not in self._finished
+            if crossed:
+                self._timed.discard(i)
+            elif new_time:
+                self._timed.add(i)
+            flag = d["result_status"] == 3 and i in self._timed and i not in self._finished
             if flag:
                 self._finished.add(i)
             if crossed or flag:
                 done = self.lap_record(i, before["lap"])
                 s1, s2 = self._sector.get(i, (None, None))
-                lap_time = d["last_lap_ms"] / 1000 if new_time and d["last_lap_ms"] else None
+                lap_time = d["last_lap_ms"] / 1000 if (new_time or flag) and d["last_lap_ms"] else None
                 if lap_time:
                     done.setdefault("time", lap_time)
                 if s1 and s2 and lap_time and not done.get("s3"):
@@ -409,6 +415,7 @@ class Session:
             for n in [n for n in self.outline if n != "saved" and n >= lap_again]:
                 del self.outline[n]
         self._sector.clear()
+        self._timed.clear()
         for used in self._overtake.values():
             for n in [n for n, when in used.items() if when > t]:
                 del used[n]
@@ -934,6 +941,9 @@ class Recorder:
             for uid, s in self.sessions.items():
                 if s.last_seen <= self._saved_seen.get(uid, 0):
                     continue                     # nothing new since the last good save
+                if s.info.get("online") is None:
+                    continue                     # not before the session packet says if it's online: until then
+                                                 # other players' names can't be hidden (it comes within a second)
                 since = now - self._last_save.get(uid, 0)
                 wait = 5 if uid in self._failed else SAVE_EVERY
                 if force or since >= wait or (now - s.last_seen > QUIET and since >= 5):

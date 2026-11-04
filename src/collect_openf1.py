@@ -148,7 +148,7 @@ def status_timeline(race_control):
                 safety = "7" if "ENDING" in text else "6"
             elif "DEPLOYED" in text:
                 safety = "4"
-        elif flag == "RED":
+        elif flag == "RED" or text.startswith("RED FLAG"):  # (2026: "RED FLAG - RACE SUSPENDED", with no flag)
             safety = "5"
         elif flag in ("GREEN", "CLEAR") and scope == "Track":
             safety, yellows = None, set()
@@ -240,7 +240,8 @@ def race_table(raw, year, rnd, event_name):
     table["Year"] = year
     table["Round"] = rnd
     table["EventName"] = event_name
-    table["TotalLaps"] = int(table["LapNumber"].max())      # OpenF1 doesn't give the planned laps
+    timed = table.loc[table["LapTime"].notna(), "LapNumber"]  # OpenF1 doesn't give the planned laps, and some races
+    table["TotalLaps"] = int(timed.max() if len(timed) else table["LapNumber"].max())   # have an untimed lap after the flag
     table["Source"] = "OpenF1"
     table = table.drop_duplicates(["driver_number", "LapNumber"])   # never two rows for one lap
     return table[COLUMNS].sort_values(["Driver", "LapNumber"]).reset_index(drop=True)

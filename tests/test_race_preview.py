@@ -55,6 +55,20 @@ def test_only_races_before_are_used(race):
     pd.testing.assert_frame_equal(upto(before), upto(after))
 
 
+def test_an_automatic_build_fails_while_openf1_is_closed(monkeypatch):
+    """By hand, no answer from OpenF1 just means no next race; in an automatic build (while an F1 session is live)
+    the step fails, so the build runs again next time instead of keeping the old race's preview."""
+    def closed(*args, **kwargs):
+        raise RuntimeError("OpenF1 is closed while an F1 session is live")
+    monkeypatch.setattr(rp.collect_openf1, "get", closed)
+    rows = races().assign(Round=1)
+    monkeypatch.setattr(rp.collect_openf1, "QUICK", False)
+    assert rp.next_race(rows) is None
+    monkeypatch.setattr(rp.collect_openf1, "QUICK", True)
+    with pytest.raises(RuntimeError):
+        rp.next_race(rows)
+
+
 def test_the_next_race_preview_adds_up():
     """models/preview_next.json (the next race): one winner, three on the podium, ten in the points."""
     preview = json.loads((MODELS_DIR / "preview_next.json").read_text(encoding="utf-8"))

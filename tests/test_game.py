@@ -82,6 +82,42 @@ def test_offline_names_stay():
     assert s.drivers[1]["name"] == "Friend"
 
 
+def test_nothing_is_saved_before_the_game_says_if_the_session_is_online(tmp_path, monkeypatch):
+    """The names come before the session packet that says the session is online, and they are hidden only then:
+    so nothing is saved before it, not even for a moment."""
+    monkeypatch.setattr(gt, "GAME_DIR", tmp_path)
+    r = gt.Recorder(resume=False)
+    s = r.sessions[7] = gt.Session(7, 2025)
+    s.last_seen, s.drivers = time.time(), {1: {"name": "RealGamertag", "code": "REA", "ai": False}}
+    r.save_due(force=True)
+    assert not (tmp_path / "7").exists()
+    s.info["online"] = True                                                  # the session packet
+    s.hide_other_players()
+    r.save_due(force=True)
+    saved = (tmp_path / "7" / "session.json").read_text(encoding="utf-8")
+    assert "RealGamertag" not in saved and "Driver 2" in saved
+
+
+def lap_data(lap, last_ms, status=2):
+    """One car in a lap data packet: what the laps need."""
+    return dict(result_status=status, last_lap_ms=last_ms, lap=lap, sector=0, s1_ms=0, s1_min=0, s2_ms=0, s2_min=0,
+                position=1, leader_ms=0, leader_min=0, pit_stops=0, pit_status=0, lap_distance=10.0, driver_status=4)
+
+
+def test_the_last_lap_at_the_flag_is_kept():
+    """At the flag the game stops counting laps, and it often gives the last lap's time a frame before it says the
+    car has finished (seen in real races: the player's last lap was lost)."""
+    s = gt.Session(1, 2025)
+    s.on_lap_data(100.0, [lap_data(5, 90_000)])                              # on the last lap
+    s.on_lap_data(190.0, [lap_data(5, 91_500)])                              # the time first, still racing...
+    s.on_lap_data(190.1, [lap_data(5, 91_500, status=3)])                    # ...then "finished"
+    assert s.laps[0][5]["time"] == 91.5 and s.laps[0][5]["t"] == 190.1
+    garage = gt.Session(2, 2025)
+    garage.on_lap_data(100.0, [lap_data(5, 90_000)])
+    garage.on_lap_data(500.0, [lap_data(5, 90_000, status=3)])                # in the garage at the end: no new time
+    assert 5 not in garage.laps.get(0, {})                                    # so no lap is made up
+
+
 def test_the_games_first_pit_window_is_its_plan():
     """The game's strategy: its first pit window is the plan (it moves on after a stop, and is 0 after the flag)."""
     r = gt.Recorder(resume=False)

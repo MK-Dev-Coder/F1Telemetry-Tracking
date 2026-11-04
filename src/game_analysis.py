@@ -70,7 +70,8 @@ def report(s):
     board = next((r for r in s.leaderboard() if r["player"]), None)
     final = row["position"] if row else board["position"] if board else None
     first = next((r.get("position") for n, r in sorted(mine.items()) if r.get("position")), None)
-    grid = row["grid"] if row and row.get("grid") else first
+    start = (s.lap_now.get(me) or {}).get("grid")             # the game's grid slot, when there's no classification
+    grid = row["grid"] if row and row.get("grid") else start or first
     cars = len(s.classification) or len(s.lap_now)
     clean = clean_laps(mine, race)
     times = [r["time"] for r in clean.values()]

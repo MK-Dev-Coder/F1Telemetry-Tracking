@@ -830,7 +830,7 @@ function listen() {
       Radio.live = null;
       if (G.otherLive) { G.otherLive = null; renderChips(); }
       if (G.view && G.view.live) { const id = G.id; G.view.live = false; renderChips();
-        getJSON(`/game/sessions/${id}`).then(v => { if (G.id === id) { G.view = v; render(); } }).catch(() => {}); }
+        getJSON(`/game/sessions/${id}`).then(v => { if (G.id === id) { G.view = v; G.more = {}; render(); } }).catch(() => {}); }
       return;
     }
     Radio.live = d.session.id;                             // the radio is for the session you're driving
@@ -1308,7 +1308,7 @@ function driverHtml(d) {
   const WHY = { brake_early: v => v >= 0 ? `braking ${v.toFixed(0)} m early` : `braking ${(-v).toFixed(0)} m late`, speed_loss: v => `${v.toFixed(0)} km/h slower in the corner`,
     throttle_late: v => `full throttle ${v.toFixed(0)} m late`, coast_more: v => `coasting ${v.toFixed(0)} m` };
   const here = d.track ? `<section class="box"><h3>At ${esc(d.track.track)}: where you lose the most</h3><ol class="dr-corners">${d.track.corners.map(c =>
-      `<li><b>${(c.at / 1000).toFixed(2)} km</b><span>${WHY[c.why](c.value)}</span><em>${c.lost.toFixed(2)} s</em><small>${c.laps} laps</small></li>`).join("")}</ol>` +
+      `<li><b>${(c.at / 1000).toFixed(2)} km</b><span>${c.why ? WHY[c.why](c.value) : "no one habit behind it"}</span><em>${c.lost.toFixed(2)} s</em><small>${c.laps} laps</small></li>`).join("")}</ol>` +
     `<p class="note">The places on the lap (by distance from the line) where your laps lose most against your best, and the habit most behind it.</p></section>` : "";
   const hist = d.history.filter(x => x.corners), learnt = hist.length >= 2 ? (() => { const W = 300, Hh = 60, top2 = Math.max(...hist.map(x => x.corners));
     const x = k => 6 + k / (hist.length - 1) * (W - 12), y = v => Hh - 6 - v / top2 * (Hh - 12);
@@ -1763,7 +1763,7 @@ document.addEventListener("click", e => { const b = e.target.closest("#sp [data-
 
 function outcomeSection(d, det) {
   const o = det.outcome, t = G.strat.ocFor && o.why[G.strat.ocFor] ? G.strat.ocFor : o.for, w = o.why[t];
-  const who = d.player ? "You" : (d.name || d.driver).replace(/\b\w+/g, x => x[0] + x.slice(1).toLowerCase()), is = d.player ? "are" : "is";
+  const who = d.player ? "You" : esc((d.name || d.driver).replace(/\b\w+/g, x => x[0] + x.slice(1).toLowerCase())), is = d.player ? "are" : "is";
   const tone = w.chance >= 0.5 ? "box" : w.chance >= 0.15 ? "window" : "stay";
   const head = { win: [`${who} ${is} the favourite to win`, `${who} could win`, `${who} ${is} unlikely to win`],
     podium: [`${who} ${is} on course for a podium`, `${who} ${is} in the fight for the podium`, `A podium looks unlikely`],

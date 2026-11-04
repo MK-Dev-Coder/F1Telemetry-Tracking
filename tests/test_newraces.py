@@ -110,7 +110,9 @@ def test_the_pc_builds_the_new_race(tmp_path):
     added = newraces.add(s3, "b", root, log=QUIET, step=steps(root, ran), number=mexico, send=False)
     assert added == ["2026_19 Mexico City Grand Prix"]
     assert (root / "data" / "openf1" / "json" / "2026_19.json.gz").read_bytes() == s3.objects["data/openf1/incoming/11420.json.gz"][0]
-    assert ran == [("collect_openf1.py", 2026, 19)] + [(s,) for s in newraces.STEPS]   # the README's order
+    assert ran == [("collect_openf1.py", 2026, 19), ("build_dataset.py",), ("features.py",), ("build_timing.py",),
+                   ("race_outcome.py",), ("race_preview.py",), ("engineer.py",)]     # the README's order: the
+    # final results come before the preview and the engineer, which read them
     index = json.loads((root / newraces.INDEX).read_text(encoding="utf-8"))
     assert index == {"11396": "2026_18", "11420": "2026_19"}                # the Lambda skips both from now on
     assert not (root / newraces.NOTE).exists()

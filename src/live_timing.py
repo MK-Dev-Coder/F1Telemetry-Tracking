@@ -233,8 +233,19 @@ def snapshot(race_id, lap):
             "weather": {"air": num(leader["AirTemp"]), "track": num(leader["TrackTemp"]),
                         "humidity": num(leader["Humidity"]), "rain": bool(leader["Rainfall"])},
             "compounds_used": used, "best": best, "drivers": drivers,
-            "messages": [m for m in all_messages(race_id) if m["lap"] <= lap][:80],
+            "messages": newest(all_messages(race_id), lap),
             "has_segments": any(d["segments"] and any(d["segments"]) for d in drivers)}
+
+
+def newest(messages, lap, each=80):
+    """The newest messages up to this lap (the list is newest first), at most `each` of every kind: the page filters
+    them by kind, and the many pit stops and overtakes mustn't push race control's own messages out."""
+    kept, count = [], {}
+    for m in messages:
+        if m["lap"] <= lap and count.get(m["cat"], 0) < each:
+            count[m["cat"]] = count.get(m["cat"], 0) + 1
+            kept.append(m)
+    return kept
 
 
 def track(circuit, race_id):
