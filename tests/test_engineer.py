@@ -1,5 +1,5 @@
-"""engineer.py: the track briefing - how long each tyre lasts on a day this hot, in the game's shorter races, and
-from only the races before one (a replay: no spoilers)."""
+"""Tests for engineer.py: the track briefing (how long each tyre lasts for the temperature, in the game's shorter
+races, and using only the races before a given one so a replay has no spoilers)."""
 import pytest
 
 import engineer

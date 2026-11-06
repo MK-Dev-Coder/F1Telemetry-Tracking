@@ -1,12 +1,11 @@
-"""Evaluation for the dissertation: every number and chart for the results chapter, in one run.
+"""Evaluation for the dissertation: all the numbers and charts for the results chapter in one run.
 
-RQ1  Can the model predict pit stops?  Where it works and where it fails, can its % be trusted, how early it warns.
-RQ2  Are the SHAP reasons sound?       Do they follow F1 logic, match real stops, stay steady, really matter.
-RQ3  Does it work live?                How long one lap takes: in replay, live on F1 25, and reading the game's packets.
+RQ1  Can the model predict pit stops?  Where it works and fails, can its % be trusted, how early it warns.
+RQ2  Are the SHAP reasons sound?       Do they follow F1 logic, match real stops, stay stable, really matter.
+RQ3  Does it work live?                Time per lap in replay, live on F1 25, and reading the game's packets.
 
-Everything is measured on the 17 races of 2026, which were never used to train or tune the model.
-    python src/evaluate.py        -> figures/eval_*.png and data/evaluation.md (tables ready for the write-up)
-"""
+Everything is measured on the 17 races of 2026, never used to train or tune the model.
+Run: python src/evaluate.py -> figures/eval_*.png and data/evaluation.md (tables for the write-up)"""
 import json
 import tempfile
 import time
@@ -29,7 +28,7 @@ import matplotlib.pyplot as plt               # noqa: E402
 
 warnings.filterwarnings("ignore", category=UserWarning)
 RNG = np.random.default_rng(42)
-BOOT = 1000                                   # bootstrap resamples (whole races are drawn, as races aren't independent laps)
+BOOT = 1000                                   # bootstrap resamples (whole races: laps in a race aren't independent)
 REPORT = DATA_DIR / "evaluation.md"
 MODELS = ["LightGBM", "Logistic regression", "Tyre age rule"]
 KEYS = ["RaceId", "Driver", "LapNumber"]
@@ -40,8 +39,8 @@ THEMES = {"Tyres": ["TyreLife", "LapsInStint", "TyreWear", "Compound", "Stint", 
           "Gaps and position": ["Position", "GapAhead", "GapBehind", "GapToLeader"], "Track": ["Circuit"],
           "Weather": ["AirTemp", "TrackTemp", "Humidity", "Rainfall", "FieldOnWetTyres"], "Pace": ["PaceVsField"]}
 THEME_OF = {f: theme for theme, names in THEMES.items() for f in names}
-# What F1 logic says a higher value should do to the pit stop chance (only where there is one clear answer:
-# e.g. both very early and very late in a race a stop is less likely, so race progress has no single direction)
+# What F1 logic says a higher value should do to the pit stop chance (only where there is one clear answer; e.g. a
+# stop is less likely both very early and very late in a race, so race progress has no single direction)
 EXPECTED = {"TyreLife": "more", "LapsInStint": "more", "TyreWear": "more", "SafetyCar": "more", "VSC": "more",
             "NeutralStarted": "more", "FieldStopsLast2": "more", "AheadStoppedRecently": "more",
             "BehindStoppedRecently": "more", "DryCompoundsUsed": "less", "Rainfall": "more", "GapBehind": "more"}
@@ -51,7 +50,7 @@ COUNTS = {"Laps", "Stops", "Alerts", "Times"}                     # columns show
 
 
 def table(df, digits=3, per=None):
-    """A table in Markdown, for the write-up (per: digits for some columns, e.g. {"Share (%)": 1})."""
+    """Markdown table for the write-up (per = decimal places for some columns, e.g. {"Share (%)": 1})."""
     df, per = df.reset_index(), per or {}
 
     def fmt(column, v):
@@ -71,7 +70,7 @@ def save(fig, name):
     return f"figures/{name}"
 
 
-# Recipe 1: the 2026 laps with the pit stop model's chance and SHAP values, and the two baselines' scores
+# The 2026 laps with the pit model's chance and SHAP values, and the two baselines' scores
 def load():
     rows = pd.read_parquet(features.OUT_FILE)
     rows = rows[features.in_study(rows)]
@@ -86,7 +85,7 @@ def load():
 
 
 # ---------------------------------------------------------------------------------------------------------
-# RQ1, recipe 2: PR-AUC with a 95% confidence interval (whole races resampled), and how often LightGBM wins
+# RQ1: PR-AUC with a 95% confidence interval (whole races resampled), and how often LightGBM wins
 def overall(test):
     y, races = test["PitSoon"].values, test["RaceId"].values
     by_race = {r: np.flatnonzero(races == r) for r in np.unique(races)}
@@ -114,8 +113,8 @@ def scores(y, p, threshold):
             "Precision": (alert & (y == 1)).sum() / max(alert.sum(), 1), "Recall": (alert & (y == 1)).sum() / max(y.sum(), 1)}
 
 
-# RQ1, recipe 3: where the model works and where it fails. PR-AUC depends on how many laps are "pit soon"
-# laps, so "lift" (PR-AUC / random guess) is what compares fairly between groups.
+# RQ1: where the model works and where it fails. PR-AUC depends on how many laps are "pit soon" laps, so lift (PR-AUC
+# / random baseline) is the fair way to compare groups.
 def breakdown(test, threshold):
     t = test
     neutral = (t["SafetyCar"] == 1) | (t["VSC"] == 1)
@@ -156,7 +155,7 @@ def breakdown_charts(by_group, by_race):
     return a, save(fig, "eval_by_condition.png")
 
 
-# RQ1, recipe 4: can the percentages be trusted? (when it says 30%, does a stop follow about 30% of the time?)
+# RQ1: can the percentages be trusted? (when it says 30%, does a stop follow about 30% of the time?)
 def calibration(test):
     y, out = test["PitSoon"].values, {}
     fig, ax = plt.subplots(figsize=(6, 5.5))
@@ -180,8 +179,9 @@ def calibration(test):
     return pd.DataFrame(out).T.rename_axis("Model"), save(fig, "eval_calibration.png")
 
 
-# RQ1, recipe 5: how long the warning is on before a stop, which stops are missed, and what the false alarms are.
-# Stops count as in train_pit_model.py: those with at least one lap in the 3 laps before (a stop on lap 1 can't be warned).
+# RQ1: how long the warning is on before a stop, which stops are missed, and what the false alarms are. Stops are
+# counted like in train_pit_model.py: only those with at least one lap in the 3 laps before (a stop on lap 1 can't be
+# warned).
 def warnings_check(test, threshold):
     stops = real_stops()
     stops = stops[stops["RaceId"].isin(set(test["RaceId"]))]
@@ -204,7 +204,7 @@ def warnings_check(test, threshold):
     stops_df = pd.DataFrame(out)
     kinds = stops_df.groupby("kind").agg(Stops=("warned", "size"), **{"Warned 1-3 laps before (%)": ("warned", "mean")})
     kinds["Warned 1-3 laps before (%)"] *= 100
-    # The headline comes from train_pit_model.py's own count, so the two scripts can never disagree
+    # Use train_pit_model.py's own count for the headline number so the two scripts always agree
     warned, _, n_stops = stops_warned(test[KEYS], test["LightGBM"].values, threshold, stops)
     if n_stops != len(stops_df):
         print(f"  note: {len(stops_df)} stops in the breakdown, {n_stops} in train_pit_model.stops_warned")
@@ -246,7 +246,7 @@ def warnings_check(test, threshold):
 
 
 # ---------------------------------------------------------------------------------------------------------
-# RQ2, recipe 6: does each reason push the chance the way F1 logic says it should?
+# RQ2: does each reason push the chance the way F1 logic says it should?
 def logic_check(test, shap_values):
     out = {}
     for name in shap_values.abs().mean().sort_values(ascending=False).index[:15]:
@@ -263,7 +263,7 @@ def logic_check(test, shap_values):
     return pd.DataFrame(out).T.rename_axis("Feature (15 biggest)")
 
 
-# RQ2, recipe 7: the reasons on the laps before real stops. Is the top reason what a strategist would say?
+# RQ2: the reasons on the laps before real stops. Is the top reason what a strategist would say?
 def reasons_before_stops(test, shap_values, threshold):
     found = (test["PitSoon"] == 1) & (test["LightGBM"] >= threshold)
     top = shap_values[found].idxmax(axis=1).map(THEME_OF)                    # the biggest reason pushing the chance up
@@ -281,7 +281,7 @@ def reasons_before_stops(test, shap_values, threshold):
     return themes, sc_share, int(sc.sum()), save(fig, "eval_reasons_before_stops.png")
 
 
-# RQ2, recipe 8: do the explanations stay steady from one lap to the next for the same driver?
+# RQ2: do the explanations stay stable from one lap to the next for the same driver?
 def stability(test, shap_values):
     order = test.sort_values(KEYS).index
     t, s = test.loc[order], shap_values.loc[order]
@@ -306,8 +306,8 @@ def stability(test, shap_values):
     return pd.DataFrame(rows).T.rename_axis("Pairs of laps")
 
 
-# RQ2, recipe 9: do the reasons really matter? Take away the top k reasons (set them to a typical value)
-# and see how much the chance drops, compared with taking away k reasons picked at random.
+# RQ2: do the reasons really matter? Remove the top k reasons (set them to a typical value) and see how much the
+# chance drops, compared with removing k random reasons.
 def faithfulness(test, shap_values, booster, info, train, threshold, ks=(1, 2, 3, 4, 5), tries=5):
     feats = info["features"]
     alerts = test["LightGBM"] >= threshold
@@ -341,7 +341,7 @@ def faithfulness(test, shap_values, booster, info, train, threshold, ks=(1, 2, 3
 
 
 # ---------------------------------------------------------------------------------------------------------
-# RQ3, recipe 10: how long one lap takes in replay mode (both models and SHAP for every driver on the lap)
+# RQ3: time per lap in replay mode (both models and SHAP for every driver on the lap)
 def replay_speed(booster, info):
     laps = pd.read_parquet(DATA_DIR / "replay_laps.parquet")
     laps = laps[(laps["Year"] == 2026) & features.in_study(laps)]
@@ -350,7 +350,7 @@ def replay_speed(booster, info):
     tyre_model = lgb.Booster(model_file=str(MODELS_DIR / "tyre_model.txt"))
     tyre_feats = json.loads((MODELS_DIR / "tyre_model.json").read_text(encoding="utf-8"))["features"]
     ms, first = [], laps[laps["LapNumber"] == 1]
-    explain(booster, info, first), tyre_model.predict(first[tyre_feats])     # once to warm up, as the app does at start
+    explain(booster, info, first), tyre_model.predict(first[tyre_feats])     # warm up once, like the app does at start
     for _, rows in laps.groupby(["RaceId", "LapNumber"]):
         start = time.perf_counter()
         explain(booster, info, rows)
@@ -359,7 +359,7 @@ def replay_speed(booster, info):
     return np.array(ms)
 
 
-# RQ3, recipe 11: live on F1 25 - the work after each lap as a recorded race grows, and reading the packets
+# RQ3: live on F1 25, the work after each lap as a recorded race grows, and reading the packets
 def game_speed():
     import game_strategy
     import game_telemetry as game
@@ -381,7 +381,7 @@ def game_speed():
         w = game_strategy.model_all_laps(sub)                                      # features, both models, SHAP,
         game_strategy.assemble(w, status, s.drivers, s.player)                     # every car's reasons
         growth.append((n, len(sub), 1000 * (time.perf_counter() - start)))
-    game.GAME_DIR = Path(tempfile.mkdtemp())                                # reading only: nothing is saved
+    game.GAME_DIR = Path(tempfile.mkdtemp())                                # read only, nothing is saved
     packets = list(game.read_raw(folder))
     recorder = game.Recorder(resume=False)
     start = time.perf_counter()

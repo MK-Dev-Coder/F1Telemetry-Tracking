@@ -1,15 +1,15 @@
-"""F1 25 / F1 26: what the game page works out from your recorded sessions. The race report (result, places, stints,
-consistency, pace against the cars around you), the theoretical best lap, your own tyre wear forecast, where you lose
-time corner by corner, lock-ups and wheelspin, energy per lap (F1 26), overtake mode and active aero (F1 26), the
-Time Trial against your rival, when to switch to the wet tyres, your progress and your setups.
-Plain functions of a session's recorded data: the tests feed them made-up laps."""
+"""F1 25 / F1 26: the analysis on the game page, from your recorded sessions. Race report (result, positions,
+stints, consistency, pace vs the cars around you), theoretical best lap, your tyre wear forecast, where you lose
+time corner by corner, lock-ups and wheelspin, energy per lap (F1 26), overtake mode and active aero (F1 26), Time
+Trial vs your rival, when to switch to wet tyres, your progress and your setups.
+These are plain functions of a session's recorded data, so the tests can feed them made-up laps."""
 import numpy as np
 
 import game_telemetry as game
 
-WORN = 70                  # % tyre wear: from about here the grip falls away (the line of the wear forecast)
-SLOW = 1.07                # a lap over 107% of the usual one isn't a racing lap (a safety car, a spin, traffic)
-LOCK, SPIN = -0.12, 0.15   # wheel slip: a front or rear wheel locking under braking, a rear spinning on the throttle
+WORN = 70                  # % tyre wear where grip starts to fall away (line on the wear forecast)
+SLOW = 1.07                # a lap over 107% of the usual one isn't a racing lap (safety car, spin, traffic)
+LOCK, SPIN = -0.12, 0.15   # wheel slip: a front or rear wheel locking under braking, a rear spinning on throttle
 DIP = 25                   # km/h: a corner is where the speed dips by at least this much on both sides
 WINDOW = 5.0               # seconds after overtake mode is switched on that a pass still counts for it
 COLUMN = {name: k for k, name in enumerate(game.SAMPLE_COLUMNS)}
@@ -22,8 +22,8 @@ def _median(values):
 
 # ---- clean laps, the theoretical best and the race report ----------------------------------------------------
 def clean_laps(laps, race=True):
-    """The laps that show a car's pace: timed, valid, not in or out of the pits, not the start of a race, and not
-    slower than 107% of its usual lap (a safety car, a spin). laps = {lap number: lap record}."""
+    """Laps that show a car's real pace: timed, valid, not in or out of the pits, not the race start, and not
+    slower than 107% of its usual lap (safety car, spin). laps = {lap number: lap record}."""
     timed = {n: r for n, r in laps.items() if r.get("time") and not r.get("invalid") and not r.get("pitted")
              and not (race and n == 1)}
     usual = _median([r["time"] for r in timed.values()])
@@ -31,14 +31,14 @@ def clean_laps(laps, race=True):
 
 
 def theoretical(s):
-    """Your best lap, your theoretical best (your best three sectors added up) and each sector against pole's lap."""
+    """Your best lap, your theoretical best (best three sectors added up) and each sector vs the pole lap."""
     mine = s.laps.get(s.player, {})
     valid = {n: r for n, r in mine.items() if r.get("time") and not r.get("invalid")}
     if not valid:
         return None
     n_best = min(valid, key=lambda n: valid[n]["time"])
     best = valid[n_best]
-    pole = None                                             # the fastest valid lap in the session, anyone's
+    pole = None                                             # fastest valid lap in the session, by anyone
     for car, laps in s.laps.items():
         for n, r in laps.items():
             if r.get("time") and not r.get("invalid") and all(r.get(k) for k in ("s1", "s2", "s3")):
@@ -62,15 +62,15 @@ def theoretical(s):
 
 
 def report(s):
-    """The report of a session: your result, your places lap by lap (and the cars that finished around you), your
-    stints and stops, how consistent you were, and your pace against the cars around you on the same tyre."""
+    """Session report: your result, your positions lap by lap (and the cars that finished around you), your stints
+    and stops, how consistent you were, and your pace vs the cars around you on the same tyre."""
     me, race = s.player, s.is_race()
     mine = s.laps.get(me, {})
     row = next((c for c in s.classification if c["car"] == me), None)
     board = next((r for r in s.leaderboard() if r["player"]), None)
     final = row["position"] if row else board["position"] if board else None
     first = next((r.get("position") for n, r in sorted(mine.items()) if r.get("position")), None)
-    start = (s.lap_now.get(me) or {}).get("grid")             # the game's grid slot, when there's no classification
+    start = (s.lap_now.get(me) or {}).get("grid")             # grid slot from the game when there's no classification
     grid = row["grid"] if row and row.get("grid") else start or first
     cars = len(s.classification) or len(s.lap_now)
     clean = clean_laps(mine, race)
@@ -80,13 +80,13 @@ def report(s):
         "laps": len(times), "usual": round(usual, 3), "spread": round(float(np.std(times)), 3),
         "within": sum(abs(t - usual) <= 0.5 for t in times), "best": round(min(times), 3)}
     stops = [n for n, r in sorted(mine.items()) if r.get("pit_entry")]
-    if not stops:                                               # sessions recorded before pit entry was kept
+    if not stops:                                               # sessions recorded before pit entry was saved
         before = 0
         for n, r in sorted(mine.items()):
             if (r.get("pit_stops") or 0) > before:
                 stops.append(n)
             before = r.get("pit_stops") or before
-    # The cars that finished just ahead and behind you (two each way), and your pace against them on each tyre
+    # The cars that finished just ahead of and behind you (two each way), and your pace vs them on each tyre
     order = {c["car"]: c["position"] for c in s.classification} or {i: d["position"] for i, d in s.lap_now.items()}
     near = [c for c, p in sorted(order.items(), key=lambda kv: kv[1]) if c != me and final and p and abs(p - final) <= 2]
     pace = []
@@ -113,8 +113,8 @@ def report(s):
 
 # ---- your own tyre wear forecast ----------------------------------------------------------------------------
 def wear_forecast(s):
-    """When each tyre of your set reaches 70% wear, from how fast it has worn on this set (a straight line through
-    the wear at the end of each lap, and now). None until a set has two points."""
+    """When each tyre of your set will reach 70% wear, from how fast it has worn on this set (a straight line
+    through the wear at the end of each lap and now). None until a set has two points."""
     mine, stints = s.laps.get(s.player, {}), s.stints(s.player)
     if not stints:
         return None
@@ -159,8 +159,8 @@ def _lap(rows):
 
 
 def find_corners(L, step=5.0):
-    """The corners of a lap: where the speed bottoms out, dipping at least DIP km/h on both sides within 600 m.
-    Corners closer than 150 m are one (a chicane). Returns the distances of the slowest points."""
+    """Corners of a lap: where the speed bottoms out, dipping at least DIP km/h on both sides within 600 m. Corners
+    closer than 150 m count as one (a chicane). Returns the distances of the slowest points."""
     grid = np.arange(0, L["d"][-1], step)
     v = np.interp(grid, L["d"], L["v"])
     v = np.convolve(v, np.ones(5) / 5, mode="same")              # a little smoothing
@@ -204,7 +204,7 @@ def _at_corner(L, apex, width=80):
 
 
 def corners(rows_a, rows_b):
-    """Lap A against lap B, corner by corner: where each brakes, the speed in the corner, when back on full
+    """Lap A vs lap B, corner by corner: where each one brakes, the speed in the corner, when back on full
     throttle, and the time A loses (+) or gains (-) from that braking point to the next corner's."""
     A, B = _lap(rows_a), _lap(rows_b)
     if A is None or B is None:
@@ -224,7 +224,7 @@ def corners(rows_a, rows_b):
         va, vb = _at_corner(A, apex), _at_corner(B, apex)
         ta, tb = _throttle_point(A, apex), _throttle_point(B, apex)
         why = []
-        if ba is not None and bb is not None and 5 <= abs(ba - bb) <= 120:      # (more: not the same braking)
+        if ba is not None and bb is not None and 5 <= abs(ba - bb) <= 120:      # more than that isn't the same braking
             why.append(f"you brake {abs(ba - bb):.0f} m {'earlier' if ba < bb else 'later'}")
         elif ba is None and bb is not None:
             why.append("you only lift (no braking)")
@@ -241,9 +241,9 @@ def corners(rows_a, rows_b):
 
 # ---- lock-ups and wheelspin ---------------------------------------------------------------------------------
 def slips(samples, outline, lap=None):
-    """Lock-ups (a wheel locking under braking) and wheelspin (a rear wheel spinning on the throttle), from the wheel
-    slip. Frames in a row make one moment; each is put on the track map by its distance along the lap. A place
-    where it happened on two laps or more is a hot spot."""
+    """Lock-ups (a wheel locking under braking) and wheelspin (a rear wheel spinning on throttle), from the wheel
+    slip. Consecutive frames make one event; each is placed on the track map by its distance along the lap. A place
+    where it happened on two or more laps is a hot spot."""
     c = COLUMN
     track = sorted(([p[2], p[0], p[1]] for p in outline if len(p) > 2), key=lambda p: p[0])
     dist = np.array([p[0] for p in track]) if track else np.array([])
@@ -294,9 +294,9 @@ def slips(samples, outline, lap=None):
 
 # ---- energy per lap, and overtake mode and active aero (F1 26) ------------------------------------------------
 def energy(car_samples, laps, length, limit=None, bins=40):
-    """Energy on each complete lap: harvested and used (the game's own counters for the lap, or, in sessions
-    recorded before they were kept, from how the battery went up and down), against the most the rules let you
-    harvest a lap (F1 26). And where on the lap the battery goes up (harvesting) and down (using it)."""
+    """Energy on each complete lap: harvested and used (the game's own counters for the lap, or for older sessions
+    without them, from how the battery went up and down), vs the most the rules allow per lap (F1 26). Also where
+    on the lap the battery goes up (harvesting) and down (deploying)."""
     c = CAR
     done = {l["lap"] for l in laps if l.get("time")}
     per, along, counts = [], np.zeros(bins), np.zeros(bins)
@@ -327,8 +327,8 @@ def energy(car_samples, laps, length, limit=None, bins=40):
 
 
 def modes(samples, events, player):
-    """F1 26: on each lap, how much of it you spent in straight mode (active aero) and in overtake mode; each time
-    you used overtake mode, and whether a pass of yours came while it was on (or within 5 s of it ending)."""
+    """F1 26: on each lap, how much time you spent in straight mode (active aero) and in overtake mode; each time
+    you used overtake mode, and whether you passed someone while it was on (or within 5 s after)."""
     c = COLUMN
     rows = [r for r in samples if r[c["aero"]] is not None and r[c["distance"]] is not None and r[c["distance"]] >= 0]
     if not rows:
@@ -367,7 +367,7 @@ def modes(samples, events, player):
 
 # ---- Time Trial --------------------------------------------------------------------------------------------
 def time_trial(s):
-    """You against your personal best and your rival: the gap on the lap and in each sector."""
+    """You vs your personal best and your rival: the gap over the lap and in each sector."""
     tt = s.info.get("time_trial")
     if not tt:
         return None
@@ -381,8 +381,8 @@ WET = {"INTERMEDIATE", "WET"}
 
 
 def switch(s, pit_loss=None):
-    """Should you switch to the wet tyres (or back to slicks)? The game says how much faster or slower each of your
-    sets would be now than the one fitted; over the laps left that gain is set against what a stop costs here."""
+    """Should you switch to wet tyres (or back to slicks)? The game says how much faster or slower each of your
+    sets would be now than the one fitted; that gain over the laps left is compared with the cost of a stop here."""
     sets = s.tyre_set_list()
     fitted = next((t for t in sets if t["fitted"]), None)
     if not fitted:

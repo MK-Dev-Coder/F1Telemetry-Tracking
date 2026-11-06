@@ -36,7 +36,7 @@ def times(column):
     return pd.to_datetime(column, format="ISO8601", utc=True)
 
 
-# Recipe 1: sector times, mini-sectors and speed traps from OpenF1 (2023 onwards)
+# Sector times, mini-sectors and speed traps from OpenF1 (2023 on)
 def openf1_timing(race_id, raw):
     names = {d["driver_number"]: d["name_acronym"] for d in raw["drivers"]}
     rows = []
@@ -49,7 +49,7 @@ def openf1_timing(race_id, raw):
     return rows
 
 
-# Recipe 2: sector times and speed traps from the FastF1 cache (2022), with no internet. FastF1 has no mini-sectors.
+# Sector times and speed traps from the FastF1 cache (2022, no internet). FastF1 has no mini-sectors.
 def fastf1_timing(race_id):
     year, rnd = int(race_id[:4]), int(race_id[5:])
     session = fastf1.get_session(year, rnd, "R")
@@ -63,7 +63,7 @@ def fastf1_timing(race_id):
              **{k: r[f"Speed{k}"] if pd.notna(r[f"Speed{k}"]) else None for k in ("I1", "I2", "ST")}} for _, r in laps.iterrows()]
 
 
-# Recipe 3: race control messages, timed from lights out (the leader's lap 1 start)
+# Race control messages, timed from lights out (the leader's lap 1 start)
 def openf1_messages(race_id, raw):
     starts = [l["date_start"] for l in raw["laps"] if l["lap_number"] == 1 and l.get("date_start")]
     if not starts:
@@ -74,8 +74,8 @@ def openf1_messages(race_id, raw):
             for m in raw["race_control"]]
 
 
-# Recipe 4: the shape of each circuit - the positions of the car on the race's fastest lap.
-# "t" is the seconds since the start of that lap, so the app can place a car that is X seconds behind.
+# Circuit shape = car positions on the race's fastest lap. "t" is seconds since the start of that lap, so the app can
+# place a car that is X seconds behind.
 def track_shape(raw):
     laps = [l for l in raw["laps"] if l.get("lap_duration") and l.get("date_start") and not l.get("is_pit_out_lap")]
     if not laps:

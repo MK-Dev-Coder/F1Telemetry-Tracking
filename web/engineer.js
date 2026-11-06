@@ -1,10 +1,10 @@
-/* The race engineer's track briefing, shared by f1.html (a real race: from the races at its track before it, so a
-   replay gives no spoilers) and f1-25.html (your game race: real F1 at that track, at this race's length, beside the
-   game's own plan). Engineer.render(el, d, o) puts in el a hero card (the track, the engineer's call and today's
-   conditions, which can be changed) and one part of the briefing. d = the server's /engineer/{circuit} answer.
-   o = { face(code, colour), onChange({temp, rain}), part ("extra", "track", "plans", "winners" or "prediction": only
-   that part; none = all), extra (html for the "extra" part, e.g. the game's own plan), reveal (show the results of a
-   past race), what (a few words on what it's for) }. Engineer.ui has the pieces the game's plan is drawn with. */
+/* The race engineer's track briefing, shared by f1.html (a real race: uses the races at its track before it, so a
+   replay has no spoilers) and f1-25.html (your game race: real F1 at that track, at this race's length, next to the
+   game's own plan). Engineer.render(el, d, o) puts a hero card in el (the track, the engineer's call and today's
+   conditions, which can be changed) and one part of the briefing. d = the server's /engineer/{circuit} response. o =
+   { face(code, colour), onChange({temp, rain}), part ("extra", "track", "plans", "winners" or "prediction": only that
+   part; none = all), extra (html for the "extra" part, e.g. the game's own plan), reveal (show the results of a past
+   race), what (a few words on what it's for) }. Engineer.ui has the pieces used to draw the game's plan. */
 (() => {
   "use strict";
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -28,8 +28,8 @@
     if (x.game) return { life: x.game.life, range: x.game.range };
     return "life_today" in x ? { life: x.life_today, range: x.range_today } : { life: x.life, range: x.range }; };
 
-  // A lap meter: a block for each lap of the race, solid up to the shortest usual stint, lighter over the laps a
-  // set is usually boxed after, and a line at the usual life
+  // Lap meter: a block for each lap of the race, solid up to the shortest usual stint, lighter for the laps when a
+  // set is usually boxed, and a line at the usual life
   function meter(c, v, laps) {
     const p = x => `${Math.max(0, Math.min(100, x / laps * 100))}%`, [a, b] = v.range || [];
     return `<span class="eg-mw" style="--c:${(TY[c] || TY.UNKNOWN)[2]}" role="img" aria-label="Usually boxed after ${r0(a)} to ${r0(b)} laps">` +
@@ -44,7 +44,7 @@
     return `<span class="eg-axis" aria-hidden="true">${ticks.map(k => `<span style="left:${k / laps * 100}%">${k}</span>`).join("")}</span>`;
   }
 
-  /* ---- the hero: the track, the engineer's call, today ---- */
+  /* ---- hero card: the track, the engineer's call, today ---- */
   function skeleton(el) {
     el.innerHTML = `<section class="eg-hero" aria-label="The briefing">
       <div class="eg-h-track"></div>
@@ -81,8 +81,8 @@
     if (!d.plans.length) return `<small>The engineer's call</small><p class="eg-why">No dry race here to learn a plan from.</p>`;
     const laps = lapsOf(d), top = d.plans[0], stops = top.stop_laps.map(s => Math.max(1, Math.round(s / factor(d))));
     const stints = planStints(top.plan, stops, laps), best = [...d.plans].sort((a, b) => b.wins - a.wins || b.top5 - a.top5)[0];
-    // A stint before a stop that is longer than its tyre lasts today: box earlier. (Not the last stint: it runs to the
-    // flag, and the stints that ended in a stop say nothing about that.)
+    // A stint before a stop that is longer than its tyre lasts today means box earlier. (Not the last stint: it runs
+    // to the flag, and stints that ended in a stop don't tell us about that.)
     const late = stints.slice(0, -1).map(s => ({ s, t: lifeOf(d, s.compound) }))
       .find(({ s, t }) => t && t.range?.[1] != null && t.life != null && s.to - s.from + 1 > t.range[1] + 0.5);
     const tyre = c => TY[c][1].toLowerCase();

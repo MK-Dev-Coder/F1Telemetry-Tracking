@@ -17,14 +17,14 @@ import matplotlib.pyplot as plt               # noqa: E402
 TYRE_COLOURS = {"HARD": "grey", "MEDIUM": "gold", "SOFT": "red", "INTERMEDIATE": "green", "WET": "blue"}
 
 
-# Recipe 1: load the saved model
+# Load the saved model
 def load_model():
     info = json.loads((MODELS_DIR / "pit_model.json").read_text(encoding="utf-8"))
     return lgb.Booster(model_file=str(MODELS_DIR / "pit_model.txt")), info
 
 
-# Recipe 2: the chance of a stop in the next 3 laps, and the SHAP value of every feature.
-# LightGBM works SHAP out exactly, in log-odds (the model's own scale): base + all SHAP values = prediction.
+# Chance of a stop in the next 3 laps, and the SHAP value of each feature. LightGBM gives exact SHAP values in
+# log-odds: base + sum of SHAP values = prediction.
 def explain(booster, info, rows):
     X = rows[info["features"]]
     shap_values = booster.predict(X, pred_contrib=True)
@@ -35,9 +35,8 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-# For fans: turn the log-odds SHAP values into "% points". Every value is scaled by the same
-# number, so the reasons keep their true sizes compared with each other, and the points add up
-# exactly to (this prediction - the chance on a typical lap).
+# Convert the log-odds SHAP values to % points. All values are scaled by the same number, so the reasons keep their
+# sizes relative to each other, and they add up to (this prediction - the chance on a typical lap).
 def to_points(base, values):
     change = values.sum()
     if abs(change) < 1e-9:
@@ -47,7 +46,7 @@ def to_points(base, values):
     return values * scale
 
 
-# Recipe 3: each reason in plain English
+# Each reason in plain English
 def describe(name, row, info, effect=0.0):
     v = row[name]
     if pd.isna(v):
@@ -107,7 +106,7 @@ def explain_text(row, p, points, info, top=4):
     return "\n".join(lines)
 
 
-# Recipe 4: charts for the whole 2026 test season
+# Charts for the whole 2026 test season
 def season_charts(rows, values, base, info):
     numbers = rows[info["features"]].copy()
     for col in features.CATEGORIES:
@@ -155,7 +154,7 @@ def direction_check(rows, values, info):
     return "\n".join(out)
 
 
-# Recipe 5: a waterfall chart for one prediction, in % points
+# Waterfall chart for one prediction, in % points
 def waterfall(row, p, points, base, info, file, title_extra):
     top = points.abs().sort_values(ascending=False).index[:8]
     bars = points[top][::-1]
@@ -175,7 +174,7 @@ def waterfall(row, p, points, base, info, file, title_extra):
     plt.close(fig)
 
 
-# Recipe 6: case studies from Singapore 2026 (the race we have from both sources, with 2 VSCs)
+# Case studies from Singapore 2026 (in both sources, with 2 VSCs)
 def pick_cases(rows, p, stops, race="2026_17"):
     here = rows["RaceId"] == race
     stops = stops[stops["RaceId"] == race]

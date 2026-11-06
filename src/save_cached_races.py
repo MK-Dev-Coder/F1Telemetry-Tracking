@@ -4,8 +4,8 @@ from collect_data import race_table
 from config import CACHE_DIR, RAW_DIR, SEASONS
 
 
-# Save every race that is fully in fastf1_cache but not in data/raw yet.
-# It never uses the internet, so F1's block doesn't matter here.
+# Save every race that is fully in fastf1_cache but not in data/raw yet. No internet needed, so F1's block doesn't
+# matter here.
 def main():
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     fastf1.Cache.enable_cache(CACHE_DIR)

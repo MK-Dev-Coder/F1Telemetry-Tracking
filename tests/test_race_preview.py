@@ -1,4 +1,4 @@
-"""race_preview.py: before a race, each driver's chances, from what was known before it."""
+"""Tests for race_preview.py: each driver's chances before a race, from what was known before it."""
 import json
 
 import numpy as np
@@ -56,8 +56,8 @@ def test_only_races_before_are_used(race):
 
 
 def test_an_automatic_build_fails_while_openf1_is_closed(monkeypatch):
-    """By hand, no answer from OpenF1 just means no next race; in an automatic build (while an F1 session is live)
-    the step fails, so the build runs again next time instead of keeping the old race's preview."""
+    """By hand, no answer from OpenF1 just means no next race; in an automatic build (during a live F1 session) the
+    step fails, so the build runs again next time instead of keeping the old race's preview."""
     def closed(*args, **kwargs):
         raise RuntimeError("OpenF1 is closed while an F1 session is live")
     monkeypatch.setattr(rp.collect_openf1, "get", closed)

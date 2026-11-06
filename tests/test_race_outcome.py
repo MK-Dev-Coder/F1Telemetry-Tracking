@@ -1,4 +1,4 @@
-"""race_outcome.py: each driver's chance to win, finish on the podium and score points."""
+"""Tests for race_outcome.py: each driver's chance to win, get a podium and score points."""
 import numpy as np
 import pandas as pd
 import pytest
@@ -7,8 +7,8 @@ import race_outcome as ro
 
 
 def field(n, seed=None):
-    """The model's own answers for n cars (cars x top 1 ... top n): a field like a real one, car 1 the quickest -
-    or, with a seed, random answers that only go up with k."""
+    """Raw model outputs for n cars (cars x top 1 ... top n): a realistic field with car 1 the fastest, or with a
+    seed, random outputs that only go up with k."""
     if seed is not None:
         return np.sort(np.random.default_rng(seed).uniform(0.02, 0.98, (n, n)), axis=1)
     skill, ks = np.linspace(2, -2, n)[:, None], np.arange(1, n + 1)[None, :]
@@ -26,9 +26,9 @@ def test_one_winner_three_on_the_podium(n):
 
 @pytest.mark.parametrize("seed", range(20))
 def test_chances_fit_together_whatever_the_model_says(seed):
-    """Even with random answers (unlike a real field): one winner, the favourite stays the favourite, and a podium
-    chance is never below the win chance. Making the chances only go up with k can then lift a top k a little above
-    k cars (at most 0.14 of a car in 300 random fields; 0 for a field like a real one, above)."""
+    """Even with random outputs (unlike a real field): one winner, the favourite stays the favourite, and a podium
+    chance is never below the win chance. Forcing the chances to only go up with k can then push a top k slightly
+    above k cars (at most 0.14 of a car in 300 random fields; 0 for a realistic field, see above)."""
     raw = field(20, seed)
     q = ro.fit_together(raw)
     assert q[:, 0].sum() == pytest.approx(1, abs=1e-6)                       # exactly one winner

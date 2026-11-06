@@ -1,12 +1,11 @@
 """If they pit now: where a driver would rejoin, the gaps to the cars around, and how their race outcome changes.
 
-The stop costs the track's usual pit stop time (learned from 2022-2025, the same numbers the race outcome model
-uses). Under a safety car or a VSC a stop costs less, because the cars that stay out are slow too - how much less
-is learned from the same races. Then the race outcome model is asked again with the driver moved to where they'd
-rejoin, on new tyres (the tyre model's pick), with the stop done. It assumes nobody else pits on that lap and the
-others keep their gaps.
-    python src/pit_now.py   -> models/pit_now.json (what a stop costs under green, safety car and VSC)
-"""
+The stop costs the track's usual pit stop time (learned from 2022-2025, same numbers as the race outcome model).
+Under a safety car or VSC a stop costs less because the cars staying out are slow too; how much less is learned
+from the same races. Then the race outcome model is run again with the driver moved to where they'd rejoin, on new
+tyres (the tyre model's pick), with the stop done. It assumes nobody else pits on that lap and the others keep
+their gaps.
+Run: python src/pit_now.py -> models/pit_now.json (cost of a stop under green, safety car and VSC)"""
 import json
 
 import numpy as np
@@ -18,12 +17,12 @@ import train_tyre_model as tyre
 from config import MODELS_DIR
 
 TABLE_FILE = MODELS_DIR / "pit_now.json"
-KINDS = {"SAFETY CAR": "SC", "VSC": "VSC"}                # the track status as the pages have it
+KINDS = {"SAFETY CAR": "SC", "VSC": "VSC"}                # track status names used by the pages
 DRY = ["SOFT", "MEDIUM", "HARD"]
 
 
-# Recipe 1: what a stop costs against the cars that stay out - the in-lap and the out-lap against the field's
-# laps - under green, the safety car and the VSC, as a share of the track's usual (green) cost
+# Cost of a stop vs the cars that stay out (in-lap and out-lap vs the field's laps) under green, safety car and VSC,
+# as a share of the track's usual green cost
 def build():
     laps = tyre.replay_laps()
     laps = laps[features.in_study(laps) & (laps["Year"] <= 2025)].sort_values(["RaceId", "Driver", "LapNumber"])
@@ -49,8 +48,8 @@ def load():
 
 
 def cost(table, pit_loss, circuit, status):
-    """What a stop costs here now (seconds), its usual range (the middle half of the stops) and the track status.
-    Under a red flag the cars wait in the pit lane and may change tyres there, so new tyres cost no time."""
+    """Cost of a stop here right now (seconds), its usual range (middle half of the stops) and the track status.
+    Under a red flag the cars wait in the pit lane and can change tyres there, so new tyres cost nothing."""
     if status == "RED FLAG":
         return 0.0, (0.0, 0.0), "red"
     usual = pit_loss["track"].get(str(circuit), pit_loss["overall"])
@@ -59,19 +58,19 @@ def cost(table, pit_loss, circuit, status):
     return mid, (low, high), kind
 
 
-# Recipe 2: where they'd come out. lap = the cars with a place on the lap (Driver, Position, GapToLeader); the stop is
-# at the end of this lap, so the car loses `loss` seconds against all the others.
+# Where they'd come out. lap = the cars with a position on the lap (Driver, Position, GapToLeader). The stop is at the
+# end of this lap, so the car loses `loss` seconds to all the others.
 def whole(lap):
-    """Can the places after a stop be counted? Only if every place P1 ... Pn is in the timing, each with a gap to
-    the leader (a few laps miss cars: Miami 2025 lap 25 has only P10-P19)."""
+    """Can the positions after a stop be worked out? Only if every position P1 ... Pn is in the timing with a gap
+    to the leader (a few laps miss cars, e.g. Miami 2025 lap 25 only has P10-P19)."""
     return (lap["GapToLeader"].notna().all()
             and sorted(lap["Position"]) == list(range(1, len(lap) + 1)))
 
 
 def rejoin_all(lap, loss, around=None):
-    """Every car's rejoin place if it pitted at the end of this lap: {driver: {position, ahead, behind}}, or {} when
-    the places can't be counted. around=driver: only that driver, with the two cars ahead and behind after the stop
-    (gap < 0: that car is ahead)."""
+    """Rejoin position of every car if it pitted at the end of this lap: {driver: {position, ahead, behind}}, or {}
+    if the positions can't be worked out. around=driver: only that driver, with the two cars ahead and behind after
+    the stop (gap < 0 means that car is ahead)."""
     if not whole(lap):
         return {}
     names, gaps, out = lap["Driver"].to_numpy(), lap["GapToLeader"].to_numpy(dtype=float), {}
@@ -95,15 +94,15 @@ def rejoin_all(lap, loss, around=None):
 
 
 def rejoin(lap, driver, loss):
-    """One driver's rejoin place, with the cars around them after the stop (None when it can't be counted)."""
+    """One driver's rejoin position, with the cars around them after the stop (None if it can't be worked out)."""
     return rejoin_all(lap, loss, around=driver).get(driver)
 
 
-# Recipe 3: the lap again with the driver pitted: their new place and gaps, new tyres (`compound`), the stop done.
-# factor: how many real-race laps one lap is worth (F1 25's shortened races scale the tyre ages, as there).
+# The lap again with the driver pitted: new position and gaps, new tyres (`compound`), stop done. factor = how many
+# real-race laps one lap is worth (for F1 25's shorter races the tyre ages are scaled).
 def pitted(lap, driver, loss, compound, info, factor=1.0):
     rows = lap.copy()
-    rows["Compound"] = rows["Compound"].astype(str)                       # (a category list may not hold the new tyre)
+    rows["Compound"] = rows["Compound"].astype(str)                       # category list may not have the new tyre
     i = rows.index[rows["Driver"] == driver][0]
     new = "INTERMEDIATE" if compound == "INTER/WET" else compound if compound in ro.TYRES else rows.at[i, "Compound"]
     used = {c: bool(rows.at[i, f"Used{c.title()}"]) for c in DRY if f"Used{c.title()}" in rows}
@@ -118,13 +117,13 @@ def pitted(lap, driver, loss, compound, info, factor=1.0):
     rows["Position"] = np.arange(1, len(rows) + 1, dtype=float)
     rows["GapAhead"] = rows["GapToLeader"].diff().clip(0, 60)
     rows["GapBehind"] = (-rows["GapToLeader"].diff(-1)).clip(0, 60)
-    rows = ro.lap_relations(rows)                                                 # against the new cars around
+    rows = ro.lap_relations(rows)                                                 # vs the new cars around
     return ro.add_pit_adjusted(rows, info["pit_loss"])
 
 
 def what_if(table, booster, info, lap, driver, status, compound, factor=1.0):
     """Everything about pitting now for one driver: the cost, where they'd rejoin (with its range), and the race
-    outcome model's chances now and if they pit. lap = the cars on the lap with the race outcome features."""
+    outcome chances now and if they pit. lap = the cars on the lap with the race outcome features."""
     lap = lap[lap["Position"].notna()].reset_index(drop=True)
     loss, (low, high), kind = cost(table, info["pit_loss"], lap["Circuit"].iloc[0], status)
     place = rejoin(lap, driver, loss)

@@ -1,5 +1,5 @@
-/* If they pit now: what the stop costs, where they'd rejoin, the order around them after the stop, and their win,
-   podium and points chances now and after (the race outcome model asked again). Shared by f1.html (real races) and
+/* If they pit now: the cost of the stop, where they'd rejoin, the order around them after the stop, and their win,
+   podium and points chances now and after (the race outcome model is run again). Shared by f1.html (real races) and
    f1-25.html (your game): PitNow.html(answer, name, nameOf, colourOf, you), PitNow.cell(rejoin) for the tables. */
 (() => {
   "use strict";
@@ -17,14 +17,14 @@
     const cost = w.under === "red" ? "Under the red flag the cars wait in the pit lane, so new tyres cost no time."
       : `A stop costs about ${Math.round(w.cost)} s here${UNDER[w.under] || ""}.`;
     let out = `<p class="why-line why-window"><b>${cost}</b> ${who} would rejoin P${w.position}: ${parts.join(", ")}.${range}</p>`;
-    // The order after the stop: two cars ahead, the driver, two behind (the gap from the driver to each). Ahead or
-    // behind goes by the place: a gap under 0.05 s is rounded to 0.0
+    // Order after the stop: two cars ahead, the driver, two behind (with the gap from the driver to each). Ahead or
+    // behind is decided by position, since a gap under 0.05 s is rounded to 0.0
     const rows = [...w.around.filter(a => a.position < w.position), { driver: w.driver, position: w.position, me: true },
                   ...w.around.filter(a => a.position > w.position)];
     out += `<div class="pn-order" aria-label="The order after the stop">` + rows.map(r => `<div class="pn-r${r.me ? " me" : ""}"><b>P${r.position}</b>` +
       `<i style="background:${esc(colourOf(r.driver))}"></i><span>${esc(nameOf(r.driver))}${r.me ? " (after the stop)" : ""}</span>` +
       `<em>${r.me ? "" : (r.position > w.position ? "+" : "−") + Math.abs(r.gap).toFixed(1) + " s"}</em></div>`).join("") + `</div>`;
-    // The race outcome: now and if they pit now
+    // Race outcome now, and if they pit now
     const c = w.chances, way = (a, b, up) => Math.abs(b - a) < (up === "place" ? 1 : 0.005) ? "" : (up === "place" ? b < a : b > a) ? "up" : "dn";
     out += `<div class="pn-chg">` + [["Win", c.win], ["Podium", c.podium], ["Points", c.points]].map(([n, [a, b]]) =>
       `<span>${n} <b>${pc(a)}</b> → <b class="${way(a, b)}">${pc(b)}</b></span>`).join("") +

@@ -1,5 +1,5 @@
-"""game_analysis.py: the game page's report, theoretical best, wear forecast, corners, lock-ups, energy, overtake mode,
-Time Trial, when to switch tyres and your progress, on made-up laps."""
+"""Tests for game_analysis.py on made-up laps: report, theoretical best, wear forecast, corners, lock-ups, energy,
+overtake mode, Time Trial, when to switch tyres and progress."""
 import struct
 
 import numpy as np

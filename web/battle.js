@@ -1,9 +1,10 @@
-/* Car against car, shared by f1.html (real races) and f1-25.html (your game):
-   - the battle forecast: how many laps until the car behind is within 1 second of the car ahead (their pace)
-   - the undercut threat: if the car behind pits now and the car ahead answers next lap, does it come out ahead?
-   - the strategy battle: two drivers side by side, with the gap between them lap by lap.
+/* Car vs car, shared by f1.html (real races) and f1-25.html (your game):
+   - battle forecast: how many laps until the car behind is within 1 second of the car ahead (from their pace)
+   - undercut threat: if the car behind pits now and the car ahead pits next lap, does it come out ahead?
+   - strategy battle: two drivers side by side, with the gap between them lap by lap.
    Battle.forecast(b) and Battle.undercut(u) are table cells, Battle.html(...) the panel's lines, Battle.duel(...) the
-   side by side (with the rows of Battle.facts(...)). b = a driver's "battle" from the server (against the car just ahead). */
+   side by side view (with the rows from Battle.facts(...)). b = a driver's "battle" from the server (vs the car
+   ahead). */
 (() => {
   "use strict";
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -28,8 +29,8 @@
       `<span class="uc-m"><i style="width:${u.chance * 100}%"></i></span><b>${pc(u.chance)}</b></span>`;
   }
 
-  // The panel: the car ahead and the car behind, in words. me = the driver's own battle (against the car ahead),
-  // them = the car behind's battle (against this driver). you: the player (F1 25).
+  // Panel text for the car ahead and the car behind. me = the driver's own battle (vs the car ahead), them = the car
+  // behind's battle (vs this driver), you = the player (F1 25).
   function html(me, them, name, nameOf, you = false) {
     const who = you ? "You" : esc(name), are = you ? "are" : "is", pits = you ? "you pit" : `${esc(name)} pits`;
     const lines = [];
@@ -61,9 +62,9 @@
       the real undercuts of 2022-2025: one gains more when the car ahead's tyres are worn.</p>`;
   }
 
-  // The strategy battle's side by side, from the page's own lap data for the two drivers (A, B, as the server sends
-  // them for a lap). o = { tyre(compound) html, tyreName(compound), pct(v), soon (the pit stop row's label),
-  // outcome (true: with the likely finish) }
+  // Rows for the strategy battle's side by side view, from the page's own lap data for the two drivers (A, B, as the
+  // server sends them for a lap). o = { tyre(compound) html, tyreName(compound), pct(v), soon (label of the pit stop
+  // row), outcome (true = include the likely finish) }
   function facts(A, B, d, o) {
     const best = x => { const t = Object.entries(x.next_tyre || {}).sort((p, q) => q[1] - p[1])[0]; return t ? `${o.tyre(t[0])} ${o.pct(t[1])}` : "–"; };
     const age = x => x.compound ? `${o.tyre(x.compound)} ${esc(o.tyreName(x.compound))}${x.tyre_age != null ? `, ${x.tyre_age} laps old` : ""}` : "–";
@@ -77,9 +78,9 @@
     return rows;
   }
 
-  // The strategy battle. d = the server's answer; o = { name(code), colour(code), tyre(compound, age) html,
-  // total (laps in the race), facts: [[label, html for a, html for b], ...] from the page's own lap data, you (code),
-  // head: false when the page shows the two drivers itself }
+  // Strategy battle. d = the server's response; o = { name(code), colour(code), tyre(compound, age) html, total (laps
+  // in the race), facts: [[label, html for a, html for b], ...] from the page's own lap data, you (code), head: false
+  // when the page shows the two drivers itself }
   function duel(d, o) {
     const A = d.a, B = d.b, n = d.now, nm = c => (c === o.you ? "You" : esc(o.name(c)));
     let top = o.head === false ? "" : `<div class="du-head">${[A, B].map(c => `<span><i style="background:${esc(o.colour(c))}"></i>${esc(o.name(c))}${c === o.you ? " (you)" : ""}</span>`).join("<em>against</em>")}</div>`;
@@ -101,7 +102,7 @@
     return top;
   }
 
-  // The gap of B behind A on every lap (above the line: A ahead), with each pit stop marked in the driver's colour
+  // Gap of B behind A on every lap (above the line = A ahead), with each pit stop marked in the driver's colour
   function gapChart(d, o) {
     const pts = d.laps.filter(l => l.gap != null);
     if (pts.length < 2) return `<p class="note">The gap shows after two laps.</p>`;

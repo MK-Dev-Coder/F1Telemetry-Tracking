@@ -1,5 +1,5 @@
-"""game_driver.py: the driver report's model learns which habit costs you time, from every corner against your best
-lap, and keeps learning: a new or longer session is added the next time, and nothing else is read again."""
+"""Tests for game_driver.py: the driver report model learns which habit costs you time from every corner vs your
+best lap, and keeps learning (a new or longer session is added next time, nothing else is read again)."""
 import json
 import os
 
@@ -78,7 +78,7 @@ def test_it_keeps_learning_new_sessions(tmp_path, monkeypatch):
     first = session("100", {1: 60.0, 2: 60.6})
     rows, changed = gd.refresh()
     assert changed and set(rows["sid"]) == {"100"}
-    assert not gd.refresh()[1]                                        # nothing new: nothing read again
+    assert not gd.refresh()[1]                                        # nothing new, nothing read again
     session("200", {1: 60.0, 2: 60.5, 3: 60.7})
     rows, changed = gd.refresh()
     assert changed and rows.groupby("sid").size().to_dict() == {"100": 1, "200": 2}

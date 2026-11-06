@@ -1,15 +1,14 @@
-"""How fast do the models learn the 2026 rules? 2026 brought new cars, new tyres and new tracks, and the models
-were trained on 2022-2025 only. Here each model is trained again before every 2026 race, with the 2026 races
-before it added, and tested on that race - as a team would do through a season.
+"""How fast do the models learn the 2026 rules? 2026 brought new cars, tyres and tracks, and the models were only
+trained on 2022-2025. Here each model is retrained before every 2026 race with the earlier 2026 races added, and
+tested on that race, like a team would do through a season.
 
-    Fixed       trained on 2022-2025 (the saved models, as in the other evaluations)
-    Rolling     2022-2025 + the 2026 races so far, every lap counting the same
-    Rolling x3  the same, with each 2026 lap counting three times (the new rules weigh more)
+Fixed       trained on 2022-2025 (the saved models, as in the other evaluations)
+Rolling     2022-2025 + the 2026 races so far, every lap with the same weight
+Rolling x3  the same, but each 2026 lap counts three times (new rules weigh more)
 
 Same settings and number of trees as the saved models (nothing is tuned on 2026). Round 1 has no 2026 races before
 it, so the comparison is on rounds 2-17.
-    python src/evaluate_rolling.py   -> data/rolling_2026.md, data/rolling_2026.csv, figures/rolling_2026.png
-"""
+Run: python src/evaluate_rolling.py -> data/rolling_2026.md, data/rolling_2026.csv, figures/rolling_2026.png"""
 import json
 import time
 import warnings
@@ -45,7 +44,7 @@ def weights(rows, way):
     return np.where(rows["Year"] == 2026, WEIGHT, 1.0) if way == "Rolling x3" else None
 
 
-# Recipe 1: the pit stop model - the chance of a stop in the next 3 laps (PR-AUC: higher is better)
+# Pit stop model: chance of a stop in the next 3 laps (PR-AUC, higher is better)
 def pit_rounds(rounds):
     rows = pd.read_parquet(features.OUT_FILE)
     rows = rows[features.in_study(rows)]
@@ -63,7 +62,7 @@ def pit_rounds(rounds):
     return pd.concat(out, ignore_index=True)
 
 
-# Recipe 2: the tyre model - which compound at each pit stop (accuracy: higher is better)
+# Tyre model: which compound at each pit stop (accuracy, higher is better)
 def tyre_rounds(rounds):
     stops = tyre.stop_rows()
     stops = stops[features.in_study(stops)]
@@ -89,7 +88,7 @@ def tyre_rounds(rounds):
     return pd.concat(out, ignore_index=True)
 
 
-# Recipe 3: the race outcome model - win, podium and points chances (log loss: lower is better)
+# Race outcome model: win, podium and points chances (log loss, lower is better)
 def race_rounds(rounds):
     booster, info = ro.load_model()
     rows = race.load_rows(ro.load_results())
@@ -119,10 +118,9 @@ def race_rounds(rounds):
     return pd.concat(out, ignore_index=True)
 
 
-# Recipe 4: one score per race and way, and the difference from the fixed model with a 95% interval
-# (whole races resampled)
+# One score per race and method, and the difference from the fixed model with a 95% interval (whole races resampled)
 def per_race(scores):
-    """scores: rounds x ways. The mean, and the rolling ways against the fixed one."""
+    """scores: rounds x methods. Returns the mean, and the rolling methods vs the fixed one."""
     out = {}
     for way in WAYS:
         entry = {"Mean": scores[way].mean()}
@@ -174,7 +172,7 @@ def main():
               "Race outcome: win log loss in the first quarter of each race (lower is better)": per_race(race_early)}
     pd.concat({k: v for k, v in tables.items()}).to_csv(DATA_DIR / "rolling_2026.csv")
 
-    # Chart: the running mean of each way's score, race by race through 2026
+    # Chart: running mean of each method's score, race by race through 2026
     fig, axes = plt.subplots(1, 3, figsize=(16, 4.3))
     for ax, (title, scores) in zip(axes, [("Pit stop PR-AUC (higher is better)", pit_ap), ("Tyre pick: right compound (higher is better)", tyre_acc),
                                           ("Race outcome: win log loss (lower is better)", race_loss["win"])]):

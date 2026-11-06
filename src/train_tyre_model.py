@@ -38,8 +38,7 @@ def tyre_class(compound):
     return compound.replace({"INTERMEDIATE": WET, "WET": WET})
 
 
-# Recipe 1: one row per real pit stop, with everything known as the car comes in.
-# The target is the compound on the next lap.
+# One row per real pit stop, with what is known as the car comes in. Target = the compound on the next lap.
 def stop_rows():
     laps = add_tyre_features(features.build())
     stops = laps[laps["IsStop"] & laps["Next"].isin(CLASSES)].copy()
@@ -48,7 +47,7 @@ def stop_rows():
     return stops.reset_index(drop=True)
 
 
-# The tyre model's features for every lap (so the app can say "if he pits now: ...")
+# Tyre model features for every lap (so the app can show "if he pits now")
 def add_tyre_features(laps):
     by_driver = laps.groupby(["RaceId", "Driver"])
     laps["Next"] = tyre_class(by_driver["Compound"].shift(-1))
@@ -67,8 +66,8 @@ def add_tyre_features(laps):
     return laps.join(recent, on=["RaceId", "LapNumber"])
 
 
-# Every lap of every race with all the features of both models (built once, then read back from a file; built
-# again when all_laps.parquet is newer). Used by the app and by the race outcome model.
+# Every lap of every race with the features of both models. Built once and saved, and built again when
+# all_laps.parquet is newer. Used by the app and the race outcome model.
 REPLAY_FILE = DATA_DIR / "replay_laps.parquet"
 
 
@@ -97,7 +96,7 @@ def strategist_rule(rows):
     for _, r in rows.iterrows():
         unused = [c for c, used in [("HARD", r["UsedHard"]), ("MEDIUM", r["UsedMedium"]), ("SOFT", r["UsedSoft"])] if not used]
         if r["Rainfall"] or r["FieldOnWetTyres"] >= 0.5:
-            picks.append(WET)                                        # it's wet: wet-weather tyres
+            picks.append(WET)                                        # wet: wet tyres
         elif r["Compound"] in ("INTERMEDIATE", "WET"):
             picks.append("MEDIUM")                                   # drying track: back to slicks
         elif r["LapsLeft"] <= 20:
@@ -118,7 +117,7 @@ def logistic_model():
     return make_pipeline(prepare, LogisticRegression(max_iter=5000))
 
 
-# Recipe 2: LightGBM - try a few settings, keep the one with the best log loss on 2025
+# LightGBM: try a few settings, keep the one with the best log loss on 2025
 def tune_lightgbm(train, tune):
     best = None
     y_train, y_tune = train["Next"].map(CLASSES.index), tune["Next"].map(CLASSES.index)

@@ -1,16 +1,15 @@
-"""Athena: ask questions of the race data in the cloud, in SQL, straight from the files in S3. There is no server or
-database to run: Athena reads the Parquet files where they are and charges for the data it reads (5 dollars a
-terabyte; a question here reads a few megabytes).
+"""Athena: SQL queries on the race data in S3, straight from the Parquet files. There is no server or database to
+run, Athena reads the files where they are and charges for the data it reads (5 dollars per TB; a query here reads
+a few MB).
 
-    python src/aws_athena.py setup             the database f1_strategy, with a table for each of the main files
-    python src/aws_athena.py ask               every saved question (seasons, stints, tyres, sets)
-    python src/aws_athena.py ask tyres         one of them
-    python src/aws_athena.py ask "SELECT ..."  your own question
+python src/aws_athena.py setup             create the database f1_strategy, with a table for each main file
+python src/aws_athena.py ask               run every saved query (seasons, stints, tyres, sets)
+python src/aws_athena.py ask tyres         run one of them
+python src/aws_athena.py ask "SELECT ..."  run your own query
 
-Each answer says how long Athena took and how much data it read. The tables take their columns from the files on
-this PC (data/), so send them first (python src/aws_sync.py upload). In the AWS console the same tables are in Athena's
-query editor (database f1_strategy), for the video.
-"""
+Each answer shows how long Athena took and how much data it read. The table columns come from the files in data/ on
+this PC, so upload them first (python src/aws_sync.py upload). The same tables are also in the Athena query editor
+in the AWS console (database f1_strategy)."""
 import sys
 import time
 
@@ -23,7 +22,7 @@ from config import DATA_DIR
 DATABASE = "f1_strategy"
 WAIT = 300                                          # seconds to wait for an answer (a question here takes about 1)
 TABLES = {"laps": "all_laps", "features": "features", "timing": "timing", "race_control": "race_control",
-          "race_results": "race_results"}           # Athena's name: the file in data/
+          "race_results": "race_results"}           # Athena table name: file in data/
 DRY = "compound IN ('SOFT', 'MEDIUM', 'HARD')"
 QUESTIONS = {
     "seasons": ("Races and laps in each season",
@@ -58,17 +57,17 @@ def athena_type(t):
 
 
 def create_table(table, stem, bucket, data=DATA_DIR):
-    """The SQL for one table, with the columns of the file on this PC and the folder the file is in, in the bucket."""
+    """SQL to create one table, using the columns of the file on this PC and its folder in the bucket."""
     schema = pq.read_schema(data / f"{stem}.parquet")
     columns = ",\n  ".join(f"`{n.lower()}` {athena_type(t)}" for n, t in zip(schema.names, schema.types)
-                           if not n.startswith("__"))           # (an index pandas may have saved)
+                           if not n.startswith("__"))           # skip a saved pandas index
     folder = aws_sync.key_for(f"data/{stem}.parquet").rsplit("/", 1)[0]
     return (f"CREATE EXTERNAL TABLE IF NOT EXISTS {DATABASE}.{table} (\n  {columns}\n)\nSTORED AS PARQUET\n"
             f"LOCATION 's3://{bucket}/{folder}/'")
 
 
 def run(athena, sql, bucket, database=DATABASE):
-    """Ask Athena and wait for the answer: (rows with the header first, seconds Athena took, bytes it read)."""
+    """Run a query and wait for it. Returns (rows with the header first, seconds Athena took, bytes read)."""
     context = {"QueryExecutionContext": {"Database": database}} if database else {}
     qid = athena.start_query_execution(QueryString=sql, WorkGroup="primary", **context,
                                        ResultConfiguration={"OutputLocation": f"s3://{bucket}/athena-results/"})["QueryExecutionId"]
@@ -79,8 +78,8 @@ def run(athena, sql, bucket, database=DATABASE):
             break
         if time.monotonic() > deadline:
             try:
-                athena.stop_query_execution(QueryExecutionId=qid)      # not left running (and reading data) in Athena
-            except Exception:                                          # (a key from before it was allowed to)
+                athena.stop_query_execution(QueryExecutionId=qid)      # don't leave it running (and reading data)
+            except Exception:                                          # older keys aren't allowed to stop queries
                 pass
             raise SystemExit(f"Athena: no answer after {WAIT} s (still {e['Status']['State']}); try again later")
         time.sleep(0.4)

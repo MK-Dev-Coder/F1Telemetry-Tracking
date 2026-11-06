@@ -29,14 +29,13 @@ from explain_pit_model import as_points, describe, explain, load_model, sigmoid,
 TRAINED_UP_TO = 2025                          # races up to 2025 were used to train the models
 
 
-# Recipe 1: every lap of every race with all features (built once, then read back from a file).
-# Each lap's features only use what was known at the end of that lap, so replaying a race lap by
-# lap gives the same answers the app would have given live.
+# Every lap of every race with all features (built once, then loaded from a file). Each lap only uses what was known
+# at the end of that lap, so a replay gives the same answers as live.
 def load_laps():
     laps = tyre.replay_laps()
     for col in features.CATEGORIES:
         laps[col] = laps[col].astype("category")
-    if OUTCOME:                                       # the race outcome model's features, and each final result
+    if OUTCOME:                                       # race outcome features and the final results
         laps = ro.add_pit_adjusted(ro.add_features(laps, RESULTS), OUTCOME_INFO["pit_loss"])
     return {race: rows.sort_values(["LapNumber", "Position"]) for race, rows in laps.groupby("RaceId")}
 
@@ -49,13 +48,13 @@ RESULTS = ro.load_results() if OUTCOME else None
 PIT_NOW = pit_now.load() if OUTCOME else None                            # what a stop costs (python src/pit_now.py)
 BATTLE = battle.load() if OUTCOME else None                               # what an undercut gains (python src/battle.py)
 ENGINEER = engineer.load() if OUTCOME else None                           # each track's briefing (python src/engineer.py)
-# The race preview (python src/race_preview.py): the next race, and what it said before each race of 2025 and 2026
+# Race preview (python src/race_preview.py): the next race, plus what it predicted before each race of 2025 and 2026
 PREVIEW_FILE, PREVIEW_TEST_FILE = MODELS_DIR / "preview_next.json", DATA_DIR / "preview_backtest.parquet"
 PREVIEW = json.loads(PREVIEW_FILE.read_text(encoding="utf-8")) if PREVIEW_FILE.exists() else None
 PREVIEW_TEST = pd.read_parquet(PREVIEW_TEST_FILE) if PREVIEW_TEST_FILE.exists() else None
-COLOURS_FILE = DATA_DIR / "team_colours.json"                           # (python src/build_timing.py; without it, grey)
+COLOURS_FILE = DATA_DIR / "team_colours.json"                           # from build_timing.py (grey without it)
 COLOURS_BY_RACE = json.loads(COLOURS_FILE.read_text(encoding="utf-8")) if COLOURS_FILE.exists() else {}
-if RESULTS is not None and RESULTS.empty:              # no final results to work from: no race outcome
+if RESULTS is not None and RESULTS.empty:              # no final results, so no race outcome
     print("No final results found (data/openf1/json): the race outcome model is off.")
     OUTCOME = None
 RACES = load_laps()
@@ -67,7 +66,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], a
 app.include_router(game_api.router)                                         # F1 25: the player's own sessions
 game_api.start()                                                            # listen for the game on port 20777
 class WebPages(StaticFiles):
-    """The web pages. The browser always checks for a newer version, so an update shows straight away."""
+    """Serves the web pages. The browser always checks for a newer version, so updates show at once."""
 
     def file_response(self, *args, **kwargs):
         response = super().file_response(*args, **kwargs)
@@ -77,7 +76,7 @@ class WebPages(StaticFiles):
 
 @app.get("/app/f1-26.html", include_in_schema=False)
 def f1_26_page():
-    """The F1 26 section (the 2026 Season Pack): the same page as F1 25, showing the F1 26 sessions."""
+    """F1 26 section (2026 Season Pack): same page as F1 25, but with the F1 26 sessions."""
     return FileResponse(ROOT / "web" / "f1-25.html", headers={"Cache-Control": "no-cache"})
 
 
@@ -85,7 +84,7 @@ app.mount("/app", WebPages(directory=ROOT / "web", html=True), name="web")      
 
 
 def clean(v):
-    """Numbers and text that JSON understands (NaN -> null)."""
+    """Make values JSON-safe (NaN -> null)."""
     if v is None or (isinstance(v, float) and math.isnan(v)) or v is pd.NA:
         return None
     if hasattr(v, "item"):
@@ -109,7 +108,7 @@ def track_status(rows):
     return "GREEN"
 
 
-# Recipe 2: everything for one lap - the heart of replay mode
+# Everything for one lap (the main part of replay mode)
 def lap_snapshot(race_id, lap, reveal=False):
     rows = race_rows(race_id)
     rows = rows[rows["LapNumber"] == lap]
@@ -183,8 +182,8 @@ def race(race_id: str):
 
 @app.get("/drivers/cards")
 def driver_cards(year: int = Query(..., ge=2022, le=2030)):
-    """Every driver's car number, name, team and photo as at the end of a season (the game pages: F1 25 has the 2025
-    grid, F1 26 the 2026 one)."""
+    """Car number, name, team and photo of every driver at the end of a season (for the game pages: F1 25 uses the
+    2025 grid, F1 26 the 2026 one)."""
     codes = sorted({code for cards in live_timing.driver_lists().values() for code in cards})
     return live_timing.cards(f"{year}_30", codes)
 
@@ -197,7 +196,7 @@ def lap(race_id: str, lap: int, reveal: bool = False):
 
 @app.get("/races/{race_id}/laps/{lap}/drivers/{driver}")
 def lap_driver(race_id: str, lap: int, driver: str):
-    """The full explanation for one driver on one lap: every feature's effect."""
+    """Full explanation for one driver on one lap (the effect of every feature)."""
     rows = race_rows(race_id)
     rows = rows[(rows["LapNumber"] == lap) & (rows["Driver"] == driver.upper())]
     if rows.empty:
@@ -230,8 +229,8 @@ def driver_race(race_id: str, driver: str, reveal: bool = False):
     return {"race_id": race_id, "driver": driver.upper(), "alert_threshold": clean(PIT_INFO["threshold"]), "laps": laps}
 
 
-# Recipe 3: the race outcome - each driver's chance to win, finish on the podium and score points, lap by lap.
-# A whole race is worked out once (about 0.1 s), then kept; the SHAP reasons are worked out per lap.
+# Race outcome: each driver's chance to win, get a podium and score points, lap by lap. A whole race is computed once
+# (about 0.1 s) and cached; the SHAP reasons are computed per lap.
 @lru_cache(maxsize=32)
 def outcome_race(race_id):
     rows = race_rows(race_id)
@@ -250,16 +249,16 @@ def outcome_why(race_id, lap):
 
 
 def outcome_at(race_id, lap):
-    """The lap the race outcome is shown for: this one, or the last one before it with positions in the timing
-    (the last lap of most OpenF1 races has none). None before the first."""
+    """Lap the race outcome is shown for: this one, or the last one before it with positions in the timing (the
+    last lap of most OpenF1 races has none). None before the first."""
     laps = outcome_race(race_id)["LapNumber"]
     done = laps[laps <= lap]
     return None if done.empty else int(done.max())
 
 
 def outcome_lap(race_id, lap, reveal=False, reasons=False):
-    """Every driver's chances at the end of one lap (and the lap they are from). With reasons: the main reason
-    (SHAP) for the biggest prize still in reach - about 0.2 s, so only when the page shows them."""
+    """Every driver's chances at the end of one lap (and which lap they're from). With reasons it also gives the
+    main SHAP reason for the biggest prize still in reach (about 0.2 s, so only when the page shows them)."""
     at = outcome_at(race_id, lap) if OUTCOME else None
     if at is None:
         return {}, None
@@ -285,7 +284,7 @@ def outcome_lap(race_id, lap, reveal=False, reasons=False):
     return out, at
 
 
-# Recipe 4: the live timing screen - timing for every driver plus the models, at the end of one lap
+# Live timing screen: timing for every driver plus the models, at the end of one lap
 def live_snapshot(race_id, lap, reveal=False, reasons=False):
     start = time.perf_counter()
     model = lap_snapshot(race_id, lap, reveal)                          # 404 if the race or lap doesn't exist
@@ -312,7 +311,7 @@ def live_snapshot(race_id, lap, reveal=False, reasons=False):
 
 
 def lap_cars(race_id, lap):
-    """The cars with a place on this lap (with every feature)."""
+    """Cars with a position on this lap (with all features)."""
     rows = race_rows(race_id)
     return rows[(rows["LapNumber"] == lap) & rows["Position"].notna()]
 
@@ -328,14 +327,14 @@ def pit_rejoins(race_id, lap, status):
 
 @app.get("/races/{race_id}/laps/{lap}/drivers/{driver}/pit_now")
 def lap_driver_pit_now(race_id: str, lap: int, driver: str):
-    """If this driver pitted at the end of this lap: what the stop costs, where they'd rejoin and the gaps to the cars
-    around, and their win, podium and points chances now and after (the race outcome model asked again)."""
+    """If this driver pitted at the end of this lap: the cost of the stop, where they'd rejoin with the gaps to the
+    cars around, and their win, podium and points chances now and after (the race outcome model is run again)."""
     need_outcome()
     rows = lap_cars(race_id, lap)
     mine = rows[rows["Driver"] == driver.upper()]
     if mine.empty:
         raise HTTPException(404, f"No lap {lap} for {driver} in {race_id}.")
-    tyres = TYRE.predict(mine[TYRE_INFO["features"]])[0]                     # the tyre they'd fit (the tyre model)
+    tyres = TYRE.predict(mine[TYRE_INFO["features"]])[0]                     # the tyre they'd fit (from the tyre model)
     compound = TYRE_INFO["classes"][int(tyres.argmax())]
     answer = pit_now.what_if(PIT_NOW, OUTCOME, OUTCOME_INFO, rows, driver.upper(), track_status(rows), compound)
     if answer is None:
@@ -345,8 +344,8 @@ def lap_driver_pit_now(race_id: str, lap: int, driver: str):
 
 @app.get("/races/{race_id}/duel/{a}/{b}")
 def duel(race_id: str, a: str, b: str, lap: int = Query(..., ge=1)):
-    """The strategy battle: two drivers side by side up to the end of this lap - the gap between them lap by lap,
-    their places, tyres and stops, and now: who is ahead, the battle forecast and the undercut threat."""
+    """Strategy battle: two drivers side by side up to the end of this lap. Gap between them lap by lap, their
+    positions, tyres and stops, and right now: who is ahead, the battle forecast and the undercut threat."""
     need_outcome()
     rows = race_rows(race_id)
     answer = battle.duel(BATTLE, rows, a.upper(), b.upper(), lap, track_status(rows[rows["LapNumber"] == lap]))
@@ -357,8 +356,8 @@ def duel(race_id: str, a: str, b: str, lap: int = Query(..., ge=1)):
 
 @app.get("/races/{race_id}/live/{lap}")
 def live(race_id: str, lap: int, reveal: bool = False, reasons: bool = False):
-    """The live timing screen at the end of a lap: timing, sectors, mini-sectors, stints, messages, pit chance,
-    and each driver's chance to win, finish on the podium and score points (reasons=true: with the main reason)."""
+    """Live timing screen at the end of a lap: timing, sectors, mini-sectors, stints, messages, pit chance, and
+    each driver's chance to win, get a podium and score points (reasons=true adds the main reason)."""
     return live_snapshot(race_id, lap, reveal, reasons)
 
 
@@ -384,8 +383,8 @@ def race_outcome_chances(race_id: str, reveal: bool = False):
 
 @app.get("/races/{race_id}/laps/{lap}/drivers/{driver}/outcome")
 def lap_driver_outcome(race_id: str, lap: int, driver: str, reveal: bool = False):
-    """One driver on one lap: the win, podium and points chances with every reason (SHAP), and the chance of
-    each finishing position."""
+    """One driver on one lap: win, podium and points chances with all the SHAP reasons, and the chance of each
+    finishing position."""
     need_outcome()
     table, at = outcome_race(race_id), outcome_at(race_id, lap)
     on_lap = table[table["LapNumber"] == at]
@@ -399,12 +398,12 @@ def lap_driver_outcome(race_id: str, lap: int, driver: str, reveal: bool = False
     for target, k in ro.SHOWN.items():
         values, start, words = why[target]
         points = values.iloc[i]
-        model = start + points.sum()                                       # the average driver + every reason
+        model = start + points.sum()                                       # average driver + all reasons
         out[target] = {"chance": clean(c[target]), "start": clean(start), "model": clean(model),
-                       "fitted": clean(c[target] - model),                 # the step that makes the field add up
+                       "fitted": clean(c[target] - model),                 # so the whole field adds up
                        "reasons": [{"feature": n, "text": ro.describe(n, words.iloc[i], points[n], k), "points": clean(points[n]),
                                     "label": as_points(points[n])} for n in points.abs().sort_values(ascending=False).index]}
-    places = int(max(len(on_lap), rows["Position"].max()))                 # (more if the timing misses some cars)
+    places = int(max(len(on_lap), rows["Position"].max()))                 # more if the timing is missing some cars
     answer = {"race_id": race_id, "lap": lap, "from_lap": at, "driver": c["Driver"], "position": clean(row["Position"]),
               "likely": clean(c["likely"]), "expected": clean(c["expected"]),
               "spot": [clean(v) for v in c["spot"][:places]], "why": out}
@@ -413,10 +412,10 @@ def lap_driver_outcome(race_id: str, lap: int, driver: str, reveal: bool = False
     return answer
 
 
-# Recipe 5: the race preview - before a race, each driver's chance to win, finish on the podium and score points
+# Race preview: before a race, each driver's chance to win, get a podium and score points
 def who(code, race_id=None):
-    """A driver's name and team colour: in that race's colours, or (no race: the next race, the game) the latest
-    race's. A race the colours file doesn't have shows grey, not another season's teams."""
+    """Driver name and team colour, in that race's colours (or the latest race's when there's no race, e.g. the
+    next race or the game). A race missing from the colours file shows grey instead of another season's teams."""
     if race_id:
         colours = COLOURS_BY_RACE.get(race_id, {})
     else:
@@ -443,8 +442,8 @@ def preview_record():
 
 @app.get("/preview")
 def preview():
-    """The next race: each driver's chance to win, finish on the podium and score points before qualifying, with
-    the reasons (SHAP), and how the preview did before each race of 2025 and 2026."""
+    """Next race: each driver's chance to win, get a podium and score points before qualifying, with the SHAP
+    reasons, and how the preview did before each race of 2025 and 2026."""
     if PREVIEW is None:
         raise HTTPException(503, "No race preview yet: run python src/race_preview.py")
     drivers = [{**d, **who(d["driver"])} for d in PREVIEW["drivers"]]
@@ -467,8 +466,8 @@ def preview_race(race_id: str):
                          **{w: {t: clean(r[f"{w}|{t}"]) for t in [*ro.SHOWN, "likely"]} for w in ways}} for _, r in race.iterrows()]}
 
 
-# Recipe 6: the engineer's briefing for a track - how long each tyre lasts there (on a day this hot, in a race this
-# long), the strategies that worked, the track's facts, and the race prediction (the preview for the next race)
+# Engineer's briefing for a track: how long each tyre lasts there (for this temperature and race length), the
+# strategies that worked, track facts, and the race prediction (the preview for the next race)
 def need_engineer():
     if ENGINEER is None:
         raise HTTPException(503, "No engineer briefing yet: run python src/engineer.py")
@@ -494,10 +493,10 @@ def engineer_tracks():
 def engineer_track(circuit: str, track_temp: float | None = Query(None, ge=-10, le=70), rain: bool = False,
                    distance: int = Query(100, ge=20, le=100), game_laps: int | None = Query(None, ge=1, le=100),
                    before: str | None = None):
-    """The briefing for one track: tyres (how long each lasts on a day this hot, and in a race of `distance` % or of
-    `game_laps` laps, the game's shorter races), strategies, the winners, the track's facts and the race prediction.
-    before=race id: only the races here before that one (a replay of that race: what was known then, no spoilers),
-    and the prediction is what the preview said before it."""
+    """Briefing for one track: tyres (how long each lasts for this temperature, and in a race of `distance` % or of
+    `game_laps` laps for the game's shorter races), strategies, winners, track facts and the race prediction.
+    before=race id: only use the races here before that one (for a replay of that race, so no spoilers), and the
+    prediction is what the preview said before it."""
     need_engineer()
     b = engineer.brief(ENGINEER, circuit, track_temp, rain, distance, game_laps, before)
     if b is None:
@@ -527,11 +526,11 @@ def lap_numbers(race_id):
     return [int(n) for n in sorted(race_rows(race_id)["LapNumber"].unique())]
 
 
-# One lap every few seconds, as if the race were live (Server-Sent Events). Each lap is worked out in a
-# worker thread, so a running replay doesn't hold up the server's other requests.
+# One lap every few seconds as if the race were live (Server-Sent Events). Each lap is computed in a worker thread so
+# a running replay doesn't block the server's other requests.
 def lap_seconds(race_id, lap):
-    """How long the leader took for this lap (for real-time replay): the field's median if the leader's is missing,
-    and at most 4 minutes (a red flag lap can last an hour)."""
+    """How long the leader took for this lap (for real-time replay). Uses the field's median if the leader's is
+    missing, and at most 4 minutes (a red flag lap can last an hour)."""
     rows = race_rows(race_id)
     here = rows[rows["LapNumber"] == lap]
     lead = here.loc[here["Position"] == here["Position"].min(), "LapTime"].dropna()
@@ -539,8 +538,8 @@ def lap_seconds(race_id, lap):
     return float(min(max(secs, 30), 240)) if pd.notna(secs) else 90.0
 
 
-# speed: 1 = real time (each lap takes as long as it took the leader), 2 = twice as fast...; without it, `seconds`
-# between laps. Each lap says when the next one comes (next_in), so the page can show it.
+# speed: 1 = real time (each lap takes as long as the leader's), 2 = twice as fast, ...; without it, `seconds` between
+# laps. Each lap says when the next one comes (next_in) so the page can show it.
 def stream(race_id, start, seconds, make_snapshot, speed=None):
     todo = [n for n in lap_numbers(race_id) if n >= start]
 
@@ -559,7 +558,7 @@ def stream(race_id, start, seconds, make_snapshot, speed=None):
 @app.get("/races/{race_id}/live_replay")
 async def live_replay(race_id: str, start: int = 1, seconds: float = Query(2.0, gt=0, le=60), reveal: bool = False,
                       reasons: bool = False, speed: float | None = Query(None, gt=0, le=100)):
-    """Replay mode for the live timing screen (speed=1: real time, each lap as long as it really took)."""
+    """Replay mode for the live timing screen (speed=1 is real time)."""
     return stream(race_id, start, seconds, lambda n: live_snapshot(race_id, n, reveal, reasons), speed)
 
 
@@ -570,7 +569,7 @@ async def replay(race_id: str, start: int = 1, seconds: float = Query(2.0, gt=0,
 
 
 if __name__ == "__main__":
-    # python src/api.py --lan (start_app_lan.bat): also open to phones and tablets on your home network, for the dash
+    # python src/api.py --lan (start_app_lan.bat): also open to phones and tablets on the home network, for the dash
     lan = "--lan" in sys.argv[1:]
     os.environ["F1_APP_LAN"] = "1" if lan else "0"
-    uvicorn.run(app, host="0.0.0.0" if lan else "127.0.0.1", port=8000)   # this app object: not loaded a second time
+    uvicorn.run(app, host="0.0.0.0" if lan else "127.0.0.1", port=8000)   # pass the app object so it isn't loaded twice

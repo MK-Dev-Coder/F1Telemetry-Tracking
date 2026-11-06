@@ -1,5 +1,5 @@
-/* The pit stop chance in one plain sentence, for fans: what the model says, and its main reasons from SHAP.
-   Shared by f1.html (real races) and f1-25.html (your game): PitWhy.html(name, chance, threshold, reasons, soon). */
+/* The pit stop chance in one simple sentence: what the model says and its main SHAP reasons. Shared by f1.html (real
+   races) and f1-25.html (your game): PitWhy.html(name, chance, threshold, reasons, soon). */
 (() => {
   "use strict";
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -8,8 +8,8 @@
   const plain = text => String(text).replace(/\s*\([^)]*\)/g, "").trim();
   const both = list => list.length > 1 ? `${list.slice(0, -1).join(", ")} and ${list.at(-1)}` : list[0] || "";
 
-  // Likely (at the alert line): the reasons pushing the chance up. Unlikely: the ones keeping it down.
-  // you = the player in F1 25 ("You are likely to pit", "Your pit window is opening")
+  // Likely (at the threshold): the reasons pushing the chance up. Unlikely: the ones keeping it down. you = the
+  // player in F1 25 ("You are likely to pit", "Your pit window is opening")
   function html(name, chance, threshold, reasons, soon = "in the next 3 laps", you = false) {
     if (chance == null) return "";
     const tone = chance >= threshold ? "box" : chance >= threshold / 2 ? "window" : "stay";

@@ -1,13 +1,14 @@
-/* The strategy battle's driver picker: a pop-up window with the two drivers as big cards in their team colours, VS
-   between them, and every driver of the race below to pick from. Versus.open({...}) shows it, Versus.bar(a, b) is
-   the page's own button (both photos and VS), Versus.face(d, "sm") a small photo for the tables. A driver = {code, first, last, team, colour, number, photo, position, out}.
-   The photos are F1's own, from the address OpenF1 gives; without one (or offline) the car number shows instead. */
+/* Driver picker for the strategy battle: a pop-up with the two drivers as big cards in their team colours, VS between
+   them, and every driver of the race below to pick from. Versus.open({...}) shows it, Versus.bar(a, b) is the page's
+   own button (both photos and VS), Versus.face(d, "sm") a small photo for the tables. A driver = {code, first, last,
+   team, colour, number, photo, position, out}. The photos are F1's, from the link OpenF1 gives; without one (or
+   offline) the car number shows instead. */
 (() => {
   "use strict";
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ROLE = { a: "Driver", b: "Against" };
 
-  // A round photo in the team colour (the number underneath, for when there's no photo)
+  // Round photo in the team colour (the number is underneath for when there's no photo)
   const face = (d, cls = "") => `<span class="vs-ph ${cls}" style="--c:${esc(d.colour)}" aria-hidden="true"><span class="num">${esc(d.number ?? d.code)}</span>` +
     (d.photo ? `<img src="${esc(d.photo)}" alt="" decoding="async" onerror="this.remove()">` : "") + `</span>`;
   const where = d => [d.team, d.position ? `P${d.position}` : d.out ? "out" : null].filter(Boolean).join(" · ");
@@ -64,7 +65,7 @@
 
     const pick = code => {
       const other = st.slot === "a" ? "b" : "a";
-      if (code === st[other]) [st.a, st.b] = [st.b, st.a];            // the other one: they swap
+      if (code === st[other]) [st.a, st.b] = [st.b, st.a];            // picked the other one: swap them
       else st[st.slot] = code;
       const changed = st.slot;
       st.slot = other;                                                  // then the other card

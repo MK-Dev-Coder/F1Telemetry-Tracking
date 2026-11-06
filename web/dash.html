@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <style>
-/* The second screen: your race in big numbers, for a phone or tablet next to the TV while you drive (F1 25 and F1 26). */
+/* Second screen: your race in big numbers, for a phone or tablet next to the TV while you drive (F1 25 and F1 26). */
 :root{
   color-scheme: dark;
   --bg:#0a0d12; --tile:#141a23; --line:#232c39; --fg:#eef2f7; --muted:#93a0b2; --dim:#5b6676;
@@ -99,7 +99,7 @@ function show(d) {
     $("gapsLabel").textContent = "Gaps";
     $("aheadWho").textContent = a ? `Ahead · ${a.driver}` : "Ahead"; set("ahead", a ? gap(me.interval) : "Leader");
     $("behindWho").textContent = b ? `Behind · ${b.driver}` : "Behind"; set("behind", b ? gap(b.interval) : "–");
-  } else {                                              // practice and qualifying: against the fastest lap
+  } else {                                              // practice and qualifying: vs the fastest lap
     $("gapsLabel").textContent = "Best laps";
     $("aheadWho").textContent = k ? `To P1 · ${rows[0].driver}` : "You're P1"; set("ahead", k ? gap(me.gap) : "–");
     $("behindWho").textContent = "Your best"; set("behind", lapTime(me.best_lap));
@@ -110,12 +110,12 @@ function show(d) {
   $("ring").textContent = l; $("ring").style.setProperty("--c", col);
   $("wear").innerHTML = [2, 3, 0, 1].map(j => `<span class="${wearCol(w[j])}" title="${["Rear left", "Rear right", "Front left", "Front right"][j]}">${w[j] != null ? Math.round(w[j]) + "%" : "–"}</span>`).join("");
   $("tyreSub").innerHTML = `<b>${c.tyre_age ?? "–"}</b> laps old${c.actual_compound ? ` · ${c.actual_compound}` : ""}`;
-  // The game's fuel reading, as on its wheel display: in a race it's already the margin over the laps to go
-  // (+ means a little to spare), in other sessions the laps the fuel in the tank lasts
+  // The game's fuel reading, like on its wheel display: in a race it's already the margin over the laps to go (+
+  // means some to spare), in other sessions how many laps the fuel in the tank lasts
   const spare = d.race && c.fuel_laps != null ? c.fuel_laps : null;
   set("fuel", spare != null ? `${spare >= 0 ? "+" : "−"}${Math.abs(spare).toFixed(1)}` : c.fuel_laps != null ? c.fuel_laps.toFixed(1) : "–", spare == null ? "" : spare < 0 ? "r" : spare < 0.3 ? "y" : "g");
   $("fuelSub").innerHTML = spare != null ? `laps to spare · <b>${c.fuel?.toFixed(1) ?? "–"} kg</b> in the tank` : `laps of fuel · <b>${c.fuel?.toFixed(1) ?? "–"} kg</b>`;
-  // F1 26: the energy harvested this lap against the most the rules allow, and overtake mode; F1 25: the battery
+  // F1 26: energy harvested this lap vs the most the rules allow, and overtake mode; F1 25: the battery
   const battery = c.ers != null ? Math.min(100, c.ers / 4e6 * 100) : null, m = c.modes;
   if (c.ers_limit) {
     const share = Math.min(100, (c.ers_harvested || 0) / c.ers_limit * 100);
@@ -145,7 +145,7 @@ function listen() {
 }
 listen();
 
-// Keep the screen on (the browser allows it on the PC, or over https); else set the phone's screen to stay on
+// Keep the screen on (the browser allows it on the PC or over https); otherwise set the phone's screen to stay on
 let lock = null;
 if ("wakeLock" in navigator && window.isSecureContext) {
   $("awake").hidden = false;

@@ -1,4 +1,4 @@
-"""features.py: the pit stop model's inputs, on a made-up race (see conftest.py)."""
+"""Tests for features.py (the pit model's inputs) on a made-up race (see conftest.py)."""
 import pandas as pd
 import pytest
 
@@ -14,7 +14,7 @@ def test_the_study_stops_at_round_17_of_2026():
 def test_a_real_stop_is_found(race):
     laps = features.build(race)
     assert lap(laps, "AAA", 4)["IsStop"]
-    assert laps["IsStop"].sum() == 1                                  # AAA's, and nothing else
+    assert laps["IsStop"].sum() == 1                                  # only AAA's
 
 
 def test_a_drive_through_is_not_a_stop(race):
@@ -70,10 +70,10 @@ def test_stops_by_other_cars(race):
 
 @pytest.mark.parametrize("cut", [3, 5, 6, 9])
 def test_features_never_use_later_laps(race, cut):
-    """Every feature of a lap is the same whether or not the laps after it exist (the race so far is all the app
-    has when it is live). A car that goes into the pits counts as stopping on its in-lap - it is in the pit lane
-    when the lap ends - and the lap after shows whether the tyres were really changed (a drive-through isn't a
-    stop), so the check is on the laps before the last one."""
+    """Every feature of a lap is the same whether or not the later laps exist (live, the app only has the race so
+    far). A car that goes into the pits counts as stopping on its in-lap (it's in the pit lane when the lap ends),
+    and the next lap shows whether the tyres were really changed (a drive-through isn't a stop), so the check is on
+    the laps before the last one."""
     full = features.build(race)
     part = features.build(race[race["LapNumber"] <= cut].copy())
     known = lambda laps: (laps[laps["LapNumber"] < cut].sort_values(["Driver", "LapNumber"])

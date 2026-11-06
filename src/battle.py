@@ -1,17 +1,16 @@
-"""Car against car: the undercut threat, the battle forecast and the strategy battle (two drivers side by side).
+"""Car vs car: the undercut threat, the battle forecast and the strategy battle (two drivers side by side).
 
-Undercut threat: if the car behind pits now and the car just ahead answers on the next lap, does the car behind come
-out ahead? What an undercut gains is learned from the real ones of 2022-2025: the car behind pitted one lap before
-the car just ahead of it, both under green on dry tyres, and the gap is measured before the first stop and after
-the second. It gains more when the car ahead's tyres are worn (TyreWear: its last laps against its best on this
-set). The chance is the share of the real undercuts, on tyres worn about as much, that gained more than the gap.
+Undercut threat: if the car behind pits now and the car ahead pits on the next lap, does the car behind come out
+ahead? The gain from an undercut is learned from real ones in 2022-2025: the car behind pitted one lap before the
+car ahead, both under green on dry tyres, and the gap is measured before the first stop and after the second. It
+gains more when the car ahead's tyres are worn (TyreWear: its last laps vs its best on this set). The chance is the
+share of real undercuts, with similar tyre wear, that gained more than the gap.
 
-Battle forecast: how many laps until the car behind is within 1 second (striking distance: DRS until 2025, the
-overtake mode in 2026), from each car's pace over its last 5 green laps (the race outcome model's pace).
+Battle forecast: how many laps until the car behind is within 1 second (striking distance: DRS until 2025, overtake
+mode in 2026), from each car's pace over its last 5 green laps (same pace as the race outcome model).
 
 Both are tested on the 17 test races of 2026, like the models.
-    python src/battle.py   -> models/battle.json (the undercut gains) and data/battle_evaluation.md
-"""
+Run: python src/battle.py -> models/battle.json (undercut gains) and data/battle_evaluation.md"""
 import json
 import math
 
@@ -32,8 +31,8 @@ NEWEST = 5                            # an undercut needs both cars at least 5 l
 AHEAD = 10                            # laps the forecast looks ahead in the test
 
 
-# Recipe 1: the real undercuts - one row per pair: the car behind (B) pitted at the end of lap n, the car just ahead
-# of it on lap n-1 (A) at the end of lap n+1. Gap = B's time - A's time (above 0: B behind); gain = gap before - after.
+# Real undercuts, one row per pair: the car behind (B) pitted at the end of lap n, and the car ahead of it on lap n-1
+# (A) at the end of lap n+1. Gap = B's time - A's time (> 0 means B is behind); gain = gap before - gap after.
 def undercuts(laps):
     one = laps.set_index(["RaceId", "Driver", "LapNumber"])
     one = one[~one.index.duplicated()]
@@ -50,7 +49,7 @@ def undercuts(laps):
     before = get("Time", b, n - 1) - get("Time", a, n - 1)
     after = get("Time", b, n + 2) - get("Time", a, n + 2)
     pairs = pairs.assign(Ahead=a, Gap=before, After=after, Gain=before - after, Wear=get("TyreWear", a, n - 1))
-    ok = answered & green & dry & (before < 10) & (np.abs(before - after) <= 10)     # (over 10 s: a slow stop)
+    ok = answered & green & dry & (before < 10) & (np.abs(before - after) <= 10)     # over 10 s means a slow stop
     return pairs[ok].reset_index(drop=True)
 
 
@@ -76,19 +75,19 @@ def load():
     return json.loads(TABLE_FILE.read_text(encoding="utf-8")) if TABLE_FILE.exists() else build()
 
 
-# Recipe 2: one pair now
+# One pair, now
 def undercut(table, gap, wear):
-    """If the car behind pits now and the car ahead pits next lap: the chance the car behind comes out ahead, and the
-    usual gain (the middle half of the real undercuts on tyres worn about as much)."""
+    """If the car behind pits now and the car ahead pits next lap: the chance the car behind comes out ahead, and
+    the usual gain (middle half of the real undercuts with similar tyre wear)."""
     k = wear_bin(wear)
-    gains = np.array(table["gains"][k] if k is not None and table["gains"][k] else table["all"])   # (none on such tyres: all)
+    gains = np.array(table["gains"][k] if k is not None and table["gains"][k] else table["all"])   # else use all
     return {"chance": round(float((gains > gap).mean()), 3), "gain": round(float(np.median(gains)), 1),
             "range": [round(float(np.quantile(gains, q)), 1) for q in (0.25, 0.75)], "cases": len(gains)}
 
 
 def closing(back, front):
-    """Seconds a lap the car behind gains on the car ahead (below 0: it's dropping back), from their pace over the
-    last 5 green laps."""
+    """Seconds per lap the car behind gains on the car ahead (< 0 means it's dropping back), from their pace over
+    the last 5 green laps."""
     rate = (front["Pace"] - back["Pace"]) * back["UsualLap"]
     return None if pd.isna(rate) else float(rate)
 
@@ -104,9 +103,9 @@ def laps_to_reach(gap, rate, laps_left):
 
 
 def pair(table, back, front, status, factor=1.0):
-    """The car behind against the car ahead: the gap, the battle forecast and the undercut threat (None when it
-    doesn't apply: not green, wet tyres, a car on an in-lap or out-lap, a set under 5 laps old, too far apart).
-    None without both cars' times."""
+    """Car behind vs car ahead: the gap, the battle forecast and the undercut threat (None when it doesn't apply:
+    not green, wet tyres, a car on an in-lap or out-lap, a set under 5 laps old, or too far apart). None if either
+    car has no time."""
     gap = float(back["Time"] - front["Time"])
     if math.isnan(gap):
         return None
@@ -123,20 +122,20 @@ def pair(table, back, front, status, factor=1.0):
 
 
 def lap_battles(table, lap, status, factor=1.0):
-    """Every car against the car just ahead on this lap: {driver: pair(...)}. lap = the cars with a place on the
-    lap, with the race outcome features. A car whose place just ahead is missing from the timing (97 laps of 6,562)
-    has none: the car two places ahead isn't the one it's racing."""
+    """Every car vs the car ahead on this lap: {driver: pair(...)}. lap = the cars with a position on the lap, with
+    the race outcome features. If the position just ahead is missing from the timing (97 laps of 6,562) the car
+    gets nothing, since the car two places ahead isn't the one it's racing."""
     cars = lap[lap["Position"].notna() & lap["Time"].notna()].sort_values("Position")
     rows = [r for _, r in cars.iterrows()]
     return {back["Driver"]: pair(table, back, front, status, factor) for front, back in zip(rows, rows[1:])
             if back["Position"] - front["Position"] == 1}
 
 
-# Recipe 3: the strategy battle - two drivers side by side, lap by lap up to `upto`: the gap between them, their
-# places, tyres and stops, and now: who is ahead, the battle forecast and the undercut threat between them.
-# rows = every lap of one race, with the race outcome features.
+# Strategy battle: two drivers side by side, lap by lap up to `upto`: the gap between them, their positions, tyres and
+# stops, and right now: who is ahead, the battle forecast and the undercut threat. rows = every lap of one race, with
+# the race outcome features.
 def stints(mine):
-    """One driver's stints so far [{compound, from, to}] (mine: their laps, by lap number)."""
+    """One driver's stints so far, as [{compound, from, to}] (mine = their laps, by lap number)."""
     return [{"compound": str(s["Compound"].iloc[0]), "from": int(s.index.min()), "to": int(s.index.max())}
             for _, s in mine.groupby("Stint", sort=True)]
 
@@ -168,11 +167,11 @@ def duel(table, rows, a, b, upto, status, factor=1.0):
             "stops": {d: [int(n) for n in both[d].index[both[d]["IsStop"].astype(bool)]] for d in (a, b)}}
 
 
-# Recipe 4: the test on the 17 test races of 2026
+# Test on the 17 test races of 2026
 def forecast_test(laps):
-    """For every car within 10 s of the car ahead under green: the forecast (laps to within 1 s) and what really
-    happened in the next laps while both stayed out under green (unknown when a stop or a safety car came first).
-    The simple way to compare with: the gap's change over the last 3 laps."""
+    """For every car within 10 s of the car ahead under green: the forecast (laps to get within 1 s) and what
+    really happened in the next laps while both stayed out under green (unknown if a stop or safety car came
+    first). Simple baseline to compare with: the change in the gap over the last 3 laps."""
     laps = laps[laps["Position"].notna()].sort_values(["RaceId", "LapNumber", "Position"])
     clean = (laps["TrackStatus"].astype(str) == "1") & laps["PitInTime"].isna() & laps["PitOutTime"].isna()
     laps = laps.assign(Clean=clean.astype(int), Ahead=laps.groupby(["RaceId", "LapNumber"])["Driver"].shift(1))
@@ -212,7 +211,7 @@ def forecast_scores(d, way, within=5):
     k = np.array([laps_to_reach(g, r, left) if pd.notna(r) else None for g, r, left in zip(d["Gap"], d[way], d["LapsLeft"])],
                  dtype=float)
     reached = d["Reached"].to_numpy()
-    known = (reached <= within) | (d["Broke"].to_numpy() > within)       # (unknown: a stop or a safety car came first)
+    known = (reached <= within) | (d["Broke"].to_numpy() > within)       # unknown if a stop or safety car came first
     said = known & (k <= within)
     real = known & (reached <= within)
     both = known & (k <= AHEAD) & d["Reached"].notna().to_numpy()

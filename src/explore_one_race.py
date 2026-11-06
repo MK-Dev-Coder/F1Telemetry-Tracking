@@ -1,5 +1,5 @@
 import fastf1
-import matplotlib.pyplot as plt                 # NEW: the drawing library
+import matplotlib.pyplot as plt                 # for the chart
 
 from config import CACHE_DIR
 
@@ -21,11 +21,11 @@ print(ver[["Driver", "LapNumber", "LapTime", "Compound", "TyreLife", "Stint"]].h
 stops = ver[ver["PitInTime"].notna()]           # the laps where he drove into the pits
 print(stops[["LapNumber", "Compound", "TyreLife"]])
 
-# NEW: chart of his lap times, coloured by tyre, with a dashed line at each pit stop
+# Chart of his lap times, coloured by tyre, with a dashed line at each pit stop
 colours = {"SOFT": "red", "MEDIUM": "gold", "HARD": "grey", "INTERMEDIATE": "green", "WET": "blue"}
 clean = ver.pick_quicklaps()                    # remove very slow laps (safety car, pit laps)
-x = clean["LapNumber"]                          # across: lap number
-y = clean["LapTime"].dt.total_seconds()         # up: lap time in seconds (1:37.28 -> 97.28)
+x = clean["LapNumber"]                          # x axis: lap number
+y = clean["LapTime"].dt.total_seconds()         # y axis: lap time in seconds
 dot_colours = clean["Compound"].map(colours).fillna("black")   # colour of each dot = its tyre
 plt.scatter(x, y, c=dot_colours)                # one dot per lap
 for lap in stops["LapNumber"]:

@@ -1,16 +1,15 @@
-"""Two checks of the pit stop model's design, on the study's test races (2026, rounds 1-17), each model trained
-and tuned exactly as train_pit_model.py does it (2022-2024 to train, 2025 to pick the settings, then 2022-2025 to
-train again, then tested on 2026, which it never saw):
+"""Two checks of the pit model's design on the test races (2026 rounds 1-17). Each model is trained and tuned the
+same way as in train_pit_model.py (train 2022-2024, pick settings on 2025, retrain on 2022-2025, test on 2026).
 
-1. The horizon: why "a stop in the next 3 laps"? The same model for 1, 2, 3 and 5 laps. A longer window is
-   easier to hit (more laps count as "a stop is coming"), so each PR-AUC is set against its own random guess (the
-   share of such laps): the lift.
-2. The feature groups: the model again without each group of features (tyres, gaps, the safety car...), to see
-   how much each group adds: a second view of what SHAP says (python src/evaluate.py).
+1. Horizon: why "a stop in the next 3 laps"? Same model for 1, 2, 3 and 5 laps. A longer window is easier to hit,
+   so each PR-AUC is compared with its own random baseline (the share of positive laps), i.e. the lift.
+2. Feature groups: the model again without each group (tyres, gaps, safety car...) to see how much each one adds. A
+   second view next to SHAP (python src/evaluate.py).
 
-Intervals: 95%, from drawing whole races again 1,000 times (races aren't independent laps). The app, the saved
-models and the study's numbers don't change: this only writes results/horizon.md, results/feature_groups.md (and
-their .csv) and two charts. Run: python src/evaluate_design.py (about 2 minutes)."""
+95% intervals come from resampling whole races 1,000 times (laps in a race aren't independent). Nothing used by the
+app or the main results changes, it only writes results/horizon.md, results/feature_groups.md (+ .csv) and two
+charts.
+Run: python src/evaluate_design.py (about 2 minutes)"""
 import json
 import time
 
@@ -38,8 +37,8 @@ KEYS = ["RaceId", "Driver", "LapNumber"]
 
 
 def targets(hs):
-    """The target for each horizon h ("a real stop on one of the next h laps"), made by features.py's own code from
-    every lap (the feature table leaves out the in-laps, so the stops themselves aren't in it)."""
+    """Target for each horizon h (a real stop in the next h laps), made with features.py's own code from all laps
+    (the feature table has no in-laps, so the stops aren't in it)."""
     laps = pd.read_parquet(features.IN_FILE).sort_values(KEYS).reset_index(drop=True)
     out, saved = laps[KEYS].copy(), features.HORIZON
     try:
@@ -60,13 +59,13 @@ def target(frame, table, h):
 def fit_and_test(train, tune, both, test, feats):
     """Pick the settings on 2025 (trained on 2022-2024), train again on 2022-2025 and predict 2026."""
     score, tries, tuned = tpm.tune_lightgbm(train, tune, feats)
-    trees = int(tuned.best_iteration_ * 1.1)                     # (as train_pit_model.py)
+    trees = int(tuned.best_iteration_ * 1.1)                     # same as train_pit_model.py
     final = lgb.LGBMClassifier(**{**tpm.LGBM_BASE, "n_estimators": trees}, **tries).fit(both[feats], both[tpm.TARGET])
     return final.predict_proba(test[feats])[:, 1], trees
 
 
 def draws(test):
-    """The rows of each resample: whole races drawn again, with replacement."""
+    """Rows of each resample: whole races drawn with replacement."""
     rows = list(test.reset_index(drop=True).groupby("RaceId").indices.values())
     picks = RNG.integers(0, len(rows), size=(BOOT, len(rows)))
     return [np.concatenate([rows[i] for i in pick]) for pick in picks]

@@ -1,4 +1,4 @@
-"""battle.py: the battle forecast, the undercut threat and the strategy battle (two drivers side by side)."""
+"""Tests for battle.py: battle forecast, undercut threat and strategy battle (two drivers side by side)."""
 import json
 import math
 
@@ -34,7 +34,8 @@ def test_laps_until_within_1_second(gap, rate, left, laps):
 
 
 def test_closing_comes_from_the_pace():
-    """Pace is against the field (0.01 = 1% slower): the car ahead 1% slower on a 90 s lap gives 0.9 s a lap."""
+    """Pace is relative to the field (0.01 = 1% slower): the car ahead being 1% slower on a 90 s lap means 0.9 s
+    per lap."""
     assert battle.closing(car("BBB", 2, 0, Pace=0.0), car("AAA", 1, 0, Pace=0.01)) == pytest.approx(0.9)
     assert battle.closing(car("BBB", 2, 0, Pace=0.01), car("AAA", 1, 0, Pace=0.0)) == pytest.approx(-0.9)
     assert battle.closing(car("BBB", 2, 0, Pace=np.nan), car("AAA", 1, 0)) is None
@@ -44,7 +45,7 @@ def test_the_undercut_chance_is_the_share_of_real_undercuts_that_gained_more():
     u = battle.undercut(TABLE, 1.5, 0.5)                                   # wear 0.3-0.7: gains 0, 0.5, 1, 2
     assert u["chance"] == 0.25 and u["gain"] == 0.8 and u["cases"] == 4
     assert battle.undercut(TABLE, 1.5, 2.0)["chance"] == 0.75              # worn tyres ahead: more of them gained more
-    assert battle.undercut(TABLE, 1.5, np.nan)["cases"] == len(TABLE["all"])   # wear not known: all of them
+    assert battle.undercut(TABLE, 1.5, np.nan)["cases"] == len(TABLE["all"])   # wear unknown: use all of them
 
 
 def test_a_close_car_on_green_has_both():
@@ -73,7 +74,7 @@ def test_no_undercut_too_far_back_and_no_forecast_under_the_safety_car():
 
 
 def test_a_shortened_game_race_counts_laps_on_the_set_as_real_laps():
-    """In F1 25's 25% races one lap is worth about 4 real laps, so 2 laps on a set are 8 real laps: not new."""
+    """In F1 25's 25% races one lap is worth about 4 real laps, so 2 laps on a set are 8 real laps (not a new set)."""
     back, front = car("BBB", 2, 3602.0, LapsInStint=2.0), car("AAA", 1, 3600.0, LapsInStint=2.0)
     assert battle.pair(TABLE, back, front, "GREEN")["undercut"] is None
     assert battle.pair(TABLE, back, front, "GREEN", factor=4.0)["undercut"] is not None
@@ -81,7 +82,7 @@ def test_a_shortened_game_race_counts_laps_on_the_set_as_real_laps():
 
 def test_every_car_against_the_car_just_ahead():
     lap = pd.DataFrame([car("CCC", 3, 3605.0), car("AAA", 1, 3600.0), car("BBB", 2, 3601.5),
-                        car("DDD", np.nan, np.nan)])                        # (no place: left out)
+                        car("DDD", np.nan, np.nan)])                        # no position, so left out
     b = battle.lap_battles(TABLE, lap, "GREEN")
     assert set(b) == {"BBB", "CCC"}
     assert (b["BBB"]["ahead"], b["BBB"]["gap"]) == ("AAA", 1.5)
@@ -89,14 +90,15 @@ def test_every_car_against_the_car_just_ahead():
 
 
 def test_no_battle_with_the_car_two_places_ahead():
-    """A place missing from the timing (97 laps of 6,562): the car behind it isn't racing the car two places ahead."""
+    """A position missing from the timing (97 laps of 6,562): the car behind it isn't racing the car two places
+    ahead."""
     lap = pd.DataFrame([car("AAA", 1, 3600.0), car("BBB", 2, 3601.5), car("DDD", 4, 3608.0), car("EEE", 5, 3609.0)])
     b = battle.lap_battles(TABLE, lap, "GREEN")
     assert set(b) == {"BBB", "EEE"} and b["EEE"]["ahead"] == "DDD"
 
 
 def test_no_pace_yet_is_not_the_safety_car():
-    """On lap 1 nobody has green laps of pace: no forecast, but still under green (the page says why)."""
+    """On lap 1 nobody has green-flag pace yet: no forecast, but still under green (the page shows why)."""
     p = battle.pair(TABLE, car("BBB", 2, 3602.0, Pace=np.nan), car("AAA", 1, 3600.0), "GREEN")
     assert p["closing"] is None and p["laps"] is None and p["racing"] is True
     assert battle.pair(TABLE, car("BBB", 2, 3602.0), car("AAA", 1, 3600.0), "VSC")["racing"] is False
@@ -113,7 +115,7 @@ def real_undercut(answer_lap=5):
     After both stops BBB is 0.5 s ahead (a 2.5 s gain)."""
     rows = []
     for n in range(1, 8):
-        gap = 2.0 if n <= 3 else -0.5 if n >= 6 else 20.0                  # (during the stops the gap jumps)
+        gap = 2.0 if n <= 3 else -0.5 if n >= 6 else 20.0                  # the gap jumps during the stops
         for driver, time, pos in [("AAA", 100.0 * n, 1 if gap > 0 else 2), ("BBB", 100.0 * n + gap, 2 if gap > 0 else 1)]:
             rows.append({"RaceId": "2025_01", "Driver": driver, "LapNumber": float(n), "Position": float(pos), "Time": time,
                          "IsStop": (driver, n) in {("BBB", 4), ("AAA", answer_lap)}, "TrackStatus": "1", "Compound": "MEDIUM",
@@ -150,7 +152,7 @@ def test_the_strategy_battle():
     assert d["stops"] == {"AAA": [], "BBB": [2]}
     assert d["stints"]["BBB"] == [{"compound": "MEDIUM", "from": 1, "to": 2}, {"compound": "HARD", "from": 3, "to": 3}]
     assert (d["now"]["front"], d["now"]["back"], d["now"]["between"], d["now"]["gap"]) == ("AAA", "BBB", 0, 3.0)
-    assert json.dumps(d)                                                   # (the web answer)
+    assert json.dumps(d)                                                   # it must work as a JSON response
 
 
 def test_the_strategy_battle_stops_at_the_lap_shown():

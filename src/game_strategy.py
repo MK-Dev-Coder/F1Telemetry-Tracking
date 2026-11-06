@@ -1,16 +1,15 @@
-"""F1 25: the pit stop, tyre and race outcome models, live, on the player's own game races.
+"""F1 25: the pit stop, tyre and race outcome models, live, on the player's game races.
 
 The models learned from real F1 races (2022-2025). The game's laps are put into the same columns as
-data/all_laps.parquet and go through exactly the same feature code (features.py and train_tyre_model.py),
-so the models see the game the way they saw real races. The game's AI makes its own strategy, so this
-shows the models working live during a race - how accurate they are comes from the real 2026 races.
+data/all_laps.parquet and go through the same feature code (features.py and train_tyre_model.py), so the models see
+the game the same way they saw real races. The game's AI makes its own strategy, so this shows the models working
+live during a race; their accuracy is measured on the real 2026 races.
 
-Game races are often shorter than real ones (25% or 50% distance), and the game wears the tyres out
-faster to match. So the lap counts the models use (tyre age, laps on the set, lap number, laps left) are
-scaled to the real race at that track: in a 13-lap Jeddah (real race: 50 laps) one lap counts as 3.8.
-The race outcome model (each car's chance to win, finish on the podium and score points) keeps the game's
-own laps for the gaps and the laps left - catching a car takes real laps - and scales only the tyre ages.
-"""
+Game races are often shorter than real ones (25% or 50% distance), and the game wears the tyres faster to match. So
+the lap counts the models use (tyre age, laps on the set, lap number, laps left) are scaled to the real race at
+that track: in a 13-lap Jeddah (real race 50 laps) one lap counts as 3.8. The race outcome model (each car's chance
+to win, get a podium and score points) keeps the game's own laps for the gaps and laps left, since catching a car
+takes real laps, and only scales the tyre ages."""
 import json
 import math
 import threading
@@ -29,24 +28,24 @@ import train_tyre_model as tyre
 from config import MODELS_DIR
 from explain_pit_model import as_points, describe, explain, load_model, sigmoid, to_points
 
-HUMIDITY = 55.0                               # the game doesn't send humidity: the typical value of the real races
+HUMIDITY = 55.0                               # the game doesn't send humidity, so use the typical value from real races
 RAIN = game_telemetry.RAIN
 OUT = {4: "DNF", 5: "DSQ", 6: "NOT CLASSIFIED", 7: "RETIRED"}
 GAME_NAMES = {"Paul Ricard": "Le Castellet", "Monaco": "Monte Carlo", "Yas Marina": "Yas Marina Circuit",
               "Madrid": "Madring"}                # F1 26 (first raced in 2026, so not in the training data yet)
 LAP_COUNTS = ["TyreLife", "LapsInStint", "LapNumber", "LapsLeft"]    # scaled to the real race length
-# Counted over the last 2-3 laps: in a shortened race those laps cover several real laps, so the counts are
-# brought back to what a real-race window would hold (in a 13-lap Jeddah, 6 or more stops in 2 laps was on
-# 21% of laps against 2.4% in the real races)
+# Counted over the last 2-3 laps. In a shortened race those laps cover several real laps, so the counts are scaled
+# back to what a real-race window would have (in a 13-lap Jeddah, 6+ stops in 2 laps happened on 21% of laps vs 2.4%
+# in the real races)
 WINDOW_COUNTS = ["FieldStopsLast2", "AheadStoppedRecently", "BehindStoppedRecently",
                  "FitSoftRecent", "FitMediumRecent", "FitHardRecent", "FitWetRecent"]
 
 _models, _cache = {}, {}
-_work = threading.Lock()                      # one worker at a time: two pages asking at once share one run
+_work = threading.Lock()                      # one run at a time, so two pages asking at once share it
 
 
 def models():
-    """The two saved models, and each track's real race length (loaded the first time they're needed)."""
+    """The saved models and each track's real race length (loaded the first time they're needed)."""
     if not _models:
         pit, info = load_model()
         races = pd.read_parquet(features.IN_FILE, columns=["RaceId", "Circuit", "TotalLaps"]).drop_duplicates("RaceId")
@@ -61,8 +60,8 @@ def models():
 
 
 def circuit(track):
-    """The game's track under the name the models learned, or None for a track they never saw
-    (a track not raced in 2022-2026, or a short or reverse layout)."""
+    """The game's track under the name the models know, or None for a track they never saw (not raced in 2022-2026,
+    or a short or reverse layout)."""
     name = GAME_NAMES.get(track, track)
     return name if name in models()["info"]["categories"]["Circuit"] else None
 
@@ -71,10 +70,10 @@ SHORTEST_SCALED = 0.2                         # races under 20% distance (the ga
 
 
 def race_scale(track_name, game_laps, sprint=False):
-    """How many real-race laps one lap of this game race is worth (1.0 for a full-length race).
-    The game wears the tyres out faster in 25%, 35% and 50% races; in its very short races (5 laps) it doesn't,
-    and nobody has to stop, so those keep their own laps (in a real 5-lap Miami race nobody pitted). A sprint
-    is short by design (about a third of the race, normal tyre wear, no stop), so it isn't scaled either."""
+    """How many real-race laps one lap of this game race is worth (1.0 for a full-length race). The game wears the
+    tyres faster in 25%, 35% and 50% races, but not in its very short races (5 laps) where nobody has to stop, so
+    those keep their own laps (in a real 5-lap Miami race nobody pitted). A sprint is short by design (about a
+    third of the race, normal tyre wear, no stop), so it isn't scaled either."""
     m = models()
     real = m["real_laps"].get(track_name) or m["typical_laps"]
     scaled = not sprint and SHORTEST_SCALED * real <= game_laps < real
@@ -84,7 +83,7 @@ def race_scale(track_name, game_laps, sprint=False):
             "horizon_here": round(features.HORIZON / factor, 1)}
 
 
-# Recipe 1: when the safety car and the VSC were out, from the game's safety car events
+# When the safety car and VSC were out, from the game's safety car events
 def neutral_periods(events):
     periods, out = [], {}
     for e in events:
@@ -107,29 +106,29 @@ def track_status(start, end, periods, red_flags):
 
 
 def conditions(rec, info, key, missing=None):
-    """The weather when the lap ended (kept with each lap); older sessions only have the session's latest."""
+    """Weather when the lap ended (saved with each lap); older sessions only have the session's latest."""
     value = rec.get(key)
     return value if value is not None else info.get(key, missing)
 
 
-# Recipe 2: the game's laps in the columns of the real races (one row per car and finished lap)
+# The game's laps in the same columns as the real races (one row per car per finished lap)
 def lap_rows(s):
     periods = neutral_periods(s.events)
     red_flags = [e["t"] for e in s.events if e["code"] == "RDFL"]
     info, rows = s.info, []
-    # Sessions recorded from now on mark the laps a car came into and out of the pit lane; older ones only
-    # mark pit laps, so there the first of two pit laps in a row is taken as the in-lap
+    # Newer sessions mark the laps where a car entered and left the pit lane; older ones only mark pit laps, so there
+    # the first of two pit laps in a row is taken as the in-lap
     marked = any("pit_entry" in r or "pit_exit" in r for laps in s.laps.values() for r in laps.values())
     for car, laps in s.laps.items():
         done = [(n, r) for n, r in sorted(laps.items()) if r.get("t") is not None and r.get("position")]
         stint, compound, age_before, fresh, t_before, pit_before = 0, None, None, False, None, False
         for n, r in done:
             c, age = r.get("compound") or "UNKNOWN", r.get("tyre_age")
-            if c == "UNKNOWN" and compound:                  # no tyre data from the game yet: still the same set
+            if c == "UNKNOWN" and compound:                  # no tyre data from the game yet, so still the same set
                 c = compound
             changed = c != compound and compound not in (None, "UNKNOWN")
             if stint == 0 or changed or (age is not None and age_before is not None and age < age_before):
-                stint, fresh = stint + 1, (age or 0) == 0                     # a new set: was it new?
+                stint, fresh = stint + 1, (age or 0) == 0                     # new stint: was the set unused?
             compound, age_before = c, age
             end = r["t"]
             start = t_before if t_before is not None else end - (r.get("time") or 0)
@@ -155,8 +154,8 @@ def lap_rows(s):
 
 
 def last_lap_times(rows):
-    """On the last lap the game gives every car the same end time (the moment the race was over), so all the gaps
-    would be 0. Those laps get their end time back from the lap before and the lap time."""
+    """On the last lap the game gives every car the same end time (when the race ended), so all gaps would be 0.
+    Those laps get their end time from the lap before plus the lap time."""
     before, by_lap = {(r["Driver"], r["LapNumber"]): r["Time"] for r in rows}, defaultdict(list)
     for r in rows:
         by_lap[r["LapNumber"]].append(r)
@@ -170,8 +169,8 @@ def last_lap_times(rows):
     return rows
 
 
-# Recipe 3: features and both models for every lap so far (worked out again only when a lap is added).
-# The features are made from the game's own laps; only what the models see is scaled to the real race.
+# Features and both models for every lap so far (recomputed only when a lap is added). Features are made from the
+# game's own laps; only what the models see is scaled to the real race.
 def model_all_laps(rows, sprint=False, grid=None):
     m, start = models(), time.perf_counter()
     laps = tyre.add_tyre_features(features.build(pd.DataFrame(rows)))
@@ -188,14 +187,14 @@ def model_all_laps(rows, sprint=False, grid=None):
             "tyres": tyres, "outcome": outcome, "ms": round(1000 * (time.perf_counter() - start), 1)}
 
 
-# Recipe 3b: the race outcome model on every lap so far: each car's chance to win, finish on the podium and score
-# points. Its features are made the same way as for the real races; the grid slot comes from the game.
+# Race outcome model on every lap so far: each car's chance to win, get a podium and score points. Its features are
+# made the same way as for real races; the grid slot comes from the game.
 def outcome_all_laps(laps, scale, grid):
     if not models().get("outcome"):
         return None
     booster, info = models()["outcome"]
     first = laps.sort_values("LapNumber").drop_duplicates("Driver")
-    starts = {d: float(grid.get(int(d)) or p) for d, p in zip(first["Driver"], first["Position"])}   # (or lap 1)
+    starts = {d: float(grid.get(int(d)) or p) for d, p in zip(first["Driver"], first["Position"])}   # or lap 1 position
     results = pd.DataFrame({"RaceId": laps["RaceId"].iloc[0], "Driver": list(starts), "Grid": list(starts.values()),
                             "Final": math.nan, "Status": None})
     rows = ro.add_features(laps, results)
@@ -203,17 +202,18 @@ def outcome_all_laps(laps, scale, grid):
         rows[col] = rows[col] * scale["factor"]
     rows = ro.add_pit_adjusted(rows, info["pit_loss"])
     rows = rows[rows["Position"].notna()].reset_index(drop=True)
-    # A lap can be shown when every place P1 ... Pn is on it (the finished race's last lap can miss the winner)
+    # A lap can be shown when every position P1 ... Pn is on it (the last lap of a finished race can be missing the
+    # winner)
     whole = rows.groupby("LapNumber")["Position"].apply(lambda s: sorted(s) == list(range(1, len(s) + 1)))
     return {"rows": rows, **ro.summary(ro.chances(booster, info, rows)), "why": {}, "whole": set(whole[whole].index)}
 
 
 def outcome_lap(o, status, lap):
-    """The last lap (up to `lap`) that every car still racing has finished: the chances need the whole field on one
-    lap. While live that's the leader's lap or one before it (a lapped car holds it a lap back)."""
+    """The last lap (up to `lap`) that every car still racing has finished, since the chances need the whole field
+    on one lap. While live that's the leader's lap or the one before (a lapped car holds it a lap back)."""
     latest = o["rows"].groupby("Driver")["LapNumber"].max()
-    # Every car still racing, also one that hasn't finished lap 1 yet (it has no row: lap 0, so nothing is shown
-    # until the whole field is across the line, not the chances of the few cars already there)
+    # Every car still racing, including one that hasn't finished lap 1 yet (no row = lap 0, so nothing is shown until
+    # the whole field has crossed the line, instead of the chances of the few cars already there)
     racing = [car for car, st in status.items() if st not in (*OUT, 3)]                 # 3 = finished
     full = min(lap, min(int(latest.get(str(car), 0)) for car in racing) if racing else latest.max())
     shown = [n for n in o["whole"] if n <= full]
@@ -221,7 +221,7 @@ def outcome_lap(o, status, lap):
 
 
 def outcome_why(o, lap):
-    """The SHAP values for the win, podium and points chances on one lap (worked out once per lap)."""
+    """SHAP values for the win, podium and points chances on one lap (computed once per lap)."""
     if lap not in o["why"]:
         booster, info = models()["outcome"]
         here = o["rows"][o["rows"]["LapNumber"] == lap]
@@ -268,13 +268,13 @@ def rejoins_for(w, at, drivers):
 
 
 def lap_status(here):
-    """The track status of a lap: the leader's."""
+    """Track status of a lap (the leader's)."""
     return status_name(here.loc[here["Position"].idxmin(), "TrackStatus"])
 
 
 def battles_for(w, at, drivers):
-    """Every car against the car just ahead at the end of lap `at` (the last whole lap): the battle forecast and the
-    undercut threat, {car: {...}}."""
+    """Every car vs the car ahead at the end of lap `at` (the last whole lap): the battle forecast and the undercut
+    threat, {car: {...}}."""
     o, m = w.get("outcome"), models()
     if o is None or at is None or not m.get("battle"):
         return {}
@@ -285,8 +285,8 @@ def battles_for(w, at, drivers):
 
 
 def outcome_for(w, status, lap, full=False):
-    """Every car's chances at the end of the last whole lap (up to `lap`): {car: {...}}, and that lap.
-    full=True: every reason, the chance of each finishing position, and the step that makes the field add up."""
+    """Every car's chances at the end of the last whole lap (up to `lap`): {car: {...}}, and that lap. full=True
+    adds every reason, the chance of each finishing position, and the adjustment that makes the field add up."""
     o = w.get("outcome")
     if o is None or o["rows"].empty:
         return {}, None
@@ -319,10 +319,10 @@ def outcome_for(w, status, lap, full=False):
 
 
 def worked_out(s, lock):
-    """The models' results for every lap of a race (kept until the session's laps or events change)."""
+    """Model results for every lap of a race (cached until the session's laps or events change)."""
     models()                                  # loaded before taking the lock (only slow the first time)
     sprint = game_telemetry.RECORDER.is_sprint(s)          # looked up once per session (reads the saved list)
-    with lock:                                # a quick copy of what's needed, then the work without the lock
+    with lock:                                # quick copy of what's needed, then do the work without the lock
         version = (s.token, s.version)
         hit = _cache.get(s.uid)
         same = hit is not None and hit.get("version") == version
@@ -337,7 +337,7 @@ def worked_out(s, lock):
         return None, status, drivers, player
     key = (len(rows), sum(r["Time"] for r in rows), "".join(r["TrackStatus"] for r in rows))
     with _work:
-        hit = _cache.get(s.uid) or hit        # (another page may have just worked it out)
+        hit = _cache.get(s.uid) or hit        # another page may have just done it
         if hit is None or hit["key"] != key:
             new = {"key": key, **model_all_laps(rows, sprint, grid)}
             keep_why(hit, new)
@@ -348,9 +348,9 @@ def worked_out(s, lock):
 
 
 def keep_why(old, new):
-    """A lap's race outcome reasons (three SHAP runs: the slow part) carry over to the new results while the model's
-    inputs on that lap are the same (the same inputs give the same SHAP values). The models run again each time any
-    car finishes a lap, but the lap the outcome is shown for changes only once the whole field has finished it."""
+    """Reuse a lap's race outcome reasons (three SHAP runs, the slow part) in the new results if the model inputs
+    on that lap haven't changed (same inputs = same SHAP values). The models run again every time any car finishes
+    a lap, but the lap the outcome is shown for only changes once the whole field has finished it."""
     a, b = (old or {}).get("outcome"), new.get("outcome")
     if not a or not b:
         return
@@ -364,8 +364,8 @@ def keep_why(old, new):
 
 
 def reason_text(name, seen, game, info, effect, scale):
-    """A reason in plain English. In a shortened race, lap counts are told in the game's laps, with what they
-    are worth in the real race (which is what the model weighed)."""
+    """A reason in plain English. In a shortened race, lap counts are given in the game's laps, plus what they're
+    worth in the real race (which is what the model used)."""
     if name == "Circuit" and pd.isna(seen["Circuit"]):
         return "a track the model never saw in real F1"
     if name == "Humidity":
@@ -396,7 +396,7 @@ def number(v, digits=3):
     return None if v is None or pd.isna(v) else round(float(v), digits)
 
 
-# Recipe 4: every car at the end of one lap (the latest lap while live), like the real-race Pit strategy view
+# Every car at the end of one lap (the latest lap while live), like the real-race Pit strategy view
 def assemble(w, status, drivers, player, lap=None):
     laps, info = w["laps"], models()["info"]
     last = int(laps["LapNumber"].max())
@@ -443,7 +443,7 @@ def snapshot(s, lock, lap=None):
     return assemble(w, status, drivers, player, lap)
 
 
-# Recipe 5: one car - the full explanation at the end of one lap, and its pit stop chance on every lap
+# One car: the full explanation at the end of one lap, and its pit stop chance on every lap
 def car_detail(s, lock, car, lap=None):
     w, status, drivers, player = worked_out(s, lock)
     if w is None:
@@ -483,7 +483,7 @@ def car_detail(s, lock, car, lap=None):
             "scale": w["scale"], "laps": series, "outcome": mine_outcome, "pit_now": pit}
 
 
-# Recipe 6: the strategy battle - two cars side by side up to the last whole lap (up to `lap`), as for real races
+# Strategy battle: two cars side by side up to the last whole lap (up to `lap`), same as for real races
 def duel(s, lock, a, b, lap=None):
     w, status, drivers, player = worked_out(s, lock)
     o = None if w is None else w.get("outcome")

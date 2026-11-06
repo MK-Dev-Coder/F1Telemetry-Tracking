@@ -1,14 +1,13 @@
-"""F1 25 telemetry: listen to the game over the network, decode its packets, and keep every session.
+"""F1 25 telemetry: listen to the game over the network, decode its packets and save every session.
 
-The game (PS5, Xbox or PC) sends UDP packets to this PC while you drive. Turn it on in F1 25:
-Settings > Telemetry Settings > UDP Telemetry: On, UDP IP Address: this PC's address, UDP Port: 20777,
-UDP Format: 2025 (2024 also works). With the 2026 Season Pack choose 2026: it adds active aero, overtake mode
-and the 2026 teams (those sessions show in the app's F1 26 section).
+The game (PS5, Xbox or PC) sends UDP packets to this PC while you drive. To turn it on in F1 25: Settings >
+Telemetry Settings > UDP Telemetry: On, UDP IP Address: this PC's address, UDP Port: 20777, UDP Format: 2025 (2024
+also works). With the 2026 Season Pack choose 2026: it adds active aero, overtake mode and the 2026 teams (those
+sessions show in the app's F1 26 section).
 
-Run on its own to record without the app:   python src/game_telemetry.py
-Re-decode every saved session:               python src/game_telemetry.py rebuild
-The app (python src/api.py) also records while it runs.
-"""
+Record without the app:         python src/game_telemetry.py
+Re-decode every saved session:  python src/game_telemetry.py rebuild
+The app (python src/api.py) also records while it runs."""
 import atexit
 import gzip
 import itertools
@@ -29,18 +28,18 @@ from config import DATA_DIR
 
 GAME_DIR = DATA_DIR / "f1_25"                 # one folder per session
 PORT = 20777
-KEEP_RAW = True                               # also keep the raw packets (compressed), to re-decode later
+KEEP_RAW = True                               # also keep the raw packets (compressed) to re-decode later
 SAVE_EVERY = 30                               # seconds between saves of a live session
-QUIET = 5                                     # seconds without a packet: the game is paused, or the session is over
-PAUSE_MAX = 30 * 60                           # a pause this long counts as the end (the console was switched off)
+QUIET = 5                                     # seconds without a packet = game paused or session over
+PAUSE_MAX = 30 * 60                           # a pause this long counts as the end (console switched off)
 RUN = time.strftime("%Y%m%d-%H%M%S")          # each run of the app writes its own raw packets file
-EARLY_MAX = 5000                              # packets held before the session packet arrives (about 10 s' worth)
+EARLY_MAX = 5000                              # packets kept before the session packet arrives (about 10 s worth)
 
 # ---------------------------------------------------------------------------------------------------
-# Packet layouts, from EA's F1 25 UDP specification and its 2026 Season Pack version (all little-endian).
-# The sizes are checked below, so a layout that doesn't add up stops the program instead of decoding nonsense.
-# The 2026 format has room for 24 cars, sends g-forces in thousandths, the engine temperature in one byte and
-# driver and team numbers in two, and adds a packet (16) with every car's active aero and overtake mode.
+# Packet layouts from EA's F1 25 UDP spec and its 2026 Season Pack version (all little-endian). The sizes are checked
+# below, so a layout that doesn't add up stops the program instead of decoding garbage. The 2026 format has room for
+# 24 cars, sends g-forces in thousandths, the engine temperature in one byte and driver and team numbers in two, and
+# adds a packet (16) with every car's active aero and overtake mode.
 CARS = {2024: 22, 2025: 22, 2026: 24}         # car slots in each packet
 HEADER = struct.Struct("<HBBBBBQfIIBB")       # format, year, major, minor, packet version, id, session uid,
                                               # session time, frame, overall frame, player car, 2nd player car
@@ -116,7 +115,7 @@ for _fmt, _n in CARS.items():                 # every format: each per-car packe
 assert 29 + 1 + 24 * FINAL[2026].size == SIZES[2026][8] and 29 + 24 * TELEMETRY2.size == SIZES[2026][16]
 assert 753 + 2 + 2 * 8 * 8 + 1 + 1 + 4 * 8 + 4 + 5 == SIZES[2026][1]      # 2026 session: + aero and DRS zones
 
-# What the numbers mean (EA's appendices)
+# Code tables from EA's appendices
 TRACKS = {0: "Melbourne", 1: "Paul Ricard", 2: "Shanghai", 3: "Sakhir", 4: "Catalunya", 5: "Monaco", 6: "Montreal",
           7: "Silverstone", 8: "Hockenheim", 9: "Hungaroring", 10: "Spa-Francorchamps", 11: "Monza", 12: "Singapore",
           13: "Suzuka", 14: "Yas Marina", 15: "Austin", 16: "Interlagos", 17: "Spielberg", 18: "Sochi",
@@ -137,7 +136,7 @@ ACTUAL_TYRES = {16: "C5", 17: "C4", 18: "C3", 19: "C2", 20: "C1", 21: "C0", 22: 
 TEAMS = {0: ("Mercedes", "27F4D2"), 1: ("Ferrari", "E8002D"), 2: ("Red Bull Racing", "3671C6"), 3: ("Williams", "64C4FF"),
          4: ("Aston Martin", "229971"), 5: ("Alpine", "0093CC"), 6: ("Racing Bulls", "6692FF"), 7: ("Haas F1 Team", "B6BABD"),
          8: ("McLaren", "FF8000"), 9: ("Sauber", "52E252"), 41: ("F1 Generic", "888888"), 104: ("My Team", "C9CFDB"),
-         # The 2026 Season Pack's teams (the colours are only used when the game sends no livery colour)
+         # 2026 Season Pack teams (the colours are only used if the game sends no livery colour)
          476: ("Mercedes", "27F4D2"), 477: ("Ferrari", "E8002D"), 478: ("Red Bull Racing", "3671C6"),
          479: ("Williams", "64C4FF"), 480: ("Aston Martin", "229971"), 481: ("Alpine", "0093CC"),
          482: ("Racing Bulls", "6692FF"), 483: ("Haas F1 Team", "B6BABD"), 484: ("McLaren", "FF8000"),
@@ -155,17 +154,16 @@ EVENTS = {"SSTA": "Session started", "SEND": "Session ended", "FTLP": "Fastest l
           "OVDI": "Overtake mode disabled"}
 PARTIAL_REASONS = {0: "wet track", 1: "safety car", 2: "red flag"}
 SEVERITY = {0: "light", 1: "medium", 2: "heavy"}
-QUIET_EVENTS = {"BUTN", "SPTP", "STLG", "FLBK"}   # button presses and the like: not worth listing
-# The game's "penalty" event is also sent for warnings, laps taken away and retirements (in the recorded
-# sessions 16 of the player's 21 were warnings: 13 for track limits, 3 for small collisions); only the real
-# penalties are called penalties
+QUIET_EVENTS = {"BUTN", "SPTP", "STLG", "FLBK"}   # button presses etc., not worth listing
+# The game's "penalty" event is also sent for warnings, deleted laps and retirements (in my recorded sessions 16 of 21
+# were warnings: 13 for track limits, 3 for small collisions), so only real penalties are called penalties
 PENALTY_TYPES = {0: "Drive-through penalty", 1: "Stop-go penalty", 2: "Grid penalty", 3: "Penalty reminder",
                  4: "Time penalty", 5: "Warning", 6: "Disqualified", 7: "Removed from formation lap",
                  8: "Parked too long", 9: "Tyre regulations", 10: "Lap invalidated", 11: "Lap invalidated",
                  12: "Lap invalidated", 13: "Lap invalidated", 14: "Lap invalidated", 15: "Lap invalidated",
                  16: "Retired", 17: "Black flag timer"}
 REAL_PENALTIES = {0, 1, 2, 4, 6}
-_TOKENS = itertools.count(1)                     # a number for every Session object made (see Session.version)
+_TOKENS = itertools.count(1)                     # unique number for every Session object (see Session.version)
 
 
 def seconds(ms_part, minutes_part=0):
@@ -176,7 +174,7 @@ TT_TC, TT_GEARBOX = {0: "off", 1: "medium", 2: "full"}, {1: "manual", 2: "manual
 
 
 def tt_lap(v):
-    """One lap of the Time Trial packet: its time and sectors (seconds), the team, and the assists it was done with."""
+    """One lap from the Time Trial packet: time and sectors (seconds), team, and the assists used."""
     car, team, lap, s1, s2, s3, tc, gearbox, abs_, equal, custom, valid = v
     return {"car": car, "team": TEAMS.get(team, (f"Team {team}",))[0], "time": lap / 1000 or None,
             "s1": s1 / 1000 or None, "s2": s2 / 1000 or None, "s3": s3 / 1000 or None,
@@ -190,14 +188,14 @@ def short_name(name, index):
 
 
 def _write(path, write):
-    """Write a file in one go: to a temporary name first, then swap it in, so a crash never leaves half a file."""
+    """Write a file safely: write to a temp name first, then swap it in, so a crash never leaves half a file."""
     tmp = path.with_name(path.name + ".tmp")
     write(tmp)
     os.replace(tmp, path)
 
 
 def _rows(file, columns):
-    """A saved table as plain lists, in today's column order (missing columns and gaps become None)."""
+    """A saved table as plain lists in the current column order (missing columns and gaps become None)."""
     df = pd.read_parquet(file).reindex(columns=columns)
     return df.astype(object).where(df.notna(), None).values.tolist()
 
@@ -219,22 +217,22 @@ class Session:
         self.modes_now = {}                   # car index -> latest active aero and overtake mode (2026 format)
         self.laps = {}                        # car index -> {lap number -> lap record}
         self.events, self.classification = [], []
-        self.flashbacks, self.events_kept = 0, 0  # flashbacks so far, and the events the last one kept
-        self.samples = []                     # the player's telemetry, every frame
-        self.car_samples = []                 # the player's tyres, fuel and ERS, twice a second
+        self.flashbacks, self.events_kept = 0, 0  # number of flashbacks, and the events kept by the last one
+        self.samples = []                     # player's telemetry, every frame
+        self.car_samples = []                 # player's tyres, fuel and ERS, twice a second
         self.positions = []                   # every car's position, twice a second
-        self.outline = {}                     # lap number -> the player's positions on that lap
-        self.setup = {}                       # the player's car setup
-        self.tyre_sets = {}                   # the player's tyre sets for the weekend
-        self._g = self._slip = None           # the player's latest g-forces and wheel slip
+        self.outline = {}                     # lap number -> player's positions on that lap
+        self.setup = {}                       # player's car setup
+        self.tyre_sets = {}                   # player's tyre sets for the weekend
+        self._g = self._slip = None           # player's latest g-forces and wheel slip
         self._sector = {}                     # car index -> sector times of the lap in progress
         self._finished = set()                # cars whose last lap (at the flag) is already recorded
-        self._timed = set()                   # cars given a lap time without a new lap (at the flag, until recorded)
-        self._rewound = False                 # a flashback: the next lap data isn't compared with the one before it
+        self._timed = set()                   # cars with a lap time but no new lap yet (at the flag)
+        self._rewound = False                 # after a flashback, don't compare the next lap data with the old one
         self._overtake = {}                   # car index -> {lap: when overtake mode was first used on it} (2026)
         self._last_pos_t = self._last_car_t = -1.0
         self.packets = 0
-        # (token, version) changes whenever the laps or the events change, so work done on them can be kept
+        # (token, version) changes when the laps or events change, so results computed from them can be cached
         self.token, self.version = next(_TOKENS), 0
 
     # -- one decoded packet -----------------------------------------------------------------------
@@ -242,18 +240,18 @@ class Session:
         return self.laps.setdefault(car, {}).setdefault(lap, {"lap": lap})
 
     def on_lap_data(self, t, cars):
-        # Every slot: when a car retires the game lowers its count of active cars, but the other cars
-        # keep their slots (in a real Jeddah race the player, in slot 19, was lost after the first retirement)
+        # Loop over every slot: when a car retires the game lowers its active car count, but the other cars keep their
+        # slots (in a Jeddah race the player in slot 19 was lost after the first retirement)
         rewound, self._rewound = self._rewound, False
         for i, d in enumerate(cars):
             if d["result_status"] in (0, 1):                     # an empty or inactive slot
                 continue
-            before = None if rewound else self.lap_now.get(i)   # (after a flashback: no lap, time or pit change)
+            before = None if rewound else self.lap_now.get(i)   # after a flashback, no lap/time/pit change
             new_time = bool(before) and d["last_lap_ms"] != before["last_lap_ms"]   # the game just set a lap time
-            crossed = bool(before) and d["lap"] > before["lap"]  # crossed the line: the lap before is complete
-            # At the flag the game stops counting laps: the last lap ends when the finished car gets its time. That
-            # time often comes a frame before the "finished" status, so a time without a new lap is remembered.
-            # A car already in the garage when the session ends gets no new time, so no lap is made up for it.
+            crossed = bool(before) and d["lap"] > before["lap"]  # crossed the line, so the previous lap is complete
+            # At the flag the game stops counting laps, so the last lap ends when the finished car gets its time. That
+            # time often comes a frame before the "finished" status, so a time without a new lap is remembered. A car
+            # already in the garage when the session ends gets no new time, so no lap is made up for it.
             if crossed:
                 self._timed.discard(i)
             elif new_time:
@@ -270,7 +268,7 @@ class Session:
                 if s1 and s2 and lap_time and not done.get("s3"):
                     done.setdefault("s1", s1), done.setdefault("s2", s2)
                     done["s3"] = round(lap_time - done["s1"] - done["s2"], 3)
-                done["t"] = round(t, 2)                          # when it ended (undone by a flashback to before)
+                done["t"] = round(t, 2)                          # when it ended (a flashback to before this removes it)
                 done["position"] = d["position"]
                 done["gap_to_leader"] = seconds(d["leader_ms"], d["leader_min"])
                 done["invalid"] = bool(before.get("invalid"))
@@ -284,7 +282,7 @@ class Session:
                 wear = self.damage_now.get(i, {}).get("wear")
                 if wear:
                     done["tyre_wear"] = [round(w, 1) for w in wear]
-                for k in ("weather", "air_temp", "track_temp"):  # the conditions on this lap, not at the end
+                for k in ("weather", "air_temp", "track_temp"):  # conditions during this lap, not at the end
                     done[k] = self.info.get(k)
                 if "aero" in self.info:                          # 2026 format: active aero full or partial
                     done["aero"] = self.info["aero"]
@@ -297,13 +295,13 @@ class Session:
                 self._sector[i] = (self._sector.get(i, (None, None))[0], seconds(d["s2_ms"], d["s2_min"]))
             if d["sector"] == 0 and before and d["lap"] > before["lap"]:
                 self._sector[i] = (None, None)
-            # In the pit lane. Not counted while leaving the garage before the line: in practice and
-            # qualifying that out-lap is part of the next lap, which would then show as a pit lap.
+            # In the pit lane. Not counted when leaving the garage before the line: in practice and qualifying that
+            # out-lap is part of the next lap, which would then show as a pit lap.
             if d["pit_status"] and d["lap_distance"] >= 0 and d["driver_status"] != 0:
                 rec = self.lap_record(i, d["lap"])
                 rec["pitted"] = True
-                rec.setdefault("pit_at", round(t, 2))           # (a flashback to before it takes the marks away)
-                # The lap the car came into the pit lane on (the in-lap), and the lap it came out on
+                rec.setdefault("pit_at", round(t, 2))           # a flashback to before this removes the pit marks
+                # Mark the lap the car entered the pit lane (in-lap) and the lap it came out
                 if before and not before["pit_status"]:
                     rec["pit_entry"] = True
                     self.version += 1
@@ -334,7 +332,7 @@ class Session:
         if self.on_a_lap(lap):
             last = self.samples[-1] if self.samples else None
             if last and last[1] == lap["lap"] and lap["current_lap_ms"] / 1000 < (last[10] or 0) - 1:
-                # The lap timer went back without a new lap number: the game started this lap again.
+                # Lap timer went back without a new lap number, so the game restarted this lap.
                 self.samples = [x for x in self.samples if x[1] != lap["lap"]]      # keep only the new attempt
                 self.outline.pop(lap["lap"], None)
             self.samples.append([round(t, 3), lap["lap"], round(lap["lap_distance"], 1), p["speed"], round(p["throttle"], 3),
@@ -357,16 +355,16 @@ class Session:
                                      st.get("ers_deployed")])
 
     def on_a_lap(self, lap):
-        """Is the player driving a timed lap? The game's lap timer runs (not on the grid, nor driving around
-        with no timing as seen after a trip to the garage), not in the garage, not on the out-lap before the
-        line (practice and qualifying), not on the formation lap and not after the flag."""
+        """Is the player on a timed lap? The lap timer is running (not on the grid, and not driving around untimed
+        like after a trip to the garage), not in the garage, not on the out-lap before the line (practice and
+        qualifying), not on the formation lap and not after the flag."""
         return (lap["current_lap_ms"] > 0 and lap["driver_status"] != 0 and lap["lap_distance"] >= 0
                 and lap["result_status"] != 3 and self.info.get("safety_car") != "FORMATION LAP")
 
     def on_modes(self, t, cars):
-        """2026 format: every car's active aero (straight or corner mode) and overtake mode. The laps a car
-        used overtake mode on are marked when they end, and a car built to the 2026 rules puts the session in F1 26.
-        The 2026 format sends this packet for the older cars too (with DRS, no overtake mode): those are skipped."""
+        """2026 format: every car's active aero (straight or corner mode) and overtake mode. Laps where a car used
+        overtake mode are marked when they end, and a car built to the 2026 rules puts the session in F1 26. The
+        2026 format also sends this packet for older cars (with DRS, no overtake mode); those are skipped."""
         for i, m in enumerate(cars):
             lap = self.lap_now.get(i)
             if lap is None or not m["regs_2026"]:          # an empty slot, or a car built to the older rules
@@ -379,15 +377,15 @@ class Session:
             self.info["regs_2026"] = True
 
     def game(self):
-        """Which part of the app the session belongs in: F1 26 (the 2026 Season Pack's cars) or F1 25. None until
-        the first session packet: the first packets of a session come before it (it's sent twice a second)."""
+        """Which part of the app the session belongs to: F1 26 (2026 Season Pack cars) or F1 25. None until the
+        first session packet (the first packets of a session arrive before it; it's sent twice a second)."""
         if "session_type_id" not in self.info:
             return None
         return "F1 26" if self.info.get("formula") == 13 or self.info.get("regs_2026") else "F1 25"
 
     def race_control(self):
-        """2026 format: race control's latest word on overtake mode (OVEN on, OVDI off), kept in the session's info,
-        so the page has it however many events came after it."""
+        """2026 format: race control's latest message on overtake mode (OVEN on, OVDI off), saved in the session
+        info so the page has it no matter how many events came after."""
         word = next((e["code"] for e in reversed(self.events) if e["code"] in ("OVEN", "OVDI")), None)
         if word:
             self.info["overtake_mode"] = word == "OVEN"
@@ -406,20 +404,20 @@ class Session:
                     self.positions.append([round(t, 2), i, round(c[0], 1), round(c[2], 1)])
 
     def on_flashback(self, t):
-        """The player used a flashback: forget what was recorded after the moment the game went back to."""
+        """The player used a flashback: drop everything recorded after the moment the game went back to."""
         lap_again = next((x[1] for x in self.samples if x[0] > t), self.lap_now.get(self.player, {}).get("lap"))
         self.samples = [x for x in self.samples if x[0] <= t]
         self.car_samples = [x for x in self.car_samples if x[0] <= t]
         self.positions = [x for x in self.positions if x[0] <= t]
         self.events = [e for e in self.events if e["t"] <= t]
-        self.flashbacks, self.events_kept = self.flashbacks + 1, len(self.events)   # (the radio carries on from here)
+        self.flashbacks, self.events_kept = self.flashbacks + 1, len(self.events)   # the radio carries on from here
         for car, laps in self.laps.items():                       # laps finished after that moment
             gone = [n for n, r in laps.items() if r.get("t", 0) > t]
             for n in gone:
                 del laps[n]
             if gone:
-                self._finished.discard(car)                       # (a finish undone: it gets to the flag again)
-            for r in laps.values():                               # the pit lane, if it came after that moment
+                self._finished.discard(car)                       # finish undone, it will reach the flag again
+            for r in laps.values():                               # pit marks from after that moment
                 if r.get("pit_at", -1) > t:
                     for k in ("pitted", "pit_entry", "pit_exit", "pit_at"):
                         r.pop(k, None)
@@ -448,8 +446,8 @@ class Session:
         return out
 
     def tyre_set_list(self):
-        """The player's tyre sets for the weekend: compound, wear, whether it can still be used, and its pace.
-        The game's "life span" is the laps left in that set; its "usable life" is the most laps the compound lasts."""
+        """Player's tyre sets for the weekend: compound, wear, whether it can still be used, and its pace. The
+        game's "life span" is the laps left on that set; "usable life" is the most laps the compound lasts."""
         sets, fitted = self.tyre_sets.get("sets", []), self.tyre_sets.get("fitted")
         return [{"set": k + 1, "compound": VISUAL_TYRES.get(v, "UNKNOWN"), "actual": ACTUAL_TYRES.get(a, ""), "wear": wear,
                  "available": bool(ok), "fitted": k == fitted, "laps_left": laps_left, "compound_life": most,
@@ -457,8 +455,8 @@ class Session:
                 for k, (a, v, wear, ok, session, laps_left, most, delta, _) in enumerate(sets) if v]
 
     def set_deltas(self):
-        """The game's own word on each kind of tyre now: how much faster (-) or slower (+) a lap your best set of it
-        would be than the set fitted (from your sets that can still be used), and which is fitted."""
+        """The game's own numbers for each compound right now: how much faster (-) or slower (+) per lap your best
+        set of it would be than the fitted set (from your sets that can still be used), and which one is fitted."""
         out = {}
         for t in self.tyre_set_list():
             if t["fitted"]:
@@ -468,7 +466,7 @@ class Session:
         return out
 
     def hide_other_players(self):
-        """Online sessions: other people's names are never kept (the project has no human participants)."""
+        """Online sessions: other people's names are never saved (the project has no human participants)."""
         if self.info.get("online"):
             for i, d in self.drivers.items():
                 if i != self.player and not d.get("ai", True) and d.get("name"):
@@ -478,8 +476,8 @@ class Session:
         return self.info.get("session_type_id") in (15, 16, 17)
 
     def ended(self):
-        """Has the game said this session is over? It sends "Session ended" at the end and when you quit to the menu;
-        while it's paused it sends nothing at all."""
+        """Has the game said the session is over? It sends "Session ended" at the end and when you quit to the
+        menu; while paused it sends nothing."""
         said = [e["code"] for e in self.events if e["code"] in ("SSTA", "SEND")]
         return bool(said) and said[-1] == "SEND"
 
@@ -547,8 +545,8 @@ class Session:
                          "overtake": bool(m["overtake_active"]) if m else None})     # 2026 format only
         if self.is_race():
             return sorted(rows, key=lambda r: r["position"] or 99)
-        # Practice, qualifying and time trial go by best lap: the game's own positions can stop updating
-        # (they did in a real Q1), and its time gaps are only meant for races.
+        # Practice, qualifying and time trial are sorted by best lap: the game's own positions can stop updating (it
+        # happened in a Q1), and its time gaps are only meant for races.
         rows.sort(key=lambda r: (r["best_lap"] is None, r["best_lap"] or 0, r["position"] or 99))
         first = rows[0]["best_lap"] if rows else None
         for k, r in enumerate(rows):
@@ -612,7 +610,8 @@ class Session:
         self.write(self.snapshot())
 
     def snapshot(self):
-        """What a save writes, copied: quick, so the recorder takes it under its lock and writes the files after."""
+        """Copy of what a save writes. It's quick, so the recorder takes it under its lock and writes the files
+        afterwards."""
         state = {"uid": str(self.uid), "format": self.format, "test": self.test, "started": self.started,
                  "last_seen": self.last_seen, "info": self.info, "player": self.player, "num_cars": self.num_cars,
                  "drivers": self.drivers, "lap_now": self.lap_now, "status_now": self.status_now,
@@ -622,7 +621,7 @@ class Session:
                  "overtake_laps": self._overtake}
         tables = [(name, list(rows), columns) for name, rows, columns in
                   [("telemetry", self.samples, SAMPLE_COLUMNS), ("car", self.car_samples, CAR_COLUMNS),
-                   ("positions", self.positions, POSITION_COLUMNS)]]       # (rows are never changed once added)
+                   ("positions", self.positions, POSITION_COLUMNS)]]       # rows are never changed once added
         return self.folder(), tables, json.dumps(state)
 
     @staticmethod
@@ -645,7 +644,7 @@ class Session:
 
     @classmethod
     def load(cls, folder, light=False):
-        """A saved session. light=True skips the telemetry files (enough for the session list)."""
+        """Load a saved session. light=True skips the telemetry files (enough for the session list)."""
         state = json.loads((folder / "session.json").read_text(encoding="utf-8"))
         s = cls(int(state["uid"]), state["format"], state.get("test", False))
         s.started, s.last_seen, s.info = state["started"], state["last_seen"], state["info"]
@@ -708,7 +707,7 @@ class Recorder:
 
     # -- network ----------------------------------------------------------------------------------
     def start(self, port=PORT):
-        if self._started:                     # only one listener, however often it's asked
+        if self._started:                     # only one listener, even if called again
             return
         self._started = True
         atexit.register(self.close)
@@ -719,7 +718,7 @@ class Recorder:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.bind(("0.0.0.0", port))      # every network card, so a PS5 or Xbox on the network can reach it
             sock.settimeout(1.0)
-            try:                              # room for several seconds of packets while a save writes its files
+            try:                              # buffer several seconds of packets while a save writes its files
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
             except OSError:
                 pass
@@ -762,9 +761,9 @@ class Recorder:
             s.format = max(s.format, fmt)        # the menu's button presses come in the 2025 format even with 2026 set
             s.last_seen, s.player = arrived, player if player < CARS[fmt] else s.player
             self.live_uid = uid
-            # Raw packets are kept once the session is known to be offline: online ones hold other people's names.
-            # Until the session packet says which (within a second), they wait in memory, so the first ones
-            # ("Session started", the first session packet) are in the raw file too and a rebuild has them
+            # Raw packets are only kept once we know the session is offline (online ones contain other people's
+            # names). Until the session packet says which (within a second), they wait in memory, so the first ones
+            # ("Session started", the first session packet) also end up in the raw file for a rebuild
             if record and KEEP_RAW:
                 online = s.info.get("online")
                 if online is False:
@@ -781,17 +780,17 @@ class Recorder:
                 self._decode(s, fmt, pid, t, data)
             except (struct.error, IndexError, KeyError, ValueError) as err:
                 self.error = f"Packet {pid} could not be decoded: {err}"
-            if uid in self._early and s.info.get("online") is not None:      # now known: keep them, or forget
+            if uid in self._early and s.info.get("online") is not None:      # now we know: keep them, or drop
                 for when, early in self._early.pop(uid):                     # them if the session is online
                     if s.info["online"] is False:
                         self._write_raw(s, early, when)
-        if record:                                   # (after the lock: a save writes its files without it)
+        if record:                                   # after the lock, since a save writes its files without it
             self.save_due()
 
     @staticmethod
     def _resume(uid):
-        """If the app was restarted in the middle of a session, carry on from what was saved,
-        instead of starting again and saving over it."""
+        """If the app was restarted in the middle of a session, carry on from what was saved instead of starting
+        again and overwriting it."""
         folder = GAME_DIR / str(uid)
         if not (folder / "session.json").exists():
             return None
@@ -816,7 +815,7 @@ class Recorder:
             plan = s.info.get("pit_plan") or ([ideal, latest] if ideal or latest else None)   # its first window: the plan
             s2_start, s3_start = struct.unpack_from("<ff", data, 745)
             weekend = struct.unpack_from("<I", data, 674)[0]     # the same for every session of one weekend
-            # The weather forecast: this session's samples (the list also holds the weekend's other sessions)
+            # Weather forecast: this session's samples (the list also has the weekend's other sessions)
             forecast = {}
             for k in range(min(data[o + 126], 64)):
                 for_type, ahead, w, track_t, track_ch, air_t, air_ch, rain = FORECAST.unpack_from(data, o + 127 + k * FORECAST.size)
@@ -865,7 +864,8 @@ class Recorder:
                     event["text"] = f"{SEVERITY[severity].capitalize()} collision: {name(a)} and {name(b)}"
                     event["severity"] = severity
             elif code == "PMEN" and (data[o + 4] in (1, 2) or data[o + 4] == 0 and s.info.get("weather") in RAIN):
-                # 0 (wet track) is also what a game without the reason byte (spec 1.1) sends: believed in the rain only
+                # 0 (wet track) is also what a game without the reason byte (spec 1.1) sends, so only trust it in the
+                # rain
                 event["text"] = f"Partial mode on ({PARTIAL_REASONS[data[o + 4]]})"
                 event["reason"] = PARTIAL_REASONS[data[o + 4]]
             elif code == "PENA":
@@ -962,10 +962,10 @@ class Recorder:
             self._raw.clear()
 
     def save_due(self, force=False):
-        """Save the sessions that changed: every SAVE_EVERY seconds while live, and once when they go quiet.
-        A save that fails (e.g. OneDrive or antivirus holding a file) is tried again 5 seconds later. The copy is taken
-        under the lock and the files are written after it, so the pages and the packets don't wait for the disk; one
-        save at a time, in the order the copies were taken."""
+        """Save the sessions that changed: every SAVE_EVERY seconds while live, and once when they go quiet. A
+        failed save (e.g. OneDrive or antivirus locking a file) is retried 5 seconds later. The copy is taken under
+        the lock and the files are written after, so the pages and packets don't wait for the disk; one save at a
+        time, in the order the copies were taken."""
         with self._saving:
             due = []
             with self.lock:
@@ -974,8 +974,9 @@ class Recorder:
                     if s.last_seen <= self._saved_seen.get(uid, 0):
                         continue                 # nothing new since the last good save
                     if s.info.get("online") is None:
-                        continue                 # not before the session packet says if it's online: until then
-                                                 # other players' names can't be hidden (it comes within a second)
+                        continue                 # wait for the session packet to say if it's online,
+                                                 # until then other players' names can't be hidden (it comes within 1
+                                                 # s)
                     since = now - self._last_save.get(uid, 0)
                     wait = 5 if uid in self._failed else SAVE_EVERY
                     if force or since >= wait or (now - s.last_seen > QUIET and since >= 5):
@@ -1000,8 +1001,8 @@ class Recorder:
 
     # -- reading sessions for the app ------------------------------------------------------------------
     def get(self, uid):
-        """A session: the live one from memory, or a saved one. The last two saved sessions opened are kept,
-        so a page asking for its leaderboard, telemetry, map and strategy reads the files once, not each time."""
+        """A session: the live one from memory, or a saved one. The last two saved sessions opened are cached, so a
+        page asking for its leaderboard, telemetry, map and strategy reads the files once, not every time."""
         with self.lock:
             if int(uid) in self.sessions:
                 return self.sessions[int(uid)]
@@ -1025,7 +1026,7 @@ class Recorder:
         with self.lock:
             out = {str(uid): s.summary() for uid, s in self.sessions.items()}
         if GAME_DIR.exists():
-            for folder in GAME_DIR.iterdir():         # "0" held menu packets (older versions): not a session
+            for folder in GAME_DIR.iterdir():         # folder "0" has menu packets from older versions, not a session
                 if folder.name not in out and folder.name != "0" and (folder / "session.json").exists():
                     try:
                         out[folder.name] = Session.load(folder, light=True).summary()
@@ -1034,7 +1035,7 @@ class Recorder:
         return sorted(out.values(), key=lambda s: s["started"], reverse=True)
 
     def setups(self, track=None):
-        """Every session with your setup (at one track, or all), with its best lap: for comparing setups."""
+        """Every session with your setup (at one track or all), with its best lap, for comparing setups."""
         with self.lock:
             out = {str(uid): s for uid, s in self.sessions.items()}
         if GAME_DIR.exists():
@@ -1053,8 +1054,8 @@ class Recorder:
         return sorted(rows, key=lambda r: r["started"], reverse=True)
 
     def is_sprint(self, s):
-        """Is this race a sprint? In F1 25 the sprint is a "Race" session too; it's the one in a weekend that
-        also has a sprint shootout (the sessions of one weekend share the game's weekend number)."""
+        """Is this race a sprint? In F1 25 the sprint is also a "Race" session; it's the one in a weekend that also
+        has a sprint shootout (sessions of one weekend share the game's weekend number)."""
         if s.uid in self._sprint:
             return self._sprint[s.uid]
         weekend, sprint = s.info.get("weekend"), False
@@ -1065,15 +1066,15 @@ class Recorder:
         return sprint
 
     def is_live(self, uid):
-        """The session you're driving: the game sent a packet in the last few seconds, or it's paused."""
+        """Is this the session you're driving? The game sent a packet in the last few seconds, or it's paused."""
         if self.last_packet is None or str(self.live_uid) != str(uid):
             return False
         return time.time() - self.last_packet < QUIET or self.is_paused(uid)
 
     def is_paused(self, uid):
-        """The game sends nothing while it's paused, so a live session that went quiet without the game saying it
-        ended is paused (for up to PAUSE_MAX), not over: it stays live, and carries on when you do. Only a session the
-        game sent its session packet for: not a few stray packets under a new session number after a race."""
+        """The game sends nothing while paused, so a live session that went quiet without the game saying it ended
+        is paused (for up to PAUSE_MAX), not over: it stays live and carries on when you do. Only counts a session
+        the game sent a session packet for, not a few stray packets under a new session number after a race."""
         s = self.sessions.get(self.live_uid)
         if self.last_packet is None or s is None or str(self.live_uid) != str(uid) or "session_type_id" not in s.info:
             return False
@@ -1091,11 +1092,11 @@ class Recorder:
 
 
 def local_addresses():
-    """This PC's addresses on the home network: what to type into the game's UDP IP Address setting."""
+    """This PC's addresses on the home network (what to enter in the game's UDP IP Address setting)."""
     found = set()
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.connect(("192.168.0.1", 9))     # nothing is sent: this only picks the network card
+            s.connect(("192.168.0.1", 9))     # nothing is sent, this just picks the network card
             found.add(s.getsockname()[0])
     except OSError:
         pass
@@ -1107,8 +1108,8 @@ def local_addresses():
 
 
 def suggested_address():
-    """The address to type into the game: a home-network one (192.168.x.x, 10.x.x.x or 172.16-31.x.x),
-    not a VPN address."""
+    """Address to enter in the game: a home network one (192.168.x.x, 10.x.x.x or 172.16-31.x.x), not a VPN
+    address."""
     home = [a for a in local_addresses() if a.startswith(("192.168.", "10."))
             or (a.startswith("172.") and 16 <= int(a.split(".")[1]) <= 31)]
     return (home or local_addresses() or [None])[0]
@@ -1120,8 +1121,8 @@ def raw_files(folder):
 
 
 def _gzip_parts(blob):
-    """The data in every gzip part of a file. A part cut off because the app was closed while writing
-    gives what was written before the cut, and reading carries on with the next part."""
+    """Data in every gzip part of a file. A part cut off because the app closed while writing gives what was
+    written before the cut, and reading continues with the next part."""
     i = 0
     while (start := blob.find(b"\x1f\x8b\x08", i)) >= 0:
         part, out, pos = zlib.decompressobj(16 + zlib.MAX_WBITS), [], start

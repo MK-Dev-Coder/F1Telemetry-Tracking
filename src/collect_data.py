@@ -7,7 +7,7 @@ from fastf1.exceptions import RateLimitExceededError
 
 from config import CACHE_DIR, RAW_DIR, SEASONS
 
-# Never wait forever for a server. If it says nothing for 30 seconds, give up on that file.
+# Don't wait forever for a server: give up on a file after 30 s with no answer
 _original_request = requests.Session.request
 
 
@@ -22,12 +22,12 @@ requests.Session.request = _request_with_timeout
 LAP_COLUMNS = ["Driver", "Team", "LapNumber", "LapTime", "Time", "Stint", "Compound",
                "TyreLife", "FreshTyre", "PitInTime", "PitOutTime", "TrackStatus", "Position"]
 WEATHER_COLUMNS = ["AirTemp", "TrackTemp", "Humidity", "Rainfall"]
-TIME_COLUMNS = ["LapTime", "Time", "PitInTime", "PitOutTime"]      # we save these as seconds
+TIME_COLUMNS = ["LapTime", "Time", "PitInTime", "PitOutTime"]      # saved as seconds
 
-F1_TEST_URL = "https://livetiming.formula1.com/static/2024/Index.json"   # NEW: a small file to test F1's server
+F1_TEST_URL = "https://livetiming.formula1.com/static/2024/Index.json"   # small file to test if F1's server answers
 
 
-# NEW - Recipe 0: wait until F1's server answers us (it blocks us for a while after many downloads)
+# Wait until F1's server answers (it blocks us for a while after many downloads)
 def wait_for_f1():
     while True:
         try:
@@ -40,7 +40,7 @@ def wait_for_f1():
         time.sleep(15 * 60)
 
 
-# Recipe 1: load one race (if the download limit is reached, wait 15 minutes and try again)
+# Load one race (if we hit the download limit, wait 15 min and try again)
 def load_race(year, rnd):
     while True:
         try:
@@ -52,7 +52,7 @@ def load_race(year, rnd):
             time.sleep(15 * 60)
 
 
-# Recipe 2: turn one race into one clean table (laps + the weather on each lap)
+# One race -> one clean table (laps + weather on each lap)
 def race_table(session, year, rnd, event_name):
     laps = session.laps.reset_index(drop=True)
     weather = laps.get_weather_data().reset_index(drop=True)      # weather on each lap
@@ -69,7 +69,7 @@ def race_table(session, year, rnd, event_name):
     return table
 
 
-# Recipe 3: go through every race of every season, and save the ones you don't have yet
+# Go through every race of every season and save the ones we don't have yet
 def main():
     CACHE_DIR.mkdir(exist_ok=True)
     RAW_DIR.mkdir(parents=True, exist_ok=True)
@@ -86,7 +86,7 @@ def main():
             if out_file.exists() or event["EventDate"] > today:
                 continue                                            # already saved, or not raced yet
             print(year, "round", rnd, "-", name)
-            wait_for_f1()                                           # NEW: wait here while F1 blocks us
+            wait_for_f1()                                           # wait here while F1 blocks us
             try:
                 session = load_race(year, rnd)
                 table = race_table(session, year, rnd, name)
@@ -96,7 +96,7 @@ def main():
                 continue
             table.to_parquet(out_file, index=False)
             print("   saved", len(table), "laps")
-            time.sleep(30)                                          # CHANGED: a 30-second break between races
+            time.sleep(30)                                          # 30 s break between races
 
     print("Done:", len(list(RAW_DIR.glob("*.parquet"))), "races saved")
 

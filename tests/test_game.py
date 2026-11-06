@@ -1,4 +1,4 @@
-"""F1 25 / F1 26: reading the game's packets, its laps, and keeping online players' names out."""
+"""Tests for F1 25 / F1 26: reading the game's packets and laps, and keeping online players' names out."""
 import math
 import time
 
@@ -9,7 +9,7 @@ import game_telemetry as gt
 
 
 def packet(fmt=2025, pid=0, uid=123, size=None):
-    """A packet from the game: its header, then zeros up to the size the packet id should have."""
+    """Fake game packet: the header, then zeros up to the right size for the packet id."""
     head = gt.HEADER.pack(fmt, fmt % 100, 1, 0, 1, pid, uid, 12.5, 100, 100, 0, 255)
     return head + bytes((size if size is not None else gt.SIZES[fmt][pid]) - len(head))
 
@@ -27,8 +27,8 @@ def event(code, fmt=2026):
 
 
 def test_a_paused_game_is_paused_not_over():
-    """While it's paused the game sends nothing at all; when a session is over (the flag, or quitting to the menu)
-    it says "Session ended" first. So a quiet session it hasn't ended stays live, as paused."""
+    """While paused the game sends nothing; when a session is over (the flag, or quitting to the menu) it sends
+    "Session ended" first. So a quiet session that hasn't ended stays live, as paused."""
     now = time.time()
     r = gt.Recorder(resume=False)
     r.handle(packet(fmt=2026, pid=1), now - 61, record=False)                # the session packet
@@ -45,8 +45,8 @@ def test_a_paused_game_is_paused_not_over():
 
 
 def test_stray_packets_are_not_a_paused_session():
-    """After a race the game can send a few packets under a new session number, with no session packet: once they
-    stop, that isn't a session waiting for you."""
+    """After a race the game can send a few packets under a new session number with no session packet; once they
+    stop, that's not a paused session."""
     r = gt.Recorder(resume=False)
     r.handle(event("SSTA"), time.time() - 60, record=False)
     assert not r.is_paused(123) and not r.is_live(123)
@@ -64,7 +64,7 @@ def test_bad_packets_are_skipped():
 
 
 def test_online_players_names_are_never_kept():
-    """The project has no human participants: in an online session the other people are renamed."""
+    """The project has no human participants, so other people in an online session are renamed."""
     s = gt.Session(1, 2025)
     s.info, s.player = {"online": True}, 0
     s.drivers = {0: {"name": "Me", "code": "MEE", "ai": False}, 1: {"name": "SomeoneOnline", "code": "SOM", "ai": False},
@@ -83,8 +83,8 @@ def test_offline_names_stay():
 
 
 def test_nothing_is_saved_before_the_game_says_if_the_session_is_online(tmp_path, monkeypatch):
-    """The names come before the session packet that says the session is online, and they are hidden only then:
-    so nothing is saved before it, not even for a moment."""
+    """The names arrive before the session packet that says the session is online, and are only hidden then, so
+    nothing is saved before it, not even for a moment."""
     monkeypatch.setattr(gt, "GAME_DIR", tmp_path)
     r = gt.Recorder(resume=False)
     s = r.sessions[7] = gt.Session(7, 2025)
@@ -99,14 +99,14 @@ def test_nothing_is_saved_before_the_game_says_if_the_session_is_online(tmp_path
 
 
 def lap_data(lap, last_ms, status=2, pit=0):
-    """One car in a lap data packet: what the laps need."""
+    """One car in a lap data packet (only the fields the laps need)."""
     return dict(result_status=status, last_lap_ms=last_ms, lap=lap, sector=0, s1_ms=0, s1_min=0, s2_ms=0, s2_min=0,
                 position=1, leader_ms=0, leader_min=0, pit_stops=0, pit_status=pit, lap_distance=10.0, driver_status=4)
 
 
 def test_a_flashback_takes_away_what_came_after_it():
-    """A flashback to before the pit lane takes the stop away when the car then stays out, and a finish it undoes
-    is made again."""
+    """A flashback to before the pit lane removes the stop if the car then stays out, and a finish it undoes is
+    recorded again."""
     s = gt.Session(1, 2025)
     s.on_lap_data(90.0, [lap_data(10, 90_000)])
     s.on_lap_data(100.0, [lap_data(10, 90_000, pit=1)])                      # into the pit lane on lap 10
@@ -125,8 +125,8 @@ def test_a_flashback_takes_away_what_came_after_it():
 
 
 def test_the_last_lap_at_the_flag_is_kept():
-    """At the flag the game stops counting laps, and it often gives the last lap's time a frame before it says the
-    car has finished (seen in real races: the player's last lap was lost)."""
+    """At the flag the game stops counting laps, and it often sends the last lap's time a frame before it says the
+    car has finished (in real races the player's last lap was being lost)."""
     s = gt.Session(1, 2025)
     s.on_lap_data(100.0, [lap_data(5, 90_000)])                              # on the last lap
     s.on_lap_data(190.0, [lap_data(5, 91_500)])                              # the time first, still racing...
@@ -139,7 +139,8 @@ def test_the_last_lap_at_the_flag_is_kept():
 
 
 def test_the_games_first_pit_window_is_its_plan():
-    """The game's strategy: its first pit window is the plan (it moves on after a stop, and is 0 after the flag)."""
+    """The game's strategy: its first pit window is the plan (the window moves after a stop, and is 0 after the
+    flag)."""
     r = gt.Recorder(resume=False)
 
     def session(ideal, latest, rejoin):
@@ -180,7 +181,7 @@ def test_safety_car_periods_from_the_games_messages():
 
 
 def test_the_last_laps_end_times_are_put_back():
-    """At the flag the game gives every car the same end time; it comes back from the lap before + the lap time."""
+    """At the flag the game gives every car the same end time; it's rebuilt from the lap before + the lap time."""
     rows = [{"Driver": d, "LapNumber": 4, "Time": t, "LapTime": 90.0} for d, t in [("A", 400.0), ("B", 401.0), ("C", 403.0)]]
     rows += [{"Driver": d, "LapNumber": 5, "Time": 500.0, "LapTime": lt} for d, lt in [("A", 98.0), ("B", 99.0), ("C", 97.5)]]
     out = gs.last_lap_times(rows)

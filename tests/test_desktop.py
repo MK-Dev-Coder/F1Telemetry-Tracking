@@ -1,4 +1,4 @@
-"""desktop.py: the app in a window of its own. The tests don't open a window or start the app."""
+"""Tests for desktop.py (the app in its own window). They don't open a window or start the app."""
 import socket
 import time
 
@@ -47,12 +47,12 @@ def test_new_races_fetch_the_latest_data_first(monkeypatch, tmp_path):
     desktop.new_races()
     assert asked == ["download", "add"]                         # another PC may have built the race already
     asked.clear()
-    desktop.new_races(fetched=True)                             # fetched as the app started: not again
+    desktop.new_races(fetched=True)                             # already downloaded at start, so not again
     assert asked == ["add"]
 
 
 def test_the_internet_check_has_a_time_limit(monkeypatch):
-    """Looking up the cloud's address has no time limit of its own: the check gives up after its own."""
+    """The DNS lookup for the cloud has no timeout of its own, so the check uses its own time limit."""
     def no_answer(*args, **kwargs):
         time.sleep(3)
         raise OSError("the name lookup failed")

@@ -1,19 +1,18 @@
-"""The race engineer's briefing for a track, from the real races there in 2022-2026:
+"""Race engineer's briefing for a track, from the real races there in 2022-2026:
 
 - tyres: how many laps each compound lasts here (stints that ended in a stop under green) and how fast it wears
-  (seconds lost a lap, for each lap on the set, with the fuel burn taken out), and how a hotter or cooler track
+  (seconds lost per lap for each lap on the set, with the fuel effect taken out), and how a hotter or cooler track
   changes that (learned from all tracks: on a hotter day than usual the medium and hard wear faster)
-- strategies: the plans the finishers used here (soft-medium, medium-hard...), how often, when they stopped, how many
-  places they gained, and what the winners did
-- the track: the race length, what a stop costs (under green, the safety car and the VSC), how often there was a
-  safety car or VSC, how often the pole sitter won, and the weather in past races
+- strategies: the plans the finishers used here (soft-medium, medium-hard...), how often, when they stopped, how
+  many places they gained, and what the winners did
+- the track: race length, the cost of a stop (under green, safety car and VSC), how often there was a safety car or
+  VSC, how often the pole sitter won, and the weather in past races
 - in F1 25 / F1 26: the same for the game's shorter race (the game wears the tyres faster to match)
 
-Each race is kept on its own, so a briefing can use only the races before one (a replay shows what an engineer
-would have known then, with no spoilers). What it is: what really happened here, not a simulation. The app's own
-view: the study's numbers don't use it.
-    python src/engineer.py   -> models/engineer.json
-"""
+Each race is kept separately, so a briefing can use only the races before a given one (a replay shows what an
+engineer would have known then, no spoilers). It is based on what really happened here, it's not a simulation. Only
+the app uses it, the study's results don't.
+Run: python src/engineer.py -> models/engineer.json"""
 import json
 
 import numpy as np
@@ -29,9 +28,9 @@ DRY = ["SOFT", "MEDIUM", "HARD"]
 WET = ["INTERMEDIATE", "WET"]
 LETTER = {"SOFT": "S", "MEDIUM": "M", "HARD": "H", "INTERMEDIATE": "I", "WET": "W"}
 COMPOUND = {v: k for k, v in LETTER.items()}
-FUEL = 0.06                # seconds a lap the car gets quicker as the fuel burns, for each lap (a usual F1 figure)
-FEWEST = 5                 # fewer stints than this at a track: no tyre life for that compound (its wear: all tracks)
-MOST_CHANGE = 0.4          # a hotter or cooler day changes the tyre life by at most 40% either way
+FUEL = 0.06                # seconds per lap the car gets faster as fuel burns (a usual F1 figure)
+FEWEST = 5                 # fewer stints than this at a track: no tyre life for that compound (wear from all tracks)
+MOST_CHANGE = 0.4          # a hotter or cooler day changes tyre life by at most 40% either way
 
 
 def quantiles(values, qs=(0.25, 0.5, 0.75)):
@@ -39,7 +38,7 @@ def quantiles(values, qs=(0.25, 0.5, 0.75)):
     return [round(float(v.quantile(q)), 1) for q in qs] if len(v) else [None] * len(qs)
 
 
-# Recipe 1: every stint of every race; the ones that ended in a stop under green show how long the tyre lasted
+# Every stint of every race; the ones that ended with a stop under green show how long the tyre lasted
 def stints(laps):
     laps = laps.sort_values(["RaceId", "Driver", "LapNumber"])
     st = laps.groupby(["RaceId", "Driver", "Stint"], sort=False).agg(
@@ -51,8 +50,8 @@ def stints(laps):
     return st
 
 
-# Recipe 2: how fast each stint's tyres wore: the lap time's rise for each lap on the set, on clean laps (green, not
-# in or out of the pits, within 7% of the field), with the fuel burn added back
+# How fast each stint's tyres wore: the rise in lap time per lap on the set, on clean laps (green, not in or out of
+# the pits, within 7% of the field), with the fuel effect added back
 def wear(laps):
     clean = ((laps["TrackStatus"].astype(str) == "1") & laps["PitInTime"].isna() & laps["PitOutTime"].isna()
              & (laps["LapNumber"] > 1) & (laps["PaceVsField"] < 0.07) & laps["Compound"].astype(str).isin(DRY)
@@ -63,12 +62,12 @@ def wear(laps):
             slope = np.polyfit(g["LapsInStint"], g["LapTime"], 1)[0] + FUEL
             rows.append((race, str(g["Circuit"].iloc[0]), str(g["Compound"].iloc[0]), slope, g["TrackTemp"].median()))
     w = pd.DataFrame(rows, columns=["RaceId", "Circuit", "Compound", "Wear", "Temp"])
-    return w[w["Wear"].between(-0.3, 0.6)]                     # (a damaged car or a traffic jam)
+    return w[w["Wear"].between(-0.3, 0.6)]                     # drop outliers (damaged car or traffic)
 
 
 def temperature_effect(w):
-    """For each compound: how much faster it wears for each degree the track is hotter than usual there (s a lap,
-    for each lap on the set), from all tracks, each against its own usual temperature and wear."""
+    """For each compound: how much faster it wears per degree the track is hotter than usual (s per lap, for each
+    lap on the set), from all tracks, each compared with its own usual temperature and wear."""
     w = w.assign(dT=w["Temp"] - w.groupby("Circuit")["Temp"].transform("median"))
     out = {}
     for compound in DRY:
@@ -78,14 +77,14 @@ def temperature_effect(w):
     return out
 
 
-# Recipe 3: each finisher's plan (the compounds in order, the laps they stopped, places gained)
+# Each finisher's strategy (compounds in order, the laps they stopped on, places gained)
 def finishers(st, results, laps):
     total = laps.groupby("RaceId")["TotalLaps"].first()
     done = st.groupby(["RaceId", "Driver"]).agg(Plan=("Compound", lambda c: "-".join(LETTER.get(x, "?") for x in c)),
                                                  Laps=("End", "max"), StopLaps=("End", lambda e: [int(x) for x in e.iloc[:-1]]))
     done = done.reset_index().merge(results[["RaceId", "Driver", "Grid", "Final"]], on=["RaceId", "Driver"], how="left")
     done = done[done["Final"].notna() & (done["Laps"] >= 0.9 * done["RaceId"].map(total))]
-    done["Gained"] = done["Grid"].where(done["Grid"] > 0) - done["Final"]           # (grid 0: from the pit lane)
+    done["Gained"] = done["Grid"].where(done["Grid"] > 0) - done["Final"]           # grid 0 = pit lane start
     return done
 
 
@@ -121,7 +120,7 @@ def build():
                           zip(f["RaceId"], f["Plan"], f["StopLaps"], f["Gained"], f["Final"])]}
     wet = st[st["Compound"].isin(WET) & st["Stop"].astype(bool) & (st["Laps"] >= 3)]
     table = {"tracks": tracks, "temperature_effect": temperature_effect(w), "fuel": FUEL,
-             "pit_share": {k: v[1] for k, v in pit_now.load()["share"].items()},       # (a stop under the SC or VSC)
+             "pit_share": {k: v[1] for k, v in pit_now.load()["share"].items()},       # cost of a stop under SC or VSC
              "all_wear": {c: round(float(w.loc[w["Compound"] == c, "Wear"].median()), 3) for c in DRY},
              "wet_stints": [[r, LETTER[c], int(n)] for r, c, n in zip(wet["RaceId"], wet["Compound"], wet["Laps"])],
              "wet_races": sorted(laps.loc[laps["Compound"].astype(str).isin(WET), "RaceId"].unique())}
@@ -133,9 +132,9 @@ def load():
     return json.loads(TABLE_FILE.read_text(encoding="utf-8")) if TABLE_FILE.exists() else build()
 
 
-# Recipe 4: the briefing for one track, from the races there (only the ones before `before`, a race id, if given),
-# on a day as hot as `track_temp` (the usual one if not given), in the rain or not, and for a race of `distance` %
-# or of `game_laps` laps (the game's shorter races wear the tyres faster to match, so they last as many laps less)
+# Briefing for one track from the races there (only the ones before `before`, a race id, if given), for a track
+# temperature of `track_temp` (the usual one if not given), rain or not, and a race of `distance` % or of `game_laps`
+# laps (the game's shorter races wear the tyres faster to match, so they last fewer laps)
 def brief(table, circuit, track_temp=None, rain=False, distance=100, game_laps=None, before=None):
     t = table["tracks"].get(circuit)
     if t is None:
@@ -156,11 +155,11 @@ def brief(table, circuit, track_temp=None, rain=False, distance=100, game_laps=N
     scale = lambda v: None if v is None else round(v / factor, 1)
     tyres = {}
     for c in DRY:
-        n = [x[2] for x in t["stints"] if x[0] in keep and COMPOUND.get(x[1]) == c]      # ("?": a tyre OpenF1
-        worn = [x[2] for x in t["wear"] if x[0] in keep and COMPOUND.get(x[1]) == c]      # didn't name)
+        n = [x[2] for x in t["stints"] if x[0] in keep and COMPOUND.get(x[1]) == c]      # "?" = unnamed tyre
+        worn = [x[2] for x in t["wear"] if x[0] in keep and COMPOUND.get(x[1]) == c]
         life = quantiles(n) if len(n) >= FEWEST else [None] * 3
         base = float(np.median(worn)) if len(worn) >= FEWEST else table["all_wear"][c]
-        hot = base + table["temperature_effect"][c] * (temp - usual)              # the wear on this day
+        hot = base + table["temperature_effect"][c] * (temp - usual)              # wear at today's temperature
         hot = max(hot, 0.3 * base) if base > 0 else hot
         change = 1.0 if base <= 0 else min(1 + MOST_CHANGE, max(1 - MOST_CHANGE, base / hot))
         life_today = None if life[1] is None else life[1] * change

@@ -4,10 +4,10 @@ from config import DATA_DIR
 
 IN_FILE = DATA_DIR / "all_laps.parquet"
 OUT_FILE = DATA_DIR / "features.parquet"
-HORIZON = 3                                   # the target: does the driver pit in the next 3 laps?
+HORIZON = 3                                   # target: does the driver pit in the next 3 laps?
 DRY = ["SOFT", "MEDIUM", "HARD"]
 
-# What the model sees. Everything is known at the end of the lap - nothing from the future.
+# Model inputs. All of them are known at the end of the lap, nothing from the future.
 CATEGORIES = ["Compound", "Circuit"]
 FEATURES = CATEGORIES + [
     "TyreLife", "Stint", "FreshTyre", "LapsInStint", "DryCompoundsUsed", "FieldOnWetTyres",   # tyres
@@ -19,9 +19,9 @@ FEATURES = CATEGORIES + [
     "AirTemp", "TrackTemp", "Humidity", "Rainfall",                                           # weather
 ]
 KEEP = ["RaceId", "Year", "Round", "EventName", "Driver", "Team", "Source"]
-# The study's races: 2022-2025 to train and tune, and the first 17 races of 2026 to test (up to Singapore), as in
-# the write-up. Races added later (the 2026 United States GP on) are used by the app and the race preview only, so
-# running the training and evaluation scripts again gives the same numbers.
+# Study data: 2022-2025 to train and tune, 2026 rounds 1-17 (up to Singapore) to test. Races added later (from the
+# 2026 US GP) are only used by the app and the race preview, so running training and evaluation again gives the same
+# results.
 TEST_LAST_ROUND = 17
 
 
@@ -29,11 +29,10 @@ def in_study(rows):
     return (rows["Year"] < 2026) | (rows["Round"] <= TEST_LAST_ROUND)
 
 
-# Recipe 1: which laps end with a real pit stop?
-# Real = the tyres really change (another compound, or the tyre age starts again), the car is
-# in the pit lane for less than 90 seconds, and it isn't under a red flag. This leaves out
-# drive-through penalties, the field driving through the pit lane behind the safety car
-# (Australia 2025, Canada 2025) and cars waiting in the pit lane (Monaco 2026).
+# Which laps end with a real pit stop?
+# Real = the tyres change (new compound, or the tyre age starts again), the car is in the pit lane for under 90 s and
+# there is no red flag. This leaves out drive-through penalties and cars waiting in the pit lane (Monaco 2026).
+# Known issue: some pit-lane passes behind the safety car still count as stops (13 of the 561 in the 2026 test races).
 def mark_stops(laps, by_driver):
     life, next_life = laps["TyreLife"], by_driver["TyreLife"].shift(-1)
     new_tyres = (by_driver["Compound"].shift(-1) != laps["Compound"]) | (next_life <= life)
@@ -50,26 +49,26 @@ def mark_stops(laps, by_driver):
     laps["PitSoon"] = target.astype(int)
 
 
-# Recipe 2: tyre features
+# Tyre features
 def tyre_features(laps, by_driver):
     laps["FreshTyre"] = laps["FreshTyre"].astype(int)
     laps["LapsInStint"] = laps.groupby(["RaceId", "Driver", "Stint"]).cumcount() + 1
     used = [(laps["Compound"] == c).groupby([laps["RaceId"], laps["Driver"]]).cummax() for c in DRY]
-    laps["DryCompoundsUsed"] = sum(u.astype(int) for u in used)        # F1 rule: a dry race needs 2
+    laps["DryCompoundsUsed"] = sum(u.astype(int) for u in used)        # rule: a dry race needs 2 different compounds
     wet = laps["Compound"].isin(["INTERMEDIATE", "WET"])
     laps["FieldOnWetTyres"] = wet.groupby([laps["RaceId"], laps["LapNumber"]]).transform("mean")
 
 
-# Recipe 3: race progress and pace
+# Race progress and pace
 def pace_features(laps):
     laps["LapsLeft"] = laps["TotalLaps"] - laps["LapNumber"]
     laps["RaceProgress"] = laps["LapNumber"] / laps["TotalLaps"]
     field = laps.groupby(["RaceId", "LapNumber"])["LapTime"].transform("median")
     laps["PaceVsField"] = laps["LapTime"] / field - 1                  # +0.02 = 2% slower than the field
 
-    # Tyre wear: the last 3 clean laps compared with the best clean lap of this stint.
-    # Clean = green flag, not lap 1, not the lap out of the pits, and within 15% of the field
-    # (so a damaged car crawling back to the pits doesn't count).
+    # Tyre wear = last 3 clean laps vs the best clean lap of the stint.
+    # Clean lap: green flag, not lap 1, not an out-lap, and within 15% of the field (so a damaged car going slowly
+    # back to the pits doesn't count).
     clean = ((laps["TrackStatus"] == "1") & (laps["LapNumber"] > 1) & laps["PitOutTime"].isna()
              & (laps["PaceVsField"] < 0.15))
     stint = ["RaceId", "Driver", "Stint"]
@@ -79,12 +78,12 @@ def pace_features(laps):
     laps["TyreWear"] = laps.groupby(stint)["TyreWear"].ffill()          # unclean laps keep the last value
 
 
-# Recipe 4: gaps and what the cars around you did
+# Gaps, and what the cars around did
 def race_features(laps, by_driver):
     order = laps.sort_values(["RaceId", "LapNumber", "Position"])
     by_lap = order.groupby(["RaceId", "LapNumber"])["Time"]
     placed = laps["Position"].notna()
-    # Seconds to the car in front / behind. Over 60 s they aren't racing each other, so 60 is the cap.
+    # Gap in seconds to the car in front / behind, capped at 60 (more than that and they aren't racing)
     laps["GapAhead"] = by_lap.diff().where(placed).clip(0, 60)
     laps["GapBehind"] = (-by_lap.diff(-1)).where(placed).clip(0, 60)
     laps["GapToLeader"] = (laps["Time"] - laps.groupby(["RaceId", "LapNumber"])["Time"].transform("min")).clip(lower=0)
@@ -106,7 +105,7 @@ def race_features(laps, by_driver):
         laps[name] = recent.reindex(key).eq(True).astype(int).values
 
 
-# Recipe 5: track status and weather as 0/1 numbers
+# Track status and weather as 0/1 flags
 def status_features(laps):
     status = laps["TrackStatus"]
     laps["SafetyCar"] = status.str.contains("4").astype(int)
@@ -122,8 +121,8 @@ def status_features(laps):
     laps["LapsUnderNeutral"] = neutral.groupby([laps["RaceId"], laps["Driver"], block]).cumsum().where(neutral, 0)
 
 
-# Every lap with every feature, in-laps included (the tyre model uses the in-laps).
-# The F1 25 part passes its own laps (same columns), so the game gets exactly the same features.
+# All laps with all features, in-laps included (the tyre model needs them). The F1 25 code passes its own laps here
+# (same columns) so the game gets the same features.
 def build(laps=None):
     laps = pd.read_parquet(IN_FILE) if laps is None else laps
     laps = laps.sort_values(["RaceId", "Driver", "LapNumber"]).reset_index(drop=True)
@@ -143,7 +142,7 @@ def main():
     print("Pit stops:", int(stops.sum()), "- per race: median", stops.median(), ", most", int(stops.max()),
           f"({stops.idxmax()})")
 
-    # The in-lap itself is left out: when it ends, the car is already in the pit lane
+    # leave out the in-lap itself, at the end of it the car is already in the pit lane
     rows = laps[laps["PitInTime"].isna()].copy()
     for col in CATEGORIES:
         rows[col] = rows[col].astype("category")

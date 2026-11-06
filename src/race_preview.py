@@ -1,16 +1,15 @@
-"""Race preview: before a race starts, each driver's chance to win, finish on the podium and score points.
+"""Race preview: before a race starts, each driver's chance to win, get a podium and score points.
 
-One row per driver per race, with only what is known before the start: their recent form and their team's, race
-pace from the lap data of the last races (finishing places hide bad luck, lap times don't), how often the team's
-cars retire, how they did at this track before, and - once qualifying is done - the grid. The same kind of model
-as the race outcome model: "will they finish in the top k?" for every k, with the chances fitted together so the
-field has one winner, three podium places and ten points places.
+One row per driver per race, using only what is known before the start: their recent form and their team's, race
+pace from the lap data of the last races (finishing positions hide bad luck, lap times don't), how often the team's
+cars retire, how they did at this track before, and the grid once qualifying is done. Same kind of model as the
+race outcome model: "will they finish in the top k?" for every k, with the chances fitted together so the field has
+one winner, three podium places and ten points places.
 
-It is tested the way it would be used: before each race of 2025 and 2026 it is trained again on the races before
-it, then asked about that race (the settings are picked the same way on 2024). Then the next race is predicted.
-    python src/race_preview.py   -> data/preview_backtest.parquet, data/preview_evaluation.md, figures/preview_*.png,
-                                models/preview_next.json (the next race, with the reasons)
-"""
+It is tested the way it would be used: before each race of 2025 and 2026 it is retrained on the races before it,
+then predicts that race (settings picked the same way on 2024). Then the next race is predicted.
+Run: python src/race_preview.py -> data/preview_backtest.parquet, data/preview_evaluation.md,
+figures/preview_*.png, models/preview_next.json (the next race, with reasons)"""
 import json
 import time
 import warnings
@@ -38,23 +37,24 @@ BACKTEST_FILE, NEXT_FILE = DATA_DIR / "preview_backtest.parquet", MODELS_DIR / "
 REPORT = DATA_DIR / "preview_evaluation.md"
 MAX_K = 20
 POINTS = {1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1}
-# Each place-like feature is given against the top-k line (as in the race outcome model): below 0 = inside it
+# Position-type features are relative to the top-k line (like in the race outcome model): < 0 means inside it
 K_FEATURES = {"FormToK": "DriverForm5", "LastToK": "LastFinish", "SeasonToK": "SeasonAvg", "TeamFormToK": "TeamForm3",
               "TrackToK": "TrackDriver", "GridToK": "Grid"}
 BEFORE = ["FormToK", "LastToK", "SeasonToK", "SeasonWins", "SeasonPodiums", "TeamFormToK", "Pace3", "TeamPace3",
           "TeamDNF5", "TrackToK"]
-# After qualifying the grid says the most; with every feature it gets watered down, so a few sets are tried on 2024
+# After qualifying the grid matters most and with all features it gets diluted, so a few feature sets are tried on
+# 2024
 AFTER_SETS = {"grid and everything": BEFORE + ["GridToK"], "grid, pace and wins": ["GridToK", "Pace3", "TeamPace3", "SeasonWins"],
               "grid, form and pace": ["GridToK", "FormToK", "TeamFormToK", "Pace3", "TeamPace3", "SeasonWins", "TeamDNF5"],
               "grid only": ["GridToK"]}
-VERSIONS = {"before qualifying": BEFORE, "after qualifying": AFTER_SETS["grid and everything"]}     # (set in main)
+VERSIONS = {"before qualifying": BEFORE, "after qualifying": AFTER_SETS["grid and everything"]}     # set in main
 LGBM = dict(objective="binary", learning_rate=0.05, subsample=0.8, subsample_freq=1, colsample_bytree=0.8,
             reg_lambda=1.0, random_state=42, verbose=-1)
 TRIES = [dict(num_leaves=7, min_child_samples=400, n_estimators=150), dict(num_leaves=7, min_child_samples=400, n_estimators=300),
          dict(num_leaves=15, min_child_samples=800, n_estimators=200)]
 
 
-# Recipe 1: one row per driver per race - the result, and what the lap data says about that race
+# One row per driver per race: the result, and what the lap data says about that race
 def driver_races():
     laps = tyre.replay_laps()
     clean = ((laps["TrackStatus"] == "1") & (laps["LapNumber"] > 1) & laps["PitOutTime"].isna()
@@ -69,26 +69,26 @@ def driver_races():
     return rows.sort_values(["RaceId", "Final"]).reset_index(drop=True)
 
 
-# Recipe 2: what was known before each race, from the races before it only
+# What was known before each race (only from the races before it)
 def add_history(rows):
     rows = rows.sort_values(["RaceId", "Driver"]).reset_index(drop=True)
     by_driver = rows.groupby("Driver")
     before = lambda s, n: s.shift(1).rolling(n, min_periods=1).mean()
     rows["DriverForm5"] = by_driver["Final"].transform(lambda s: before(s, 5))
     rows["LastFinish"] = by_driver["Final"].shift(1)
-    rows["Pace3"] = by_driver["Pace"].transform(lambda s: before(s, 3))          # below 0 = quicker than the field
+    rows["Pace3"] = by_driver["Pace"].transform(lambda s: before(s, 3))          # < 0 = faster than the field
     season = rows.groupby(["Year", "Driver"])
     rows["SeasonAvg"] = season["Final"].transform(lambda s: s.shift(1).expanding().mean())
     rows["SeasonWins"] = season["Final"].transform(lambda s: (s == 1).astype(float).shift(1).fillna(0).cumsum())
     rows["SeasonPodiums"] = season["Final"].transform(lambda s: (s <= 3).astype(float).shift(1).fillna(0).cumsum())
-    # The team: its cars' average place, race pace and retirements, race by race
+    # Team: its cars' average position, race pace and retirements, race by race
     team = rows.groupby(["Team", "RaceId"]).agg(Final=("Final", "mean"), Pace=("Pace", "mean"), Retired=("Retired", "mean"))
     by_team = team.groupby(level=0)
     team["TeamForm3"] = by_team["Final"].transform(lambda s: before(s, 3))
     team["TeamPace3"] = by_team["Pace"].transform(lambda s: before(s, 3))
     team["TeamDNF5"] = by_team["Retired"].transform(lambda s: before(s, 5))
     rows = rows.join(team[["TeamForm3", "TeamPace3", "TeamDNF5"]], on=["Team", "RaceId"])
-    # This track before (earlier years)
+    # This track in earlier years
     rows["TrackDriver"] = rows.groupby(["Driver", "Circuit"])["Final"].transform(lambda s: s.shift(1).expanding().mean())
     return rows
 
@@ -124,7 +124,7 @@ def summary(p):
     return s
 
 
-# Recipe 3: two simple baselines - how often drivers with the same recent form (or grid slot) finished in the top k
+# Two simple baselines: how often drivers with the same recent form (or grid slot) finished in the top k
 def table_chances(train, race, key):
     def keys(rows):
         return rows[key].round().clip(1, 20).fillna(0).astype(int).astype(str)
@@ -139,7 +139,7 @@ def table_chances(train, race, key):
 
 
 def backtest(rows, races, tries, versions=VERSIONS):
-    """Before each race: train on the races before it, predict it. One row per driver per race and way."""
+    """Before each race: train on the races before it and predict it. One row per driver per race and method."""
     out = []
     for race_id in races:
         train, race = rows[rows["RaceId"] < race_id], rows[rows["RaceId"] == race_id].reset_index(drop=True)
@@ -153,7 +153,7 @@ def backtest(rows, races, tries, versions=VERSIONS):
             p = table_chances(train, race, key)
             for t, k in ro.SHOWN.items():
                 frame[f"{name}|{t}"] = p[:, k - 1]
-        # The favourite of two simple rules: the last race's winner, and the season's points leader so far
+        # Favourite by two simple rules: last race's winner, and the season's points leader so far
         last = train[train["RaceId"] == train["RaceId"].max()]
         season = train[train["Year"] == race["Year"].iloc[0]]
         points = season.assign(P=season["Final"].map(POINTS).fillna(0)).groupby("Driver")["P"].sum()
@@ -179,11 +179,11 @@ def scores(bt, way):
     return out
 
 
-# Recipe 4: the next race - the drivers of the latest race, everything known now, and why (SHAP against an average
-# driver in the training races, asked the same question)
+# Next race: the drivers of the latest race, everything known now, and why (SHAP vs an average driver from the
+# training races)
 def next_race(rows):
-    """The next race from OpenF1 (this season's, or next season's first once this one is over), with its round as
-    collect_openf1.py numbers it (FastF1's schedule). None without internet."""
+    """Next race from OpenF1 (this season's, or next season's first once this one is over), with its round numbered
+    like collect_openf1.py does (FastF1's schedule). None without internet."""
     latest = rows[rows["RaceId"] == rows["RaceId"].max()]
     year, last_round = int(latest["Year"].iloc[0]), int(latest["Round"].iloc[0])
     try:
@@ -201,7 +201,7 @@ def next_race(rows):
         try:
             fastf1.Cache.enable_cache(CACHE_DIR)
             event = collect_openf1.rounds_by_date(season).get(pd.Timestamp(s["date_start"]).tz_convert("UTC").date())
-        except Exception as err:                                                    # (FastF1 can't be reached)
+        except Exception as err:                                                    # FastF1 can't be reached
             print("   no FastF1 schedule:", err)
             event = None
         rnd = int(event["RoundNumber"]) if event is not None else last_round + 1 if season == year else 1
@@ -209,9 +209,9 @@ def next_race(rows):
             which = f"round {rnd - 1}" if rnd - 1 == last_round + 1 else f"rounds {last_round + 1}-{rnd - 1}"
             print(f"   {which} of {year} isn't saved yet: add it first (collect_openf1.py {year} {rnd - 1}, see the README)")
         return {"name": name, "date": s["date_start"][:10], "circuit": s["circuit_short_name"], "year": season, "round": rnd}
-    except Exception as err:                                                        # no internet: no next race
-        if collect_openf1.QUICK and isinstance(err, RuntimeError):    # an automatic build while OpenF1 is closed (a
-            raise                                                      # live session): it fails, and runs again next time
+    except Exception as err:                                                        # no internet, no next race
+        if collect_openf1.QUICK and isinstance(err, RuntimeError):    # an automatic build during a live session (OpenF1
+            raise                                                      # closed) fails, so it runs again next time
         print("   no next race from OpenF1:", err)
         return None
 
@@ -277,10 +277,10 @@ def describe(name, row, k):
     return texts.get(base, lambda v: f"{base} = {v}")(float(v))
 
 
-# Recipe 5: the report and the charts
+# Report and charts
 def report(bt, tune, chosen, tries):
-    # The study's races only (2026 up to round 17), so the numbers stay the same when races are added; the app
-    # shows the races after it too (the backtest file has them all)
+    # Only the study's races (2026 up to round 17), so the numbers don't change when races are added; the app also
+    # shows the later ones (the backtest file has them all)
     test = bt[(bt["Year"] >= 2025) & features.in_study(bt)]
     ways = ["before qualifying", "after qualifying", "form table", "grid table"]
     res = pd.DataFrame({w: scores(test, w) for w in ways}).T.rename_axis("Way")
@@ -326,7 +326,7 @@ def main():
     rows = add_history(driver_races())
     races = sorted(rows["RaceId"].unique())
     print(f"{len(rows)} driver-races in {len(races)} races")
-    # Settings: picked by testing race by race on 2024 (before qualifying, the harder one)
+    # Settings: picked by testing race by race on 2024 (before qualifying, the harder case)
     tune = {}
     for k, tries in enumerate(TRIES):
         bt = backtest(rows, [r for r in races if r.startswith("2024")], tries, {"before qualifying": BEFORE})

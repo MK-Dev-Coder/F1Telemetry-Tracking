@@ -93,7 +93,7 @@ dialog.help::backdrop{background:rgba(5,7,10,.75)}
 }
 @media (prefers-reduced-motion: reduce){ .choice,.clip,.shade{transition:none} }
 
-/* live now: the F1 25 session that's being recorded, at the top while the game sends */
+/* live now: the F1 25 session being recorded, at the top while the game is sending */
 .live{display:none;grid-template-columns:minmax(0,1fr) 240px;gap:24px;align-items:center;margin:0 0 30px;padding:22px 26px;border-radius:14px;
   background:linear-gradient(115deg,#320d18 0%,#1a1018 45%,#15151e 75%);border:1px solid rgba(225,6,50,.6);color:inherit;text-decoration:none}
 .live.on{display:grid}
@@ -146,7 +146,7 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
   <p class="lead">Real Formula 1 races with the pit stop model, or your own laps from F1 25 and its 2026 Season Pack on the PlayStation.</p>
   <div class="choices">
     <a class="choice" href="f1.html">
-      <!-- Hover video: put your clip in web/media/ as f1.mp4 (and, if you like, f1.webm) -->
+      <!-- Hover video: put the clip in web/media/ as f1.mp4 (and optionally f1.webm) -->
       <video class="clip" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
         <source src="media/f1.webm" type="video/webm"><source src="media/f1.mp4" type="video/mp4">
       </video>
@@ -159,7 +159,7 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
       <div class="go"><span id="f1Note">OpenF1 and FastF1</span><span class="open">Open<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></div>
     </a>
     <a class="choice game" href="f1-25.html">
-      <!-- Hover video: put your clip in web/media/ as f1-25.mp4 (and, if you like, f1-25.webm) -->
+      <!-- Hover video: put the clip in web/media/ as f1-25.mp4 (and optionally f1-25.webm) -->
       <video class="clip" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
         <source src="media/f1-25.webm" type="video/webm"><source src="media/f1-25.mp4" type="video/mp4">
       </video>
@@ -172,7 +172,7 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
       <div class="go"><span id="gameNote">Checking the game connection…</span><span class="open">Open<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></div>
     </a>
     <a class="choice game26" href="f1-26.html">
-      <!-- Hover video: put your clip in web/media/ as f1-26.mp4 (and, if you like, f1-26.webm) -->
+      <!-- Hover video: put the clip in web/media/ as f1-26.mp4 (and optionally f1-26.webm) -->
       <video class="clip" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
         <source src="media/f1-26.webm" type="video/webm"><source src="media/f1-26.mp4" type="video/mp4">
       </video>
@@ -244,14 +244,14 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
 (async () => {
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 
-  // The "how this app works" box: opens in the middle, closes with ×, Esc or a click outside it
+  // "How this app works" dialog: opens in the middle, closes with the x button, Esc or a click outside
   const help = document.getElementById("help");
   document.getElementById("helpBtn").onclick = () => help.showModal();
   document.getElementById("helpClose").onclick = () => help.close();
   help.addEventListener("click", e => { if (e.target === help) help.close(); });
 
-  // Hover videos: play while the pointer (or keyboard focus) is on a button, stop and rewind when it leaves.
-  // Until a video file is there, nothing happens and the button looks as it always did.
+  // Hover videos: play while the mouse (or keyboard focus) is on a button, stop and rewind when it leaves. If there's
+  // no video file, nothing happens and the button looks normal.
   const calm = matchMedia("(prefers-reduced-motion: reduce)");
   document.querySelectorAll(".choice").forEach(card => {
     const video = card.querySelector("video.clip");
@@ -278,7 +278,7 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
   const stored = key => { try { return localStorage.getItem(key); } catch (e) { return null; } };
   const P = window.RacePicker;                      // flags and Grand Prix names, from picker.js
 
-  // A track's shape as a card's picture (real races' y goes up, the game's z goes down)
+  // Track shape as the card picture (y goes up for real races, the game's z goes down)
   function art(xs, ys, flipY) {
     if (!xs || xs.length < 10) return "";
     const step = Math.ceil(xs.length / 240), px = [], py = [];
@@ -321,7 +321,7 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
     }
   } catch (e) { notes.forEach(([note]) => { note.textContent = "Start the app with start_app.bat"; }); }
 
-  // Continue where you left off: the last real race and F1 25 session you opened (else the latest ones)
+  // Continue where you left off: the last real race and F1 25 session you opened (or the latest ones)
   const cards = [], lastRace = races.find(r => r.race_id === stored("lastRace"));
   const race = lastRace || latestRace(races);
   if (race) cards.push(`<a href="f1.html?race=${encodeURIComponent(race.race_id)}"><span style="min-width:0"><small>${lastRace ? "Your last real race" : "Latest real race"}</small>` +
@@ -341,7 +341,7 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
   if (race) shape(`/races/${race.race_id}`).then(v => { document.getElementById("raceArt").innerHTML = art(v.track?.x, v.track?.y, true); }).catch(() => {});
   if (sess) shape(`/game/sessions/${sess.id}/map`).then(m => { document.getElementById("sessArt").innerHTML = gameArt(m); }).catch(() => {});
 
-  // Live now: while the game sends, a card with the session, your lap and your place (checked every 4 seconds)
+  // Live now: while the game is sending, a card with the session, your lap and position (checked every 4 seconds)
   const liveCard = document.getElementById("live");
   let liveId = null;
   async function checkLive() {

@@ -1,15 +1,14 @@
-"""F1 25 team radio: ask your race engineer with your voice while you drive, and hear the answer.
+"""F1 25 team radio: ask your race engineer by voice while you drive and hear the answer.
 
-The F1 25 page turns your voice into text (the browser's speech recognition), sends it here, and speaks the
-answer. The engineer's facts come only from your live data and the pit stop model. A local AI (Ollama, free
-and offline) puts them into words like a real engineer would, so you can ask in your own words; it is given
-the facts and nothing else, and its answer is checked (its pit call must match the model's, and no number or
-name that isn't in the facts). Without Ollama, or if a check fails, the engineer answers from the data directly.
-The engineer also calls things out without being asked: "box, box" when the model says so, the safety car,
-your fastest lap, real penalties (not warnings) and the last lap.
+The F1 25 page turns your voice into text (the browser's speech recognition), sends it here and speaks the answer.
+The engineer's facts come only from your live data and the pit stop model. A local AI (Ollama, free and offline)
+puts them into words like a real engineer, so you can ask in your own words. It only gets the facts, and its answer
+is checked (its pit call must match the model's, and no number or name that isn't in the facts). Without Ollama, or
+if a check fails, the engineer answers straight from the data.
+The engineer also calls things out without being asked: "box, box" when the model says so, the safety car, your
+fastest lap, real penalties (not warnings) and the last lap.
 
-    Set up the AI once:  ollama pull llama3.1:8b      (about 4.9 GB; any Ollama model works: F1_RADIO_MODEL)
-"""
+Set up the AI once:  ollama pull llama3.1:8b      (about 4.9 GB; any Ollama model works: F1_RADIO_MODEL)"""
 import os
 import re
 import threading
@@ -47,9 +46,9 @@ def unknown_names(answer, facts):
 
 
 def tidy_names(answer, facts):
-    """The AI knows real drivers' names and likes to talk to the driver by name ("Verstappen, ...", "..., Max.").
-    The driver's own name isn't in the facts, so like any name that isn't, it's dropped where it's only used to
-    talk to the driver; anywhere else it fails the check below."""
+    """The AI knows real drivers' names and likes to address the driver by name ("Verstappen, ...", "..., Max.").
+    The driver's own name isn't in the facts, so like any other name that isn't, it's removed where it's only used
+    to address the driver; anywhere else it fails the check below."""
     for w in set(unknown_names(answer, facts)):
         answer = re.sub(rf",\s*{w}([.!?,])", r"\1", answer)
         answer = re.sub(rf"^{w},\s*(\w)", lambda m: m.group(1).upper(), answer)
@@ -61,15 +60,14 @@ def names_ok(answer, facts):
     return not unknown_names(answer, facts)
 
 ERS_MODES = {0: "off", 1: "medium", 2: "hotlap", 3: "overtake"}
-ERS_MODES_2026 = {**ERS_MODES, 3: "boost"}     # the 2026 format calls mode 3 boost (overtake mode is its own thing)
+ERS_MODES_2026 = {**ERS_MODES, 3: "boost"}     # 2026 format calls mode 3 boost (overtake mode is separate)
 CORNERS = ["rear left", "rear right", "front left", "front right"]       # the game's order: RL, RR, FL, FR
-# What each question is about: the words that point to it. A word naming the subject counts 3, a counting
-# word ("how many", "left"...) or a radio check word counts 1, so "how many laps left on these tyres" is about
-# the tyres and "copy, what's the gap behind?" is about the car behind. The first topic with the highest score
-# wins; the radio check is last, so it only wins when nothing else is asked. "Chance" and "finish" are asked about
-# other things too ("chance of rain", "laps to the finish"), so the chances come after the other topics and
-# "finish" counts 1.
-RADIO_CHECK = ["radio check", "radio shack", "radio chuck", "hear me", "can you hear", "copy"]   # as browsers hear it
+# Keywords for each question topic. A word naming the subject scores 3, a counting word ("how many", "left"...) or a
+# radio check word scores 1, so "how many laps left on these tyres" is about the tyres and "copy, what's the gap
+# behind?" is about the car behind. The first topic with the highest score wins; the radio check is last so it only
+# wins when nothing else is asked. "Chance" and "finish" are used for other things too ("chance of rain", "laps to the
+# finish"), so the chances topic comes after the others and "finish" scores 1.
+RADIO_CHECK = ["radio check", "radio shack", "radio chuck", "hear me", "can you hear", "copy"]   # how browsers hear it
 GENERIC = {"laps", "how many", "remaining", "to go", "how long", "left", "finish", *RADIO_CHECK}
 TOPICS = [
     ("pit", ["pit", "box", "stop", "strategy", "plan", "when do i come in", "undercut"]),
@@ -107,7 +105,7 @@ def topic_of(text):
 
 
 def sentence(text):
-    """The first letter in capitals, the rest as it was (str.capitalize would lowercase "Jeddah" and "F1")."""
+    """Capitalise the first letter only (str.capitalize would lowercase "Jeddah" and "F1")."""
     return text[:1].upper() + text[1:]
 
 
@@ -117,7 +115,7 @@ def next_tyre_name(d):
     return {"SOFT": "the softs", "MEDIUM": "the mediums", "HARD": "the hards", "INTER/WET": "inters"}.get(best, best.lower())
 
 
-# The safety car events in the engineer's words (the game sends deployed, returning, returned, resume race)
+# Safety car events in the engineer's words (the game sends deployed, returning, returned, resume race)
 NEUTRAL_CALLS = {"Safety car deployed": "Safety car, safety car. Keep the delta positive.",
                  "Safety car returning": "Safety car in this lap. Get ready for the restart.",
                  "Safety car resume race": "Green, green. Racing.",
@@ -137,13 +135,13 @@ def wet(sample):
 
 
 def rain_ahead(info, within=60):
-    """The first forecast sample in the next minutes that is rain, and the samples looked at."""
+    """First forecast sample with rain in the next minutes, and the samples checked."""
     ahead = [f for f in info.get("forecast") or [] if 0 < f["in"] <= within]
     return next((f for f in ahead if wet(f)), None), ahead
 
 
 def lap_at(info, laps, lap_now, minutes):
-    """In a race: the lap the car will be on in that many minutes, at its usual pace (the middle of its clean laps)."""
+    """In a race: the lap the car will be on in that many minutes, at its usual pace (median of its clean laps)."""
     times = sorted(l["time"] for l in laps or [] if l.get("time") and not l.get("invalid") and not l.get("pitted"))
     if not times or not lap_now:
         return ""
@@ -197,8 +195,8 @@ ORDINAL = "|".join(PLACES)
 
 
 def numbers_in(text):
-    """Every number in a text as (value, decimals, unit): in figures, in words, "half a second"; a lap time
-    (1:35.6) is one number, in seconds."""
+    """Every number in a text as (value, decimals, unit): digits, words, "half a second"; a lap time (1:35.6) is
+    one number in seconds."""
     text, found = text.lower(), []
     for m in re.finditer(r"(\d+):(\d{2}(?:\.\d+)?)", text):
         found.append((int(m[1]) * 60 + float(m[2]), len(m[2].partition(".")[2]), "time"))
@@ -233,10 +231,10 @@ def places_in(text):
 
 
 def numbers_ok(answer, facts):
-    """Every number in the AI's answer, in figures or in words, must be a number of the facts with the same
-    unit, at most rounded to the answer's own decimals: "27 seconds" for 27.3 seconds passes, "1.2 seconds" for
-    1 and "a second" for a 10-second gap don't. Every position it gives must be one the facts give: "P2" when
-    you lead doesn't pass, even if some other fact has a 2. The driver and session lines don't count."""
+    """Every number in the AI's answer (digits or words) must be a number from the facts with the same unit, at
+    most rounded to the answer's own decimals: "27 seconds" for 27.3 seconds passes, "1.2 seconds" for 1 and "a
+    second" for a 10-second gap don't. Every position it gives must be in the facts too: "P2" when you lead fails,
+    even if another fact has a 2. The driver and session lines don't count."""
     data = "\n".join(line for line in facts.splitlines() if not line.startswith(("DRIVER:", "SESSION:")))
     known = numbers_in(data)
     numbers = all(any(abs(x - k) <= 0.5 * 10 ** -d + 1e-9 and u in (None, unit) for k, _, unit in known)
@@ -244,8 +242,8 @@ def numbers_ok(answer, facts):
     return numbers and set(places_in(answer)) <= set(places_in(data))
 
 
-# The pit call in the AI's words must be the model's. A list of ways to say "pit" is never complete, so an
-# answer about pitting must say the call itself: "box" when the model says box, "stay out" when it doesn't.
+# The AI's pit call must match the model's. A list of ways to say "pit" is never complete, so an answer about pitting
+# must state the call itself: "box" when the model says box, "stay out" when it doesn't.
 SAYS_BOX = re.compile(r"\bbox(?:ing)?\b")
 SAYS_STAY = re.compile(r"\bstay(?:ing)? out\b")
 SAYS_WAIT = re.compile(r"\b(?:don'?t|do not|no need to|not) (?:pit|box|come in|stop)\b|\bnot yet\b|\bhold on\b")
@@ -267,9 +265,9 @@ def pit_call_ok(answer, box, topic):
     return bool(SAYS_STAY.search(said)) or not (topic == "pit" or MENTIONS_PIT.search(plain))
 
 
-# The local AI (Ollama). Its state is checked at most every 30 s, so a page asking often costs nothing.
-# "warm" = the model is loaded into the graphics card (about 10 s the first time); until then the engineer
-# answers from the data straight away instead of making you wait.
+# Local AI (Ollama). Its state is checked at most every 30 s, so a page asking often costs nothing. "warm" = the model
+# is loaded on the GPU (about 10 s the first time); until then the engineer answers from the data straight away
+# instead of making you wait.
 _ai = {"checked": 0.0, "ready": False, "warm": False, "warming": False, "note": "", "load_error": "", "failed": 0.0}
 
 
@@ -281,8 +279,8 @@ def ai_status():
             ready = any(n in (MODEL, f"{MODEL}:latest") for n in names)          # "mistral" is "mistral:latest"
             _ai.update(ready=ready, note="" if ready else f"Ollama is running, but the model {MODEL} isn't there: "
                                                              f"run  ollama pull {MODEL}")
-            # Load the model into the graphics card now, not at the first question (after a failed load, e.g.
-            # not enough memory, it's tried again every 5 minutes)
+            # Load the model on the GPU now, not at the first question (after a failed load, e.g. not enough memory,
+            # retry every 5 minutes)
             if ready and not _ai["warming"] and (not _ai["load_error"] or time.time() - _ai["failed"] > 300):
                 _ai["warming"] = True
                 threading.Thread(target=_warm_up, daemon=True).start()
@@ -290,14 +288,15 @@ def ai_status():
             _ai.update(ready=False, warm=False, note="Ollama isn't running, so the engineer answers from the data.")
     note = _ai["note"] or _ai["load_error"] or ("" if _ai["warm"] else
                                                 "The AI is loading (about 10 seconds); the data answers until then.")
-    # "ai" = the AI can answer now or soon; a model that failed to load can't, so the page shows the data engineer
+    # "ai" = the AI can answer now or soon; a model that failed to load can't, so the page shows the data-only
+    # engineer
     return {"ai": _ai["ready"] and not _ai["load_error"], "warm": _ai["warm"], "model": MODEL, "note": note}
 
 
 def _warm_up():
     try:
         r = requests.post(f"{OLLAMA}/api/generate", json={"model": MODEL, "prompt": "", "keep_alive": "30m"}, timeout=120)
-        r.raise_for_status()                     # e.g. not enough memory for the model: Ollama answers with an error
+        r.raise_for_status()                     # e.g. not enough memory for the model: Ollama returns an error
         _ai.update(warm=True, load_error="")
     except requests.RequestException as err:
         _ai.update(warm=False, failed=time.time(),
@@ -307,7 +306,8 @@ def _warm_up():
 
 
 def ask_ai(question, facts, plain):
-    """The AI's answer from the facts, or None if Ollama isn't there, is still loading, or doesn't answer in time."""
+    """The AI's answer from the facts, or None if Ollama isn't running, is still loading, or doesn't answer in
+    time."""
     status = ai_status()
     if not (status["ai"] and status["warm"]):
         return None
@@ -333,13 +333,14 @@ class Radio:
 
     # -- answers to your questions ------------------------------------------------------------------------
     def answer(self, s, lock, text, use_ai=True):
-        """The engineer's answer: the AI's words when it's there and its answer passes the checks, else the data's."""
+        """The engineer's answer: the AI's words if it's available and its answer passes the checks, otherwise the
+        data's."""
         start = time.perf_counter()
         snap = self.snapshot(s, lock)
         plain = self.data_answer(s, lock, text, snap=snap)
         if use_ai and (text or "").strip() and plain["topic"] != "radio_check":     # "Loud and clear" needs no AI
-            # A clear question gets only its own facts (so the AI can't mix up, say, laps left in the race and in
-            # the tyres); a general one ("how's it going?") gets them all
+            # A clear question only gets its own facts (so the AI can't mix up e.g. laps left in the race and on the
+            # tyres); a general one ("how's it going?") gets them all
             facts, box = self.facts(s, lock, only=plain["topic"], snap=snap)
             said = ask_ai(text, facts, plain["text"])
             said = said and tidy_names(said, facts)
@@ -351,11 +352,11 @@ class Radio:
         return {**plain, "source": "data", "ms": round(1000 * (time.perf_counter() - start))}
 
     def facts(self, s, lock, only=None, snap=None):
-        """What the engineer knows right now, one line per topic (what the AI may use), and the pit call.
-        only = one topic: just that topic's facts (with the pit call, which is always there)."""
+        """What the engineer knows right now, one line per topic (what the AI may use), and the pit call. only =
+        one topic: just that topic's facts (plus the pit call, which is always included)."""
         snap = snap or self.snapshot(s, lock)
-        # The driver's name isn't given: an engineer doesn't use it, and a name that isn't in the facts fails the
-        # names check, so the AI can't start every answer with "Verstappen, ..."
+        # The driver's name isn't given: an engineer doesn't use it, and a name not in the facts fails the names
+        # check, so the AI can't start every answer with "Verstappen, ..."
         info = snap[2]
         lines = ["DRIVER: you are talking to the player (no name)",
                  f"SESSION: {info.get('track', 'unknown track')}, {info.get('session_type', 'session')}"]
@@ -426,7 +427,7 @@ class Radio:
         return self._say("pit", f"Stay out, stay out. Pit chance only {chance:.0%}." + (f" {sentence(why)}." if why else ""))
 
     def _chances(self, s, lock, me, board, car, info, laps):
-        """The race outcome model: the chance to win, finish on the podium and score points, and the main reason."""
+        """Race outcome model: the chance to win, get a podium and score points, and the main reason."""
         if not s.is_race():
             return self._say("chances", "Chances are for the race.")
         if me["status"] == "FINISHED":
@@ -450,8 +451,8 @@ class Radio:
         if car["compound"] == "UNKNOWN" and not wear:
             return self._say("tyres", "No tyre data from the car yet.")
         age, last = car.get("tyre_age"), laps[-1] if laps else None
-        # The game counts the lap just finished a moment after the line; the lap's own record (what the pit
-        # model's "tyres are N laps old" comes from) already has it, so the two always say the same
+        # The game counts the lap just finished a moment after the line, but the lap's own record (where the pit
+        # model's "tyres are N laps old" comes from) already has it, so use that and the two always match
         if (age is not None and last and last.get("tyre_age") is not None and last["compound"] == car["compound"]
                 and not last["pitted"]):
             age = max(age, last["tyre_age"] + 1)
@@ -478,7 +479,7 @@ class Radio:
             return self._say("ahead", f"P{me['position']}. No gap yet.")
         text = f"{me['interval']:.1f} seconds to {name_of(ahead)}."
         trend = self._trend(s, lock, me["car"], ahead["car"])
-        if trend is not None and abs(trend) >= 0.05:           # names, not "he": whoever drives the car
+        if trend is not None and abs(trend) >= 0.05:           # use names, not "he" (could be anyone driving)
             text += (f" You're catching {name_of(ahead)} by {abs(trend):.1f} seconds a lap." if trend < 0
                      else f" {name_of(ahead)} is pulling away by {trend:.1f} seconds a lap.")
         return self._say("ahead", text)
@@ -492,7 +493,7 @@ class Radio:
         return self._say("leader", f"{me['gap']:.1f} seconds to the leader, {name_of(leader)}. You're P{me['position']}.")
 
     def _behind(self, s, lock, me, board, car, info, laps):
-        # The next car still racing: retired cars keep a place at the back, with the gap they had
+        # Next car still racing (retired cars keep a place at the back with the gap they had)
         behind = next((r for r in board if r["position"] == me["position"] + 1 and r["status"] not in GONE), None)
         if behind is None:
             return self._say("behind", "Nobody behind you.")
@@ -622,11 +623,11 @@ class Radio:
 
     # -- radio calls without being asked -----------------------------------------------------------------
     def calls_for(self, s, lock, strategy=None):
-        """New things to call out on the radio for this session, since the last time (kept per session)."""
+        """New things to call out on the radio for this session since last time (tracked per session)."""
         with self.lock, lock:
             seen = self.seen.setdefault(s.uid, {"events": len(s.events), "flashbacks": s.flashbacks, "box": None,
                                                 "last_lap": False, "rain": False})
-            if seen["flashbacks"] != s.flashbacks:           # a flashback took events away: on from the ones it kept
+            if seen["flashbacks"] != s.flashbacks:           # a flashback removed events: carry on from the ones kept
                 seen["events"], seen["flashbacks"] = min(seen["events"], s.events_kept), s.flashbacks
             calls = self.calls.setdefault(s.uid, [])
             me = s.drivers.get(s.player, {}).get("code")
@@ -637,8 +638,8 @@ class Radio:
                         self._call(calls, NEUTRAL_CALLS[text.strip()])
                 elif e["code"] == "FTLP" and me and f" {me} " in f"{text} ":
                     self._call(calls, "Fastest lap. Purple. Great job.")
-                elif (e["code"] == "PENA" and e.get("car") == s.player       # real penalties, not warnings or laps
-                      and e.get("penalty") in game_telemetry.REAL_PENALTIES):   # taken away (older events: no type)
+                elif (e["code"] == "PENA" and e.get("car") == s.player       # real penalties, not warnings or
+                      and e.get("penalty") in game_telemetry.REAL_PENALTIES):   # deleted laps (old events: no type)
                     secs = e.get("seconds")
                     self._call(calls, {4: f"{secs} second time penalty." if secs else "Time penalty.",
                                        6: "We've been disqualified."}.get(
@@ -654,7 +655,7 @@ class Radio:
                     pos = s.lap_now.get(s.player, {}).get("position")
                     self._call(calls, "Chequered flag." + (f" P{pos}. Good job." if pos else ""))
             seen["events"] = len(s.events)
-            # Rain on the way (in the next 10 minutes, while it's dry): said once, and again after a dry spell
+            # Rain coming (in the next 10 minutes, while it's dry): say it once, and again after a dry spell
             soon, _ = rain_ahead(s.info, within=10)
             soon = soon if s.info.get("weather") not in game_strategy.RAIN else None
             if soon and not seen["rain"]:
@@ -678,8 +679,8 @@ class Radio:
 
     @staticmethod
     def _call(calls, text):
-        # The id is the time in ms, so it keeps going up when the app restarts: an open page says only calls
-        # newer than the last one it said
+        # The id is the time in ms so it keeps going up after an app restart; an open page only says calls newer than
+        # the last one it said
         number = max(int(time.time() * 1000), calls[-1]["id"] + 1 if calls else 0)
         calls.append({"id": number, "text": text, "say": text})
 

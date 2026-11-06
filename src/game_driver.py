@@ -1,16 +1,16 @@
 """F1 25 / F1 26: the driver report. A model that learns your driving from every corner of every clean lap you've
 driven, and keeps learning as you drive more.
 
-Each row is one corner of one lap against the same corner on your best lap of that session: how much earlier you
-braked, how much slower you were in the corner, how much later you were back on full throttle, how much you coasted
-and worked the wheel, whether a wheel locked or spun, and the conditions (tyre wear, tyre age, lap, a race or not).
-The target is the time that corner cost you (from its braking point to the next corner's). A LightGBM model learns
-how your habits turn into lost time; SHAP says how much each habit costs you on a lap. It is tested on sessions it
-didn't learn from (in five groups of sessions) against a plain average.
+Each row is one corner of one lap compared with the same corner on your best lap of that session: how much earlier
+you braked, how much slower you were in the corner, how much later you got back on full throttle, how much you
+coasted and worked the wheel, whether a wheel locked or spun, and the conditions (tyre wear, tyre age, lap, race or
+not). The target is the time that corner cost you (from its braking point to the next corner's). A LightGBM model
+learns how your habits turn into lost time, and SHAP shows how much each habit costs you per lap. It is tested on
+sessions it didn't learn from (5 groups of sessions) against a plain average.
 
-The rows of each session are kept in data/driver/ (made from your recordings, never changing them); a new or longer
-session is added, and the model learns again, the next time the report is asked for. So are your race starts: your
-reaction time when the lights go out and the places you made on lap 1."""
+The rows of each session are kept in data/driver/ (made from your recordings, which are never changed). A new or
+longer session is added and the model retrained the next time the report is requested. The same goes for your race
+starts: your reaction time at lights out and the places gained on lap 1."""
 import json
 import threading
 import time
@@ -25,10 +25,10 @@ import game_telemetry as game
 from config import DATA_DIR
 
 DRIVER_DIR = DATA_DIR / "driver"             # the report's own files: rows.parquet, starts.json, history.json
-VERSION = 3                     # the row format: rows made by an older version are made again (3: the grid slot
-                                # of a race with no classification)
+VERSION = 3                     # row format version: older rows are made again (3 = grid slot
+                                # for a race with no classification)
 MIN_CORNERS, MIN_SESSIONS = 120, 2
-HABITS = {                      # the habits the model weighs, and what each measures
+HABITS = {                      # habits the model uses, and what each one measures
     "brake_early": "Braking point",         # m earlier than on your best lap (+)
     "speed_loss": "Corner speed",           # km/h slower at the slowest point of the corner (+)
     "throttle_late": "Back on the throttle",  # m later to full throttle after the corner (+)
@@ -73,7 +73,7 @@ def _coast(L, a, b):
 
 
 def _steer_work(L, a, b):
-    """How much the wheel moved between a and b (the sum of every change: more corrections, more work)."""
+    """How much the wheel moved between a and b (sum of all changes: more corrections = more work)."""
     if L["steer"] is None:
         return None
     z = _zone(L, a, b)
@@ -81,8 +81,8 @@ def _steer_work(L, a, b):
 
 
 def _slipped(L, a, b, kind):
-    """Did a wheel lock under braking (kind lock) or a rear wheel spin on the throttle (spin) between a and b, for three
-    samples or more?"""
+    """Did a wheel lock under braking (kind lock) or a rear wheel spin on throttle (spin) between a and b, for
+    three samples or more?"""
     if L["slip"] is None:
         return None
     z = _zone(L, a, b)
@@ -95,7 +95,7 @@ def _slipped(L, a, b, kind):
 
 
 def session_rows(sid, state, tele):
-    """Every corner of every clean lap of a session against your best lap of it. state = the session's saved
+    """Every corner of every clean lap of a session vs your best lap in it. state = the session's saved
     session.json, tele = its telemetry table."""
     laps = {int(n): r for n, r in state["laps"].get(str(state["player"]), {}).items()}
     info = state["info"]
@@ -116,7 +116,7 @@ def session_rows(sid, state, tele):
     rows = []
     for n in sorted(clean):
         L = _arrays(by_lap[n]) if n != ref_n and n in by_lap else None
-        if L is None or L["d"][-1] < 0.9 * R["d"][-1]:        # (a lap with part of it missing)
+        if L is None or L["d"][-1] < 0.9 * R["d"][-1]:        # part of the lap is missing
             continue
         end = min(L["d"][-1], R["d"][-1])
         wear = clean[n].get("tyre_wear")
@@ -148,16 +148,16 @@ def session_rows(sid, state, tele):
 
 # ---- your starts ------------------------------------------------------------------------------------------------
 def session_start(sid, state, tele):
-    """Your start in a race: your reaction time when the lights went out (the game's own in the 2026 format; F1 25
-    doesn't send it, so there it's when your car first moved after lights out, if the recording has the start), your
-    grid slot, your place after lap 1 and the places that gained. None for a session that isn't a race."""
+    """Your start in a race: reaction time at lights out (the game's own value in the 2026 format; F1 25 doesn't
+    send it, so there it's when your car first moved after lights out, if the recording has the start), your grid
+    slot, your position after lap 1 and the places gained. None if the session isn't a race."""
     info = state.get("info", {})
     if info.get("session_type_id") not in (15, 16, 17):
         return None
     me = state["player"]
     lap1 = state["laps"].get(str(me), {}).get("1", {}).get("position")
     grid = next((c.get("grid") for c in state.get("classification") or [] if c.get("car") == me and c.get("grid")),
-                None) or (state.get("lap_now") or {}).get(str(me), {}).get("grid") or None   # (often no classification)
+                None) or (state.get("lap_now") or {}).get(str(me), {}).get("grid") or None   # often no classification
     lights = next((e["t"] for e in state.get("events") or [] if e["code"] == "LGOT"), None)    # lights out
     estimate = None
     if tele is not None and lights is not None and "speed" in tele:
@@ -165,10 +165,10 @@ def session_start(sid, state, tele):
         if len(d) and d["t"].iloc[0] - lights <= 0.2:          # the recording has the moment the lights went out
             moved = d[d["speed"] >= 1]
             v = float(moved["t"].iloc[0]) - lights if len(moved) else None
-            estimate = round(v, 3) if v is not None and 0.15 <= v <= 1.5 else None    # (else rolling, or stalled)
+            estimate = round(v, 3) if v is not None and 0.15 <= v <= 1.5 else None    # otherwise rolling or stalled
     game_value = info.get("start_reaction")
-    if game_value is not None and not 0.1 <= game_value <= 1.5:   # (the game said 3.0 s in a race from P22: not a
-        game_value = None                                          # reaction from the grid, like the estimate's limit)
+    if game_value is not None and not 0.1 <= game_value <= 1.5:   # the game said 3.0 s in a race from P22: not
+        game_value = None                                          # a reaction from the grid (same limit as above)
     return {"sid": sid, "track": info.get("track"), "started": state.get("started"), "game": _game_of(info),
             "type": info.get("session_type"), "reaction": game_value or estimate,
             "source": "game" if game_value else "estimate" if estimate else None, "game_value": game_value,
@@ -176,8 +176,8 @@ def session_start(sid, state, tele):
 
 
 def _starts(items, game_name):
-    """Your starts in one game: your reaction times race by race, and the places you made on lap 1. The estimate
-    from your car's first movement is checked against the game's own time on the races that have both."""
+    """Your starts in one game: reaction times race by race, and the places gained on lap 1. The estimate from your
+    car's first movement is checked against the game's own time on races that have both."""
     mine = sorted((x for x in items if x["game"] == game_name), key=lambda x: x["started"] or 0)
     timed = [x for x in mine if x["reaction"]]
     pairs = [(x["game_value"], x["estimate"]) for x in items if x["game_value"] and x["estimate"]]
@@ -205,7 +205,7 @@ def _starts(items, game_name):
 
 # ---- every session, kept and added to ------------------------------------------------------------------------
 def _sessions(skip=()):
-    """Your saved sessions: (id, the stamp that changes when it grows, game, folder)."""
+    """Your saved sessions as (id, stamp that changes when the session grows, game, folder)."""
     out = []
     if not game.GAME_DIR.exists():
         return out
@@ -218,7 +218,7 @@ def _sessions(skip=()):
 
 
 def _file(name):
-    """One of the report's own files (in DRIVER_DIR, which the tests point somewhere else)."""
+    """Path of one of the report's files (in DRIVER_DIR, which the tests point somewhere else)."""
     return DRIVER_DIR / name
 
 
@@ -227,15 +227,15 @@ def _game_of(info):
 
 
 def refresh(skip=()):
-    """Add the corners of sessions that are new (or longer) since last time; drop the ones whose session is gone.
-    Returns all the rows, and whether anything changed."""
+    """Add the corners of sessions that are new (or longer) since last time and drop the ones whose session was
+    deleted. Returns all the rows and whether anything changed."""
     DRIVER_DIR.mkdir(parents=True, exist_ok=True)
     old = pd.read_parquet(_file("rows.parquet")) if _file("rows.parquet").exists() else pd.DataFrame()
     if not old.empty and ("version" not in old or (old["version"] != VERSION).any()):
         old = pd.DataFrame()
     known = old.groupby("sid")["stamp"].first().to_dict() if not old.empty else {}
     starts = json.loads(_file("starts.json").read_text(encoding="utf-8")) if _file("starts.json").exists() else {}
-    if starts.get("version") != VERSION:                         # (made by an older version: everything again)
+    if starts.get("version") != VERSION:                         # made by an older version, so redo everything
         starts, known = {"version": VERSION, "sessions": {}}, {}
     here, parts, changed = set(), [old] if not old.empty and known else [], False
     for sid, stamp, folder in _sessions(skip):
@@ -245,14 +245,14 @@ def refresh(skip=()):
         state, rows, start = {}, [], None
         try:
             state = json.loads((folder / "session.json").read_text(encoding="utf-8"))
-            if not state.get("test"):                             # (test races from the simulator: not you)
+            if not state.get("test"):                             # skip simulator test races (not you)
                 tele = pd.read_parquet(folder / "telemetry.parquet")
                 rows, start = session_rows(sid, state, tele), session_start(sid, state, tele)
         except (OSError, ValueError, KeyError) as err:
             print(f"Driver report: session {sid} skipped ({err})")
         starts["sessions"][sid] = {"stamp": stamp, "start": start}
         parts = [p[p["sid"] != sid] for p in parts]
-        # A session with no clean corners still gets a row of its own (lost = NaN), so it isn't read again
+        # A session with no clean corners still gets a row (lost = NaN) so it isn't read again
         new = pd.DataFrame(rows or [{"sid": sid, "lost": np.nan}])
         new["stamp"], new["game"], new["version"] = stamp, _game_of(state.get("info", {})), VERSION
         new["type"] = state.get("info", {}).get("session_type")
@@ -280,7 +280,8 @@ def all_starts():
 
 # ---- the model --------------------------------------------------------------------------------------------------
 def learn(rows):
-    """Train the model on the corners, test it on each session left out in turn, and say what each habit costs."""
+    """Train the model on the corners, test it on each session left out in turn, and work out what each habit
+    costs."""
     X, y, groups = rows[FEATURES].astype(float), rows["lost"].astype(float), rows["sid"]
     errors, base = [], []
     if groups.nunique() >= 3:                                     # sessions predicted by a model that never saw them
@@ -345,7 +346,7 @@ def _build(rows, game_name):
 
 
 def _measure(rows, k):
-    """What a habit looks like in your laps, in its own units, against your best laps."""
+    """What a habit looks like in your laps, in its own units, vs your best laps."""
     v = rows[k].dropna()
     if k in ("lock", "spin"):
         laps = rows.groupby(["sid", "lap"])[k].max().dropna()
@@ -357,8 +358,8 @@ def _measure(rows, k):
 
 
 def _style(rows):
-    """Your driving style in plain numbers (from every clean lap): how alike your braking points are lap to lap, how
-    often you trail-brake into the corner, how much you coast, lock up and spin the wheels."""
+    """Your driving style in simple numbers (from every clean lap): how consistent your braking points are lap to
+    lap, how often you trail-brake into corners, how much you coast, lock up and spin the wheels."""
     spread = rows.groupby(["sid", "corner"])["brake_at"].std().dropna()
     laps = rows.groupby(["sid", "lap"]).agg(lock=("lock", "max"), spin=("spin", "max"))
     return {"brake_spread": round(float(spread.median()), 1) if len(spread) else None,
@@ -369,7 +370,7 @@ def _style(rows):
 
 
 def _history(game_name, sessions, laps, corners, test):
-    """The model's learning log: each time it learned more, how much it knew and how well it guessed."""
+    """Model learning log: each time it learned more, how much data it had and how well it predicted."""
     log = json.loads(_file("history.json").read_text(encoding="utf-8")) if _file("history.json").exists() else {}
     mine = log.setdefault(game_name, [])
     if not mine or mine[-1]["corners"] != corners:
@@ -385,13 +386,13 @@ def _track(out, rows, track):
     here = rows[rows["track"] == track] if track else rows.iloc[0:0]
     if len(here) < 20:
         return None
-    here = here.assign(spot=(here["at"] / 100).round() * 100)          # (corners within 100 m are one place)
+    here = here.assign(spot=(here["at"] / 100).round() * 100)          # corners within 100 m count as one place
     top = here.groupby("spot").agg(lost=("lost", "mean"), laps=("lap", "count"), **{k: (k, "mean") for k in HABITS})
     top = top[top["laps"] >= 3].sort_values("lost", ascending=False).head(4)
     marks = {"brake_early": 5, "speed_loss": 2, "throttle_late": 10, "coast_more": 10}
     corners = []
     for spot, r in top.iterrows():
-        known = [k for k in marks if pd.notna(r[k])]          # (a corner taken without braking has no brake_early)
+        known = [k for k in marks if pd.notna(r[k])]          # a corner taken without braking has no brake_early
         why = max(known, key=lambda k: r[k] / marks[k]) if known else None
         corners.append({"at": int(spot), "lost": round(float(r["lost"]), 3), "laps": int(r["laps"]), "why": why,
                         "value": round(float(r[why]), 1) if why else None})

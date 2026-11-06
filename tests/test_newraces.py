@@ -1,5 +1,6 @@
-"""New races by themselves: the Lambda (aws_fetch.py) fetches each finished race from OpenF1 into the bucket, and the
-PC (newraces.py) builds it with the usual steps. A made-up bucket and made-up OpenF1 answers: no internet or AWS."""
+"""Tests for automatic new races: the Lambda (aws_fetch.py) fetches each finished race from OpenF1 into the bucket,
+and the PC (newraces.py) builds it with the usual steps. Uses a fake bucket and fake OpenF1 data, so no internet or
+AWS."""
 import gzip
 import json
 import subprocess
@@ -32,7 +33,7 @@ SESSIONS = [race(11396, "2026-10-25T22:00:00+00:00"),            # Austin: built
 
 
 def openf1(laps=3):
-    """Made-up OpenF1 answers: the sessions, and a few rows from every other endpoint."""
+    """Fake OpenF1 data: the sessions, and a few rows from every other endpoint."""
     def fetch(endpoint, **params):
         if endpoint == "sessions":
             return SESSIONS
@@ -51,7 +52,7 @@ def test_the_cloud_fetches_only_the_new_finished_race():
     done = aws_fetch.lambda_handler({"bucket": "b"}, None, s3=s3, fetch=openf1(), now=NOW)
     assert [f["session_key"] for f in done["fetched"]] == [11420]           # not Austin, Sao Paulo or the cancelled one
     raw = json.loads(gzip.decompress(s3.objects["data/openf1/incoming/11420.json.gz"][0]))
-    assert list(raw) == ["session"] + aws_fetch.ENDPOINTS                    # as collect_openf1.py saves a race
+    assert list(raw) == ["session"] + aws_fetch.ENDPOINTS                    # same as collect_openf1.py saves a race
     assert raw["session"]["session_key"] == 11420 and len(raw["laps"]) == 3
     again = aws_fetch.lambda_handler({"bucket": "b"}, None, s3=s3, fetch=openf1(), now=NOW)
     assert again["fetched"] == [] and again["already"] == 2                  # waiting in the bucket: not twice
@@ -76,7 +77,7 @@ def test_one_race_can_be_fetched_again():
 
 
 def project(root):
-    """Austin built already: its OpenF1 answers and its table."""
+    """Austin already built: its OpenF1 data and its table."""
     folder = root / "data" / "openf1"
     (folder / "json").mkdir(parents=True)
     austin = {"session": race(11396, "2026-10-25T22:00:00+00:00"), "laps": [{"lap_number": 1}]}
@@ -86,8 +87,8 @@ def project(root):
 
 
 def steps(root, ran, collects=True, fails=None):
-    """Made-up steps: each one is noted, collect_openf1.py makes the race's table (unless it skips the race), and
-    the step named in fails stops with an error."""
+    """Fake steps: each one is recorded, collect_openf1.py makes the race's table (unless it skips the race), and
+    the step named in `fails` stops with an error."""
     def step(script, *args, **kwargs):
         ran.append((script, *args))
         if script == "collect_openf1.py" and collects:
@@ -111,8 +112,8 @@ def test_the_pc_builds_the_new_race(tmp_path):
     assert added == ["2026_19 Mexico City Grand Prix"]
     assert (root / "data" / "openf1" / "json" / "2026_19.json.gz").read_bytes() == s3.objects["data/openf1/incoming/11420.json.gz"][0]
     assert ran == [("collect_openf1.py", 2026, 19), ("build_dataset.py",), ("features.py",), ("build_timing.py",),
-                   ("race_outcome.py",), ("race_preview.py",), ("engineer.py",)]     # the README's order: the
-    # final results come before the preview and the engineer, which read them
+                   ("race_outcome.py",), ("race_preview.py",), ("engineer.py",)]     # README order: the final results
+    # come before the preview and the engineer, which read them
     index = json.loads((root / newraces.INDEX).read_text(encoding="utf-8"))
     assert index == {"11396": "2026_18", "11420": "2026_19"}                # the Lambda skips both from now on
     assert not (root / newraces.NOTE).exists()
@@ -181,7 +182,7 @@ def test_a_failed_upload_runs_again_next_time(tmp_path, monkeypatch):
     monkeypatch.setattr(aws_sync, "upload", offline)
     with pytest.raises(OSError):
         newraces.add(s3, "b", root, log=QUIET, step=steps(root, []), number=mexico)
-    assert (root / newraces.NOTE).exists()                                   # built, not sent: kept for next time
+    assert (root / newraces.NOTE).exists()                                   # built, not uploaded: kept
     sent = []
     monkeypatch.setattr(aws_sync, "upload", lambda *a, **k: sent.append(True))
     assert newraces.add(s3, "b", root, log=QUIET, step=steps(root, []), number=mexico) == ["2026_19 Mexico City Grand Prix"]
@@ -198,7 +199,8 @@ def test_a_folder_made_by_hand_in_the_bucket_is_left_alone(tmp_path):
 
 
 def test_a_saved_race_is_built_without_asking_openf1(tmp_path, monkeypatch):
-    """OpenF1 is closed to free users while an F1 session is live: a race the cloud fetched doesn't need it again."""
+    """OpenF1 is closed to free users during a live F1 session, but a race the cloud already fetched doesn't need
+    it."""
     session = race(11420, "2026-11-01T22:00:00+00:00")
     (tmp_path / "2026_19.json.gz").write_bytes(gzip.compress(json.dumps({"session": session}).encode()))
     monkeypatch.setattr(collect_openf1, "OPENF1_JSON_DIR", tmp_path)
@@ -209,8 +211,8 @@ def test_a_saved_race_is_built_without_asking_openf1(tmp_path, monkeypatch):
 
 
 def test_an_automatic_build_never_waits_for_openf1(monkeypatch):
-    """By hand, the download waits while OpenF1 is closed (10 minutes at a time); the app's own build tries again
-    next time instead."""
+    """By hand, the download waits while OpenF1 is closed (10 minutes at a time); the app's automatic build tries
+    again next time instead."""
     class Closed:
         status_code = 401
     monkeypatch.setattr(collect_openf1, "QUICK", True)

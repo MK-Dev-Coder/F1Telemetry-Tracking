@@ -1,4 +1,4 @@
-"""explain_pit_model.py: SHAP's reasons in % points for fans."""
+"""Tests for explain_pit_model.py: SHAP reasons in % points."""
 import numpy as np
 import pandas as pd
 import pytest

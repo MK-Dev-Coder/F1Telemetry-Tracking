@@ -1,17 +1,16 @@
-"""The desktop app: the F1 Strategy Predictor in a window of its own, from a shortcut on the desktop.
+"""Desktop app: the F1 Strategy Predictor in its own window, started from a desktop shortcut.
 
-When it starts, it fetches any newer race data from the cloud (if this PC is set up for AWS, see aws_sync.py; without
-it, or without the internet, it uses the data already here), starts the app on this PC only
-(http://127.0.0.1:8000) and opens it in a window of Microsoft Edge (or Chrome) with no address bar. Closing the
-window stops the app. If the app is already running (python src/api.py), it only opens a window on it. While it runs, it
-builds any new race the cloud fetched (newraces.py) and says when one is in. The game's telemetry still comes
-straight from the console to this PC, as before.
+At start it downloads any newer race data from the cloud (if AWS is set up, see aws_sync.py; otherwise, or with no
+internet, it uses the data already here), starts the app on this PC only (http://127.0.0.1:8000) and opens it in a
+Microsoft Edge (or Chrome) app window without an address bar. Closing the window stops the app. If the app is
+already running (python src/api.py) it just opens a window. While running it builds any new race the cloud fetched
+(newraces.py) and a message says when one is ready (it shows the next time the app opens). The game telemetry still
+goes straight from the console to this PC.
 
-    python src/desktop.py              start it (the shortcut runs this without a console window)
-    python src/desktop.py --shortcut   put the shortcut on the desktop (Windows)
+python src/desktop.py              start it (the shortcut runs this without a console window)
+python src/desktop.py --shortcut   create the desktop shortcut (Windows)
 
-What it did each time is in desktop.log, in the app's folder in your user folder (AppData\\Local).
-"""
+A log of each run is in desktop.log, in the app's folder in LOCALAPPDATA."""
 import os
 import socket
 import subprocess
@@ -25,9 +24,9 @@ from pathlib import Path
 from config import ROOT
 
 NAME = "F1 Strategy Predictor"
-PORT = int(os.environ.get("F1_APP_PORT", "8000"))                   # another port if 8000 is taken
+PORT = int(os.environ.get("F1_APP_PORT", "8000"))                   # set another port if 8000 is taken
 URL = f"http://127.0.0.1:{PORT}/"
-HOME = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / NAME     # the window's browser profile and the log
+HOME = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / NAME     # browser profile for the window, and the log
 BROWSERS = [r"Microsoft\Edge\Application\msedge.exe", r"Google\Chrome\Application\chrome.exe"]
 ICON = ROOT / "web" / "app.ico"
 
@@ -37,7 +36,7 @@ def log(text):
 
 
 def running(url=URL, timeout=1.0):
-    """Is the app already answering on this PC?"""
+    """Is the app already running on this PC?"""
     try:
         with urllib.request.urlopen(url + "game/status", timeout=timeout) as answer:
             return answer.status == 200
@@ -46,7 +45,7 @@ def running(url=URL, timeout=1.0):
 
 
 def browser():
-    """Edge or Chrome on this PC: both can show a page as an app window."""
+    """Find Edge or Chrome on this PC (both can open a page as an app window)."""
     places = [os.environ.get(v) for v in ("PROGRAMFILES(X86)", "PROGRAMFILES", "LOCALAPPDATA")]
     for exe in BROWSERS:
         for place in places:
@@ -56,15 +55,15 @@ def browser():
 
 
 def window(exe, url=URL, profile=HOME / "window"):
-    """The command for an app window: no address bar or tabs, and a browser profile of its own, so the window is a
-    program of its own (it closes when you close it) and your own browser is left as it is."""
+    """Command for the app window: no address bar or tabs and its own browser profile, so it runs as a separate
+    program (it ends when the window is closed) and the normal browser isn't touched."""
     return [exe, f"--app={url}", f"--user-data-dir={profile}", "--no-first-run", "--no-default-browser-check",
             "--window-size=1440,900"]
 
 
 def online(cfg, timeout=2.0):
-    """Can this PC reach the bucket's region within `timeout` seconds, the name lookup included? Asked first, so that
-    without the internet the app opens at once instead of waiting for the cloud's connection attempts."""
+    """Can this PC reach the bucket's region within `timeout` seconds (DNS lookup included)? Checked first so that
+    with no internet the app opens straight away instead of waiting for the cloud connection to time out."""
     host, reached = f"s3.{cfg.get('region', 'eu-north-1')}.amazonaws.com", []
 
     def reach():
@@ -74,15 +73,15 @@ def online(cfg, timeout=2.0):
         except OSError:
             pass
 
-    worker = threading.Thread(target=reach, daemon=True)        # the name lookup has no time limit of its own
+    worker = threading.Thread(target=reach, daemon=True)        # the DNS lookup has no timeout of its own
     worker.start()
     worker.join(timeout)
     return bool(reached)
 
 
 def from_the_cloud():
-    """Newer data from the cloud, if this PC is set up for it and online. It never stops the app from starting.
-    True if it fetched (then the new races don't fetch again)."""
+    """Download newer data from the cloud if AWS is set up and we're online. It never stops the app from starting.
+    Returns True if it downloaded (so new_races doesn't download again)."""
     try:
         import aws_sync
         cfg = aws_sync.settings()
@@ -99,9 +98,9 @@ def from_the_cloud():
 
 
 def new_races(fetched=False):
-    """The races the cloud fetched since the last start (newraces.py), built while the app runs: a message says when
-    one is in (it shows the next time the app opens). One build at a time, whichever copy of the app starts it.
-    fetched: the data here was just fetched from the cloud (else it's fetched first)."""
+    """Build the races the cloud fetched since the last start (newraces.py) while the app runs; a message says when
+    one is ready (it shows the next time the app opens). Only one build at a time, whichever copy of the app starts
+    it. fetched = True if the data was just downloaded (otherwise it downloads first)."""
     lock = HOME / "newraces.lock"
     try:
         if lock.exists() and time.time() - lock.stat().st_mtime > 3600:
@@ -133,20 +132,20 @@ def new_races(fetched=False):
 def tell(text):
     if sys.platform == "win32":
         import ctypes
-        ctypes.windll.user32.MessageBoxW(0, text, NAME, 0x40)       # an information box
+        ctypes.windll.user32.MessageBoxW(0, text, NAME, 0x40)       # info message box
     else:
         log(text)
 
 
 def start_app():
-    """The app, in this program: the same as python src/api.py, on this PC only."""
+    """Run the app inside this program, same as python src/api.py, on this PC only."""
     os.environ.setdefault("F1_APP_LAN", "0")
     import uvicorn
-    import api                                   # after the download: api reads the data as it loads
+    import api                                   # import after the download, api reads the data when it loads
     server = uvicorn.Server(uvicorn.Config(api.app, host="127.0.0.1", port=PORT, log_level="warning"))
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
-    for _ in range(1200):                        # the first start builds the replay file (a few seconds)
+    for _ in range(1200):                        # the first start builds the replay file (takes a few seconds)
         if running():
             return server, thread
         if not thread.is_alive():
@@ -156,9 +155,9 @@ def start_app():
 
 
 def shortcut():
-    """A shortcut on the desktop that starts the app without a console window."""
+    """Create a desktop shortcut that starts the app without a console window."""
     pythonw = Path(sys.executable).with_name("pythonw.exe")
-    made = ROOT / f"{NAME}.lnk"                  # made here, then moved: Windows' shortcut maker can't save into a
+    made = ROOT / f"{NAME}.lnk"                  # created here and then moved: the shortcut maker can't save to a
     script = ("[Console]::OutputEncoding = [Text.Encoding]::UTF8; "                 # folder with a Greek name
               f"$t = '{made}'; $s = (New-Object -ComObject WScript.Shell).CreateShortcut($t); "
               f"$s.TargetPath = '{pythonw}'; $s.Arguments = '\"{Path(__file__).resolve()}\"'; "
@@ -174,7 +173,7 @@ def main():
     if "--shortcut" in sys.argv:
         return shortcut()
     HOME.mkdir(parents=True, exist_ok=True)
-    if sys.stdout is None:                       # started from the shortcut (no console): write to desktop.log
+    if sys.stdout is None:                       # started from the shortcut (no console), so log to desktop.log
         sys.stdout = sys.stderr = open(HOME / "desktop.log", "a", encoding="utf-8", buffering=1)
     log(f"{NAME}: starting")
     ours, fetched = None, False
@@ -191,7 +190,7 @@ def main():
         subprocess.run(window(exe))              # until the window is closed
         log("The window was closed")
     else:
-        webbrowser.open(URL)                     # no Edge or Chrome: the usual browser, until Ctrl+C
+        webbrowser.open(URL)                     # no Edge or Chrome: use the default browser until Ctrl+C
         try:
             while ours and ours[1].is_alive():
                 time.sleep(1)
@@ -201,7 +200,7 @@ def main():
         ours[0].should_exit = True               # stop the app this program started
         ours[1].join(timeout=10)
         log("The app stopped")
-    builder.join()                               # a new race being built is finished first
+    builder.join()                               # let a running build finish first
 
 
 if __name__ == "__main__":

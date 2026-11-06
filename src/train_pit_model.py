@@ -31,7 +31,7 @@ LGBM_TRIES = [dict(num_leaves=15, min_child_samples=50), dict(num_leaves=31, min
               dict(num_leaves=63, min_child_samples=100), dict(num_leaves=31, min_child_samples=200)]
 
 
-# Recipe 1: train on 2022-2024, tune on 2025, test on 2026 (never seen while building the model)
+# Split: train on 2022-2024, tune on 2025, test on 2026 (not used while building the model)
 def load():
     rows = pd.read_parquet(features.OUT_FILE)
     rows = rows[features.in_study(rows)]
@@ -44,8 +44,8 @@ def real_stops():
     return laps[laps["IsStop"]]
 
 
-# Recipe 2: the usual tyre age at a pit stop, for each track and compound (falls back to the
-# compound, then to all stops, for a new track like Madrid 2026)
+# Usual tyre age at a pit stop for each track and compound. For a new track (like Madrid 2026) it falls back to the
+# compound, then to all stops.
 def usual_table(stops):
     return (stops.groupby(["Circuit", "Compound"])["TyreLife"].median(),
             stops.groupby("Compound")["TyreLife"].median(), stops["TyreLife"].median())
@@ -58,8 +58,8 @@ def usual_for(rows, table):
     return usual.fillna(rows["Compound"].astype(str).map(compound)).fillna(overall)
 
 
-# TyreAgeVsUsual = tyre age / usual age at a stop (1.0 = the age teams usually stop at).
-# A race used for training gets its "usual" from the OTHER races only, so it can't peek at its own stops.
+# TyreAgeVsUsual = tyre age / usual age at a stop (1.0 = the age teams usually stop at). A training race gets its
+# usual age from the other races only, so it can't see its own stops.
 def add_usual(rows, stops, fit_races):
     fit_stops = stops[stops["RaceId"].isin(fit_races)]
     usual = usual_for(rows, usual_table(fit_stops))
@@ -69,7 +69,7 @@ def add_usual(rows, stops, fit_races):
     return rows.assign(TyreAgeVsUsual=rows["TyreLife"] / usual)
 
 
-# Baseline 1, a simple rule: the older the tyres compared with the usual age, the higher the score
+# Baseline 1: simple rule, the older the tyres vs the usual age, the higher the score
 class TyreAgeRule:
     def fit(self, stops):
         self.table = usual_table(stops)
@@ -79,7 +79,7 @@ class TyreAgeRule:
         return (rows["TyreLife"] / usual_for(rows, self.table)).fillna(0).values
 
 
-# Baseline 2: logistic regression (a straight-line model)
+# Baseline 2: logistic regression
 def logistic_model(feats):
     categories = [c for c in features.CATEGORIES if c in feats]
     numbers = [f for f in feats if f not in categories]
@@ -89,7 +89,7 @@ def logistic_model(feats):
     return make_pipeline(prepare, LogisticRegression(max_iter=3000))
 
 
-# Recipe 3: LightGBM - try a few settings, keep the one that scores best on 2025
+# LightGBM: try a few settings, keep the best one on 2025
 def tune_lightgbm(train, tune, feats):
     best = None
     for tries in LGBM_TRIES:
@@ -103,14 +103,14 @@ def tune_lightgbm(train, tune, feats):
     return best
 
 
-# The alert line: the probability above which we say "pit soon", picked on 2025 for the best F1
+# Alert threshold: the probability above which we say "pit soon", picked on 2025 for the best F1 score
 def best_threshold(y, p):
     precision, recall, thresholds = precision_recall_curve(y, p)
     f1 = 2 * precision * recall / (precision + recall + 1e-9)
     return float(thresholds[f1[:-1].argmax()])
 
 
-# What fans care about: of the real pit stops, how many got a warning 1-3 laps before?
+# Of the real pit stops, how many got a warning 1-3 laps before?
 def stops_warned(rows, p, threshold, stops):
     alerts = rows[["RaceId", "Driver", "LapNumber"]].assign(alert=p >= threshold)
     pairs = stops[["RaceId", "Driver", "LapNumber"]].rename(columns={"LapNumber": "StopLap"})
@@ -152,8 +152,8 @@ def main():
     y = test[TARGET].values
     print(f"Rows: train {len(train)}, tune {len(tune)}, test {len(test)} - PitSoon on 2026 laps: {y.mean():.1%}")
 
-    # Each version: pick settings and the alert line on 2025 (trained on 2022-24),
-    # then retrain on 2022-25 and test on 2026
+    # For each version: pick the settings and threshold on 2025 (trained on 2022-24), then retrain on 2022-25 and test
+    # on 2026
     versions = {}
     for name, feats in VERSIONS.items():
         print(f"{name} - tuning on 2025:")
@@ -166,7 +166,7 @@ def main():
     chosen = max(versions, key=lambda n: versions[n]["tune"])
     best = versions[chosen]
 
-    # Recipe 4: compare everything on 2026
+    # Compare everything on 2026
     tests = {
         "Tyre age rule": (TyreAgeRule().fit(stops[stops["RaceId"].isin(both_races)]).predict(test),
                           best_threshold(tune[TARGET], TyreAgeRule().fit(stops[stops["RaceId"].isin(train_races)]).predict(tune))),
@@ -188,7 +188,7 @@ def main():
     importance = pd.Series(best["model"].booster_.feature_importance("gain"), index=best["feats"])
     print("Most useful features (gain):", (importance / importance.sum()).nlargest(8).round(3).to_dict())
 
-    # Recipe 5: save the chosen model, its alert line, the usual stint table, test predictions, a chart
+    # Save the chosen model, its threshold, the usual stint table, the test predictions and a chart
     best["model"].booster_.save_model(MODELS_DIR / "pit_model.txt")
     track, compound, overall = usual_table(stops[stops["RaceId"].isin(both_races)])
     info = {"version": chosen, "features": best["feats"], "threshold": threshold, "settings": best["tries"],

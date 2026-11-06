@@ -1,27 +1,26 @@
-"""The cloud data layer: a safe copy of the race data and the models in Amazon S3, which any of your computers can
-fetch in seconds (the desktop app, desktop.py, does it by itself when it starts).
+"""Cloud data layer: a copy of the race data and models in Amazon S3, so any PC can fetch them in seconds (the
+desktop app, desktop.py, does this when it starts).
 
-Everything in data/ goes up except the game's folders (data/f1_25: your recordings, data/driver: the driver report
-made from them), which never leave this PC, and the replay file, which the app builds again by itself. A table
-straight in data/ gets a folder of its own in the bucket (data/all_laps.parquet -> data/all_laps/all_laps.parquet),
-because Athena reads a folder as one table (aws_athena.py). Each file is sent with its SHA-256 and listed in the
-bucket's manifest.json, so every download is checked against what was sent, and with the bucket's versioning on, S3
-keeps every older copy too. A download never replaces a file changed on this PC since the last sync, and an upload
-never replaces a newer copy in the cloud with an older one (aws_state.json remembers the last sync).
+Everything in data/ is uploaded except the game folders (data/f1_25 with the recordings and data/driver with the
+driver report), which stay on this PC, and the replay file, which the app rebuilds itself. A table directly in
+data/ gets its own folder in the bucket (data/all_laps.parquet -> data/all_laps/all_laps.parquet) because Athena
+reads a folder as one table (aws_athena.py). Each file is sent with its SHA-256 and listed in the bucket's
+manifest.json, so every download is checked, and with versioning on S3 also keeps the older copies. A download
+never overwrites a file changed on this PC since the last sync, and an upload never overwrites a newer copy in the
+cloud with an older one (aws_state.json remembers the last sync).
 
-Once (the steps are in docs/AWS_SETUP.md):
-    python src/aws_sync.py setup BUCKET [REGION]   the bucket (kept in aws_settings.json, on this PC only)
-    python src/aws_sync.py keys                    type your access key (kept in your user folder's .aws, not here)
-    python src/aws_sync.py policy                  the permissions for that key, ready to paste into AWS
-    python src/aws_sync.py policy check            the permissions for the Lambda check (aws_check.py)
-    python src/aws_sync.py policy fetch            the permissions for the daily fetch of new races (aws_fetch.py)
+Setup, once (steps in docs/AWS_SETUP.md):
+python src/aws_sync.py setup BUCKET [REGION]   set the bucket (saved in aws_settings.json, on this PC only)
+python src/aws_sync.py keys                    enter the access key (saved in .aws in the user folder, not here)
+python src/aws_sync.py policy                  print the permissions for that key, to paste into AWS
+python src/aws_sync.py policy check            permissions for the Lambda check (aws_check.py)
+python src/aws_sync.py policy fetch            permissions for the daily fetch of new races (aws_fetch.py)
 Then:
-    python src/aws_sync.py upload                  send what changed (after a new race; --all: every file again)
-    python src/aws_sync.py download                fetch what changed
-    python src/aws_sync.py status                  what's here and in the cloud, and how many versions S3 keeps
-    python src/aws_sync.py check                   fetch everything into an empty folder, as a new PC would, and time it
-Add --force to upload or download to take that side's copy of a file changed on both sides.
-"""
+python src/aws_sync.py upload                  upload what changed (after a new race; --all sends every file again)
+python src/aws_sync.py download                download what changed
+python src/aws_sync.py status                  show what's here and in the cloud, and how many versions S3 keeps
+python src/aws_sync.py check                   download everything into an empty folder (like a new PC) and time it
+Add --force to upload or download to take that side's copy when a file changed on both sides."""
 import configparser
 import getpass
 import hashlib
@@ -38,36 +37,36 @@ from pathlib import Path
 from config import ROOT
 
 SETTINGS_FILE = ROOT / "aws_settings.json"
-STATE = "aws_state.json"                         # in the project folder: each file's SHA-256 at the last sync
-MANIFEST = "manifest.json"                       # in the bucket: every file, its size and SHA-256
-PROFILE = "f1-strategy"                          # the key's name in your user folder's .aws/credentials
-REGION = "eu-north-1"                            # Stockholm: AWS's free plan allows only this region
+STATE = "aws_state.json"                         # project folder: each file's SHA-256 at the last sync
+MANIFEST = "manifest.json"                       # bucket: every file with its size and SHA-256
+PROFILE = "f1-strategy"                          # profile name in .aws/credentials in the user folder
+REGION = "eu-north-1"                            # Stockholm, the only region on AWS's free plan
 FOLDERS = ["data", "models"]
-STAY_HERE = {"f1_25", "driver"}                  # the game's data never leaves this PC
-REBUILT = {"replay_laps.parquet"}                # the app builds it again from all_laps.parquet
-HERE_ONLY = {"building.json"}                    # newraces.py's note of a build still to finish
+STAY_HERE = {"f1_25", "driver"}                  # game data never leaves this PC
+REBUILT = {"replay_laps.parquet"}                # the app rebuilds it from all_laps.parquet
+HERE_ONLY = {"building.json"}                    # newraces.py's note of an unfinished build
 THREADS = 8
 
 
 def settings():
-    """This PC's bucket, region and key name, or None when it isn't set up for AWS (the app then works as before)."""
+    """Bucket, region and key name of this PC, or None if AWS isn't set up (the app still works without it)."""
     if not SETTINGS_FILE.exists():
         return None
     return json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
 
 
 def client(cfg, service="s3"):
-    import boto3                                 # only here: the app and the tests run without AWS
+    import boto3                                 # imported here so the app and tests work without AWS
     from botocore.config import Config
     known = configparser.ConfigParser()
     known.read(Path.home() / ".aws" / "credentials", encoding="utf-8")
-    profile = cfg.get("profile") if cfg.get("profile") in known.sections() else None   # else AWS's usual places
+    profile = cfg.get("profile") if cfg.get("profile") in known.sections() else None   # otherwise AWS's default places
     session = boto3.Session(profile_name=profile, region_name=cfg.get("region", REGION))
     return session.client(service, config=Config(connect_timeout=5, read_timeout=60, retries={"max_attempts": 2}))
 
 
 def local_files(root=ROOT):
-    """Every file that goes to the cloud, as paths from the project folder (data/..., models/...)."""
+    """All files that go to the cloud, as paths from the project folder (data/..., models/...)."""
     out = []
     for folder in FOLDERS:
         for p in sorted((root / folder).rglob("*")):
@@ -78,8 +77,8 @@ def local_files(root=ROOT):
 
 
 def key_for(path):
-    """Where a file goes in the bucket. A table straight in data/ gets a folder of its own, as Athena reads every file
-    in a folder as one table: data/all_laps.parquet -> data/all_laps/all_laps.parquet."""
+    """Bucket key for a file. A table directly in data/ gets its own folder because Athena reads all files in a
+    folder as one table: data/all_laps.parquet -> data/all_laps/all_laps.parquet."""
     folder, *rest = path.split("/")
     if folder == "data" and len(rest) == 1:
         return f"data/{Path(rest[0]).stem}/{rest[0]}"
@@ -113,9 +112,9 @@ def save_state(root, state):
 
 
 def compare(root, manifest, state):
-    """Each file's side: "same"; "up" (new or changed here); "down" (new or changed in the cloud); or "both" (changed
-    here and in the cloud since the last sync, or no record of it on this PC: left alone, as either copy could be
-    the one you want). Returns {path: (side, this PC's SHA-256, the cloud's entry)}."""
+    """Where each file stands: "same", "up" (new or changed here), "down" (new or changed in the cloud) or "both"
+    (changed on both sides since the last sync, or no record of it on this PC; left alone because either copy could
+    be the right one). Returns {path: (side, SHA-256 here, the cloud's entry)}."""
     cloud = {e["path"]: e for e in manifest.get("files", [])}
     here = {p: sha256(root / p) for p in local_files(root)}
     out = {}
@@ -127,9 +126,9 @@ def compare(root, manifest, state):
             side = "up"
         elif mine is None:
             side = "down"
-        elif last == mine:                       # unchanged here since the last sync: the cloud has a newer copy
+        elif last == mine:                       # not changed here since the last sync, so the cloud copy is newer
             side = "down"
-        elif last == theirs:                     # unchanged in the cloud since the last sync: this copy is newer
+        elif last == theirs:                     # not changed in the cloud since the last sync, so this copy is newer
             side = "up"
         else:
             side = "both"
@@ -142,8 +141,8 @@ def now():
 
 
 def upload(s3, bucket, root=ROOT, force=False, everything=False, log=print):
-    """Send what is new or changed here, then the new manifest (everything=True sends every file again: the cloud's
-    check runs on each, and S3 keeps the copies before as older versions). Returns the files and bytes sent, and the
+    """Upload what is new or changed here, then the new manifest (everything=True sends every file again; the cloud
+    check runs on each one and S3 keeps the old copies as versions). Returns the files and bytes sent, and the
     seconds it took."""
     manifest, state = read_manifest(s3, bucket), read_state(root)
     sides = compare(root, manifest, state)
@@ -157,8 +156,8 @@ def upload(s3, bucket, root=ROOT, force=False, everything=False, log=print):
         s3.upload_file(str(root / path), bucket, key_for(path), ExtraArgs={"Metadata": {"sha256": sha}})
         return {"path": path, "key": key_for(path), "size": (root / path).stat().st_size, "sha256": sha}
 
-    # If a file fails (the connection drops), the ones that went up still get into the manifest: their new copies are
-    # already in the bucket, and another PC checks each file against it. The failed ones go up next time.
+    # If a file fails (e.g. the connection drops), the files that did upload still go into the manifest, since they
+    # are already in the bucket. The failed ones are sent next time.
     done, error = [], None
     with ThreadPoolExecutor(THREADS) as pool:
         for future in [pool.submit(one, path) for path in send]:
@@ -189,8 +188,9 @@ def upload(s3, bucket, root=ROOT, force=False, everything=False, log=print):
 
 
 def download(s3, bucket, root=ROOT, force=False, log=print):
-    """Fetch what is new or changed in the cloud. Each file is checked against its SHA-256 before it replaces anything
-    here, and a file changed here since the last sync is kept. Returns the files and bytes fetched, and the seconds."""
+    """Download what is new or changed in the cloud. Each file is checked against its SHA-256 before it replaces
+    anything, and a file changed here since the last sync is kept. Returns the files and bytes fetched, and the
+    seconds."""
     manifest, state = read_manifest(s3, bucket), read_state(root)
     if not manifest.get("files"):
         raise SystemExit("The cloud has nothing yet: run python src/aws_sync.py upload on the PC with the data")
@@ -231,7 +231,7 @@ def left(sides, side, why, log):
 
 
 def versions(s3, bucket):
-    """How many copies S3 keeps of each file (more than one once versioning is on and a file was sent again)."""
+    """How many copies S3 keeps of each file (more than one if versioning is on and the file was sent again)."""
     counts = Counter()
     for page in s3.get_paginator("list_object_versions").paginate(Bucket=bucket):
         for v in page.get("Versions", []):
@@ -247,7 +247,7 @@ def status(s3, bucket, root=ROOT, log=print):
     log(f"Bucket {bucket}: {len(manifest.get('files', []))} files ({size / 1e6:.1f} MB), last sent "
         f"{manifest.get('updated', 'never')}")
     log(f"Here: {counts['same']} the same, {counts['up']} to send, {counts['down']} to fetch, {counts['both']} changed on both sides")
-    sent = {e["key"] for e in manifest.get("files", [])}                # not the checks, Athena's answers, ...
+    sent = {e["key"] for e in manifest.get("files", [])}                # skip the checks, Athena results, ...
     kept = {k: n for k, n in versions(s3, bucket).items() if k in sent}
     many = sorted(((n, k) for k, n in kept.items() if n > 1), reverse=True)
     log(f"Versions of the files sent: {sum(kept.values())} copies of {len(kept)} files" +
@@ -255,7 +255,7 @@ def status(s3, bucket, root=ROOT, log=print):
 
 
 def check(s3, bucket, root=ROOT, into=None, log=print):
-    """As a new PC would: fetch everything into an empty folder, time it, and compare every file with this PC's.
+    """Download everything into an empty folder like a new PC, time it, and compare every file with the ones here.
     Saves the numbers in results/cloud.md."""
     with tempfile.TemporaryDirectory(dir=into) as tmp:
         files, size, seconds = download(s3, bucket, Path(tmp), log=lambda *_: None)
@@ -275,8 +275,8 @@ def check(s3, bucket, root=ROOT, into=None, log=print):
 
 
 def policy(bucket, region=REGION):
-    """The permissions for the app's key: this one bucket (without deleting: with versioning on, nothing is ever lost)
-    and Athena on its own database."""
+    """IAM permissions for the app's key: only this bucket (no delete, so with versioning on nothing is lost) and
+    Athena on its own database."""
     arn, glue = f"arn:aws:s3:::{bucket}", f"arn:aws:glue:{region}:*:"
     return {"Version": "2012-10-17", "Statement": [
         {"Sid": "TheBucket", "Effect": "Allow", "Resource": arn,
@@ -294,7 +294,7 @@ def policy(bucket, region=REGION):
 
 
 def check_policy(bucket):
-    """The permissions for the Lambda check (aws_check.py): read the tables, write the reports."""
+    """Permissions for the Lambda check (aws_check.py): read the tables, write the reports."""
     arn = f"arn:aws:s3:::{bucket}"
     return {"Version": "2012-10-17", "Statement": [
         {"Sid": "ReadTheTables", "Effect": "Allow", "Action": "s3:GetObject", "Resource": f"{arn}/data/*"},
@@ -303,7 +303,7 @@ def check_policy(bucket):
 
 
 def fetch_policy(bucket):
-    """The permissions for the daily fetch (aws_fetch.py): read the list of races built, list and write new ones."""
+    """Permissions for the daily fetch (aws_fetch.py): read the list of built races, list and write new ones."""
     arn = f"arn:aws:s3:::{bucket}"
     return {"Version": "2012-10-17", "Statement": [
         {"Sid": "ReadTheIndex", "Effect": "Allow", "Action": "s3:GetObject", "Resource": f"{arn}/data/openf1/sessions.json"},
@@ -314,8 +314,8 @@ def fetch_policy(bucket):
 
 
 def save_keys():
-    """Ask for the access key (the secret part isn't shown as you type) and keep it in your user folder's
-    .aws/credentials, as AWS's own tools do. It is never kept in the project folder."""
+    """Ask for the access key (the secret isn't shown while typing) and save it in .aws/credentials in the user
+    folder, like AWS's own tools do. It is never saved in the project folder."""
     path = Path.home() / ".aws" / "credentials"
     print("Paste your access key (AWS: IAM > Users > f1-strategy-app > Security credentials).")
     key_id = input("Access key ID: ").strip()

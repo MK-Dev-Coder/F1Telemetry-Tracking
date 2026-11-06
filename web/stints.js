@@ -1,5 +1,5 @@
-/* The tyre strategy graphic of both pages (like F1 TV's): every stint as a bar along the race, in its tyre's
-   colour, with a line at the lap shown. Stints.axis(total) is the lap scale for the header, Stints.bar(...) one row. */
+/* Tyre strategy graphic for both pages (like F1 TV's): every stint as a bar along the race in its tyre colour, with a
+   line at the current lap. Stints.axis(total) is the lap scale for the header, Stints.bar(...) one row. */
 (() => {
   "use strict";
   const css = `
@@ -17,7 +17,7 @@
   const pc = (laps, total) => Math.max(0, Math.min(100, laps / Math.max(total, 1) * 100));
   const step = total => (total > 40 ? 10 : 5);
 
-  // The lap scale: L1, every 5 or 10 laps, and the last lap (a tick too close to the last is left out)
+  // Lap scale: L1, every 5 or 10 laps, and the last lap (a tick too close to the last one is skipped)
   function axis(total) {
     const ticks = [1];
     for (let l = step(total); l < total; l += step(total)) if (total - l >= step(total) / 2) ticks.push(l);
@@ -25,8 +25,8 @@
     return `<span class="stax" aria-hidden="true">${ticks.map(l => `<span style="left:${pc(l - 0.5, total)}%">${l === 1 ? "L1" : l}</span>`).join("")}</span>`;
   }
 
-  // One car's stints [{compound, from, to}]. colour(compound) gives [letter, name, css colour]; now is the lap shown
-  // (a line); going means the last stint is still running
+  // One car's stints [{compound, from, to}]. colour(compound) gives [letter, name, css colour]; now = the lap shown
+  // (a line); going = the last stint is still running
   function bar(stints, total, { colour, now, going }) {
     const said = [];
     const segs = stints.map((h, k) => {

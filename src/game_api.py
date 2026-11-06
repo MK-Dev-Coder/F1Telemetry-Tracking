@@ -1,4 +1,4 @@
-"""The F1 25 part of the app: the player's own game sessions, recorded live from the game."""
+"""F1 25 part of the app: the player's game sessions, recorded live from the game."""
 import asyncio
 import json
 import math
@@ -42,7 +42,7 @@ def thin(rows, most):
 
 
 def session_view(s, latest_events=None):
-    """Everything the page shows for one session. The live stream sends only the latest events, to stay small."""
+    """Everything the page shows for one session. The live stream only sends the latest events to keep it small."""
     with RECORDER.lock:
         events = s.events[-latest_events:] if latest_events else s.events
         return {"session": s.summary(), "info": s.info, "race": s.is_race(), "live": RECORDER.is_live(s.uid),
@@ -54,11 +54,11 @@ def session_view(s, latest_events=None):
 
 
 def live_view(s):
-    """The live stream's message: the session, and in races the pit stop predictions at the latest lap."""
+    """Message for the live stream: the session, plus the pit stop predictions at the latest lap in races."""
     view = session_view(s, 200)
     try:
         view["strategy"] = game_strategy.snapshot(s, RECORDER.lock)
-    except Exception as err:                  # the live leaderboard and car must keep going even if this fails
+    except Exception as err:                  # the live leaderboard and car data must keep working even if this fails
         view["strategy"] = {"available": False, "note": f"The pit stop predictions failed on this lap ({type(err).__name__}: {err})."}
     try:                                      # the engineer's own radio calls (the page says each new one once)
         view["radio"] = game_radio.RADIO.calls_for(s, RECORDER.lock, view["strategy"])
@@ -74,8 +74,8 @@ class Question(BaseModel):
 
 @router.post("/radio/ask")
 def radio_ask(q: Question):
-    """Team radio: a question to your race engineer (the words you said), answered from your live data -
-    in the local AI's words when Ollama is running, else straight from the data."""
+    """Team radio: a question to the race engineer (what you said), answered from the live data. Uses the local
+    AI's words when Ollama is running, otherwise answers straight from the data."""
     sid = q.session or (str(RECORDER.live_uid) if RECORDER.live_uid else None)
     if not sid:
         raise HTTPException(404, "No session yet: drive in F1 25 first, then ask.")
@@ -90,8 +90,8 @@ def radio_status():
 
 @router.get("/status")
 def status():
-    """Is the app receiving the game? Also shows this PC's address to type into the game's settings, and whether the
-    app can be opened from a phone or tablet on your home network (started with start_app_lan.bat)."""
+    """Is the app receiving the game? Also shows this PC's address to enter in the game settings, and whether the
+    app can be opened from a phone or tablet on the home network (started with start_app_lan.bat)."""
     return {**RECORDER.status(), "lan": os.environ.get("F1_APP_LAN") == "1"}
 
 
@@ -121,8 +121,8 @@ def telemetry(sid: str, lap: int | None = None, compare: int | None = None):
     if lap is None and valid:
         lap = min(valid, key=lambda l: l["time"])["lap"]           # the fastest lap by default
     elif lap is None and samples:
-        lap = samples[-1][1]                                       # no lap done yet: the lap in progress
-    # Sessions recorded by older versions also hold the out-lap before the line (negative distances): left out
+        lap = samples[-1][1]                                       # no lap done yet, use the lap in progress
+    # Sessions recorded by older versions also have the out-lap before the line (negative distance), so leave it out
     trace = lambda n: [dict(zip(game.SAMPLE_COLUMNS, r)) for r in thin([r for r in samples if r[1] == n and r[2] >= 0], 1500)]
     return {"lap": lap, "compare": compare, "laps": laps, "trace": trace(lap) if lap else [],
             "compare_trace": trace(compare) if compare else []}
@@ -158,8 +158,8 @@ def track_map(sid: str):
 
 @router.get("/sessions/{sid}/strategy")
 def strategy(sid: str, lap: int | None = Query(None, ge=1)):
-    """Races: every car's pit stop chance for the next 3 laps, its top reasons (SHAP) and the likely next tyre,
-    from the models trained on real F1, at the end of a lap (the latest one if no lap is given)."""
+    """Races: every car's pit stop chance for the next 3 laps, its top SHAP reasons and likely next tyre, from the
+    models trained on real F1, at the end of a lap (the latest one if no lap is given)."""
     return game_strategy.snapshot(session_or_404(sid), RECORDER.lock, lap)
 
 
@@ -174,7 +174,7 @@ def strategy_car(sid: str, car: int, lap: int | None = Query(None, ge=1)):
 
 @router.get("/sessions/{sid}/duel/{a}/{b}")
 def duel(sid: str, a: int, b: int, lap: int | None = Query(None, ge=1)):
-    """The strategy battle: two cars side by side up to the end of a lap (the latest whole lap if no lap is given)."""
+    """Strategy battle: two cars side by side up to the end of a lap (the latest full lap if no lap is given)."""
     answer = game_strategy.duel(session_or_404(sid), RECORDER.lock, a, b, lap)
     if answer is None:
         raise HTTPException(404, f"No finished race laps for both car {a} and car {b} in session {sid}.")
@@ -183,9 +183,9 @@ def duel(sid: str, a: int, b: int, lap: int | None = Query(None, ge=1)):
 
 @router.get("/sessions/{sid}/engineer")
 def engineer(sid: str):
-    """The engineer's briefing for a session: the game's own plan (its pit window, where you'd rejoin, your tyre sets
-    with the laps each has left, how long the game says each compound lasts and its pace), the real track it is (for
-    the real F1 briefing at /engineer/{circuit}) and how this race's length wears the tyres."""
+    """Engineer's briefing for a session: the game's own plan (pit window, where you'd rejoin, your tyre sets with
+    the laps left on each, how long the game says each compound lasts and its pace), the matching real track (for
+    the real F1 briefing at /engineer/{circuit}) and how this race's length affects tyre wear."""
     s = session_or_404(sid)
     sprint = RECORDER.is_sprint(s)
     with RECORDER.lock:
@@ -201,7 +201,8 @@ def engineer(sid: str):
 
 
 def pit_loss(track):
-    """What a stop costs under green at this track (seconds, from the real races), or None for a track not raced."""
+    """Cost of a stop under green at this track (seconds, from real races), or None if there are no real races
+    there."""
     name, m = game_strategy.circuit(track), game_strategy.models()
     if not name or not m.get("pit_now") or not m.get("outcome"):
         return None
@@ -210,8 +211,8 @@ def pit_loss(track):
 
 @router.get("/sessions/{sid}/report")
 def report(sid: str):
-    """The session's report: your result, places lap by lap, stints and stops, consistency, your pace against the
-    cars around you on the same tyre, your theoretical best lap (sectors against pole) and the Time Trial."""
+    """Session report: your result, positions lap by lap, stints and stops, consistency, your pace vs the cars
+    around you on the same tyre, your theoretical best lap (sectors vs pole) and Time Trial."""
     s = session_or_404(sid)
     with RECORDER.lock:
         return game_analysis.report(s)
@@ -219,7 +220,7 @@ def report(sid: str):
 
 @router.get("/sessions/{sid}/corners")
 def corners(sid: str, lap: int | None = Query(None, ge=1), compare: int | None = Query(None, ge=1)):
-    """Where you lose time: one lap against another (by default your fastest), corner by corner."""
+    """Where you lose time: one lap vs another (your fastest by default), corner by corner."""
     s = session_or_404(sid)
     with RECORDER.lock:
         laps, samples = s.player_laps(), list(s.samples)
@@ -244,7 +245,7 @@ def slips(sid: str, lap: int | None = Query(None, ge=1)):
 
 @router.get("/sessions/{sid}/energy")
 def energy(sid: str):
-    """Energy on each lap (harvested and used, against the limit in F1 26), where on the lap, and in F1 26 overtake
+    """Energy on each lap (harvested and used, vs the limit in F1 26), where on the lap, and in F1 26 the overtake
     mode and active aero."""
     s = session_or_404(sid)
     with RECORDER.lock:
@@ -256,8 +257,8 @@ def energy(sid: str):
 
 @router.get("/sessions/{sid}/switch")
 def switch(sid: str):
-    """When to switch to the wet tyres (or back to slicks): the game's own pace for your sets, the laps left and
-    what a stop costs here."""
+    """When to switch to wet tyres (or back to slicks), from the game's pace for your sets, the laps left and the
+    cost of a stop here."""
     s = session_or_404(sid)
     loss = pit_loss(s.info.get("track", ""))
     with RECORDER.lock:
@@ -280,8 +281,8 @@ def setups(game_name: str = Query("F1 25", alias="game"), track: str | None = No
 
 @router.get("/driver")
 def driver(game_name: str = Query("F1 25", alias="game"), track: str | None = None):
-    """The driver report: what the model has learned about your driving (one game), and at one track the corners
-    where you lose the most. It learns your new sessions each time it's asked (the live one when it ends)."""
+    """Driver report: what the model has learned about your driving (one game), and at one track the corners where
+    you lose the most. It learns from new sessions each time it's called (the live one once it ends)."""
     live = {str(RECORDER.live_uid)} if RECORDER.live_uid and RECORDER.is_live(RECORDER.live_uid) else set()
     return game_driver.report(game_name, track, skip=live)
 
@@ -297,7 +298,7 @@ def car(sid: str):
 
 @router.get("/live")
 async def live(seconds: float = 1.0):
-    """While you drive: the live session, sent every second (Server-Sent Events)."""
+    """Live session data while you drive, sent every second (Server-Sent Events)."""
     async def updates():
         while True:
             uid = RECORDER.live_uid if RECORDER.live_uid and RECORDER.is_live(RECORDER.live_uid) else None

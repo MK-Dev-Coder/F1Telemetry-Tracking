@@ -1,9 +1,8 @@
-"""A pretend F1 25: sends correctly formatted telemetry packets for a short race, to test the app without
-a console. Its sessions are marked TEST in the app (it sends game version 0.0).
+"""Fake F1 25 for testing: sends correctly formatted telemetry packets for a short race, so the app can be tested
+without a console. Its sessions are marked TEST in the app (it sends game version 0.0).
 
-    python src/game_simulator.py                 # a 5-lap race, 10x faster than real time
-    python src/game_simulator.py --laps 3 --speed 20
-"""
+python src/game_simulator.py                 # 5-lap race, 10x faster than real time
+python src/game_simulator.py --laps 3 --speed 20"""
 import argparse
 import math
 import random

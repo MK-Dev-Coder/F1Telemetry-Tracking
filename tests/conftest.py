@@ -1,8 +1,7 @@
-"""Shared bits for the tests. Run them from the F1 App folder:  python -m pytest tests
+"""Shared helpers for the tests. Run from the project folder: python -m pytest tests
 
 The tests use small made-up races, so they never read or change the real data. Only test_with_data.py reads the
-real data folder (without changing it), and it is skipped when the folder isn't there (it isn't on GitHub).
-"""
+real data folder (without changing it), and it's skipped when the folder isn't there (it isn't on GitHub)."""
 import io
 import sys
 from pathlib import Path
@@ -11,20 +10,20 @@ import numpy as np
 import pandas as pd
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))  # the app's own files (src/features.py, ...)
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))  # so the tests can import src/features.py etc.
 
 LAPS = 10
-CARS = [("AAA", 0.0), ("BBB", 0.5), ("CCC", 1.0), ("DDD", 15.0)]      # each car's seconds a lap slower than AAA
+CARS = [("AAA", 0.0), ("BBB", 0.5), ("CCC", 1.0), ("DDD", 15.0)]      # each car's seconds per lap slower than AAA
 IN_LAPS = {("AAA", 4), ("BBB", 6), ("CCC", 7)}                       # into the pits at the end of the lap
 NEW_TYRES = {("AAA", 5), ("CCC", 8)}                                 # out of the pits on hard tyres
 OUT_LAPS = NEW_TYRES | {("BBB", 7)}                                  # BBB: a drive-through, same tyres
 
 
 def make_race():
-    """A made-up 10-lap race with 4 cars, in the same columns as data/all_laps.parquet.
-    AAA makes a real stop at the end of lap 4 (medium -> hard). BBB takes a drive-through on lap 6 (same tyres, so
-    not a stop). CCC changes tyres in the pit lane under the red flag on lap 7 (not a race stop). DDD is 15 s a lap
-    slower than everyone. The safety car is out on laps 8 and 9."""
+    """A made-up 10-lap race with 4 cars, in the same columns as data/all_laps.parquet. AAA makes a real stop at
+    the end of lap 4 (medium -> hard). BBB takes a drive-through on lap 6 (same tyres, so not a stop). CCC changes
+    tyres in the pit lane under the red flag on lap 7 (not a race stop). DDD is 15 s per lap slower than everyone.
+    The safety car is out on laps 8 and 9."""
     rows = []
     for driver, slower in CARS:
         start, compound, life, stint = 3600.0, "MEDIUM", 0.0, 1.0       # session time at the start of the lap
@@ -66,8 +65,8 @@ class NoSuchKey(Exception):
 
 
 class FakeS3:
-    """A bucket in memory, with the calls aws_sync.py, aws_check.py, aws_fetch.py and newraces.py make: no AWS account,
-    internet or keys are needed."""
+    """In-memory bucket with the calls that aws_sync.py, aws_check.py, aws_fetch.py and newraces.py use, so no AWS
+    account, internet or keys are needed."""
 
     def __init__(self):
         self.objects = {}                        # key -> (bytes, metadata)

@@ -1,10 +1,10 @@
-"""Train the race outcome model: each driver's chance to win, finish on the podium and score points, lap by lap.
+"""Race outcome model: each driver's chance to win, get a podium and score points, lap by lap.
+Train on 2022-2024, pick settings and features on 2025, retrain on 2022-2025, test on 2026.
 
-    python src/train_race_model.py   -> models/race_model.txt + .json, models/race_background.parquet (SHAP's average
-                                    driver), data/race_results.parquet, data/race_model_results.csv,
-                                    data/race_test_predictions.parquet (read by evaluate_race_model.py)
-Train on 2022-2024, pick the settings and the features on 2025, retrain on 2022-2025, test on 2026.
-"""
+Run: python src/train_race_model.py
+Output: models/race_model.txt + .json, models/race_background.parquet (average driver for SHAP),
+data/race_results.parquet, data/race_model_results.csv, data/race_test_predictions.parquet (used by
+evaluate_race_model.py)"""
 import json
 import time
 
@@ -20,29 +20,28 @@ from config import DATA_DIR, MODELS_DIR
 
 LGBM_BASE = dict(objective="binary", learning_rate=0.05, n_estimators=3000, subsample=0.8, subsample_freq=1,
                  colsample_bytree=0.8, reg_lambda=1.0, random_state=42, verbose=-1)
-# Every lap is repeated once per k (20 times), so a leaf needs thousands of rows to hold more than a few races
+# Each lap is repeated once per k (20 times), so a leaf needs thousands of rows to cover more than a few races
 LGBM_TRIES = [dict(num_leaves=7, min_child_samples=6000), dict(num_leaves=15, min_child_samples=2000),
               dict(num_leaves=15, min_child_samples=6000), dict(num_leaves=31, min_child_samples=6000)]
 BASELINES = ["Grid only", "Position only"]
 
 
-# Recipe 1: every lap with its features and the driver's final result (results: from ro.build_results or
-# ro.load_results)
+# Every lap with its features and the driver's final result (results from ro.build_results or ro.load_results)
 def load_rows(results):
     rows = ro.add_features(tyre.replay_laps(), results)
     rows = rows[rows["Final"].notna() & rows["Position"].notna() & features.in_study(rows)].reset_index(drop=True)
     return rows
 
 
-# Recipe 2: the chances for every lap of a set of races, fitted together lap by lap (or as they come)
+# Chances for every lap of a set of races, fitted together lap by lap (fit=False gives the raw scores)
 def predict(model, feats, rows, fit=True):
     raw = model.predict_proba(ro.stack(rows, feats, range(1, ro.MAX_CARS + 1)))[:, 1].reshape(len(rows), ro.MAX_CARS)
     return ro.by_lap(raw, rows, fit)
 
 
 def scores(rows, p):
-    """Log loss and Brier score for the win, podium and points chances, how often the favourite wins,
-    and how far the likely finish (the median) is from the real one."""
+    """Log loss and Brier score for the win, podium and points chances, how often the favourite wins, and how far
+    the predicted finish (median) is from the real one."""
     out = {}
     for name, k in ro.SHOWN.items():
         y, q = (rows["Final"] <= k).astype(int).values, np.clip(p[:, k - 1], 1e-6, 1 - 1e-6)
@@ -56,7 +55,7 @@ def scores(rows, p):
     return out
 
 
-# Recipe 3: two simple baselines - a table of how often drivers in the same spot finished in the top k
+# Two simple baselines: a table of how often drivers in the same position finished in the top k
 class Table:
     def __init__(self, key):
         self.key = key
@@ -108,7 +107,7 @@ def main():
           f"matches the official result for {same.mean():.1%} of drivers and {(winners['Final_openf1'] == 1).mean():.0%} "
           "of winners (the rest: penalties given after the race).")
     rows = load_rows(results)
-    # The pit stop cost of each track comes from the races used for training only (2022-24 to tune, 2022-25 at the end)
+    # Pit stop cost per track, from the training races only (2022-24 for tuning, 2022-25 at the end)
     tune_loss, final_loss = ro.pit_loss_table(rows[rows["Year"] <= 2024]), ro.pit_loss_table(rows[rows["Year"] <= 2025])
     before = ro.add_pit_adjusted(rows.copy(), tune_loss)
     train, tune_rows = (before[before["Year"] <= 2024].reset_index(drop=True), before[before["Year"] == 2025].reset_index(drop=True))
@@ -116,8 +115,8 @@ def main():
     print(f"Laps: train {len(train)} ({train['RaceId'].nunique()} races), tune {len(tune_rows)}, test {len(test)} "
           f"({test['RaceId'].nunique()} races). A pit stop costs {final_loss['overall']:.0f} s on average.")
 
-    # The settings are picked once, with every feature; then each feature group is added in turn,
-    # with and without fitting the chances together
+    # Pick the settings once with all features, then add each feature group in turn, with and without fitting the
+    # chances together
     every = [f for group in ro.GROUPS.values() for f in group]
     print("Tuning on 2025 (all features):")
     _, tries, tuned = tune(train, tune_rows, every)
@@ -132,9 +131,9 @@ def main():
                                           "tune": scores(tune_rows, predict(model, feats, tune_rows, fit=together))}
         print(f"   {name:20s} mean log loss on 2025 = {versions[(name, True)]['tune']['Mean log loss']:.4f} fitted together, "
               f"{versions[(name, False)]['tune']['Mean log loss']:.4f} as they come")
-    # The chances are always fitted together: the screen needs one winner, three podium places and ten points places
-    # (the raw scores are kept to show what it costs). Then the simplest version within 0.5% of the best on 2025
-    # (fewer features: less to go wrong on new tracks and new rules).
+    # Always use the fitted chances (the screen needs 1 winner, 3 podium places and 10 points places; the raw scores
+    # are kept to show the cost). Then take the simplest version within 0.5% of the best on 2025 (fewer features =
+    # less to go wrong on new tracks and rules).
     fitted = {n: v for (n, f), v in versions.items() if f}
     best = min(v["tune"]["Mean log loss"] for v in fitted.values())
     chosen = min((n for n, v in fitted.items() if v["tune"]["Mean log loss"] <= best * 1.005),

@@ -1,5 +1,5 @@
-/* The small icons both pages use: race control's flags (as in the F1 app), the game's events, and the weather.
-   Each is an inline SVG string. */
+/* Small icons used by both pages: race control flags (like in the F1 app), game events and weather.
+   Each one is an inline SVG string. */
 (() => {
   "use strict";
   const pole = `<path d="M5 3v18" stroke="#c9cfdb" stroke-width="2" stroke-linecap="round"/>`;

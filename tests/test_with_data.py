@@ -1,5 +1,5 @@
 """Tests on the real data and the trained models (about a minute). The data folder is only read, never changed.
-Skipped when the data folder isn't there (it isn't on GitHub: see "Get the data" in the README)."""
+Skipped if the data folder isn't there (it isn't on GitHub, see "Get the data" in the README)."""
 import numpy as np
 import pandas as pd
 import pytest
@@ -14,14 +14,14 @@ SAVED = ["test_predictions", "race_test_predictions", "tyre_test_predictions", "
 NEEDED = [tyre.REPLAY_FILE, ro.RESULTS_FILE, features.IN_FILE, features.OUT_FILE] + [DATA_DIR / f"{n}.parquet" for n in SAVED]
 pytestmark = [pytest.mark.skipif(not all(f.exists() for f in NEEDED),
                                  reason="needs the data folder and the trained models (see the README)"),
-              pytest.mark.filterwarnings("ignore:Using `httpx`")]       # (FastAPI's test client, not the app)
+              pytest.mark.filterwarnings("ignore:Using `httpx`")]       # FastAPI's test client, not the app
 STUDY = [f"2026_{r:02d}" for r in range(1, features.TEST_LAST_ROUND + 1)]
 RACE = "2026_17"                                                   # Singapore 2026, the last test race
 
 
 @pytest.mark.parametrize("name", SAVED)
 def test_the_study_is_tested_on_the_17_races_of_2026_only(name):
-    """The saved test answers: all 17 test races, nothing the models were trained on, and no race added later."""
+    """Saved test predictions: all 17 test races, nothing the models were trained on, and no race added later."""
     races = pd.read_parquet(DATA_DIR / f"{name}.parquet", columns=["RaceId"])["RaceId"].unique()
     assert sorted(races) == STUDY
 
@@ -35,7 +35,7 @@ def test_a_real_race_never_uses_later_laps():
 
 
 def test_the_pit_models_reasons_add_up():
-    """SHAP: the typical lap's chance plus every reason is exactly the model's chance."""
+    """SHAP: the typical lap's chance plus all the reasons equals the model's chance."""
     model, info = load_model()
     rows = pd.read_parquet(features.OUT_FILE, filters=[("RaceId", "==", RACE)])
     chance, values, base = explain(model, info, rows)
@@ -65,7 +65,7 @@ def test_real_laps_have_one_winner(outcome, n):
 
 
 def test_the_race_models_reasons_add_up(outcome):
-    """SHAP against the average driver: the average driver's chance plus every reason is the model's own chance."""
+    """SHAP vs the average driver: the average driver's chance plus all the reasons equals the model's chance."""
     model, info, rows = outcome
     here = rows[rows["LapNumber"] == 30].reset_index(drop=True)
     for k in ro.SHOWN.values():
@@ -83,7 +83,7 @@ def test_short_game_races_are_scaled_to_the_real_race():
     assert gs.race_scale("Jeddah", 17, sprint=True)["factor"] == 1
 
 
-# -- the app itself: its web answers, as the pages get them -----------------------------------------------------
+# -- the app itself: the API responses the pages get ------------------------------------------------------------
 @pytest.fixture(scope="module")
 def app():
     if tyre.REPLAY_FILE.stat().st_mtime <= features.IN_FILE.stat().st_mtime:
@@ -163,17 +163,18 @@ def test_the_strategy_battle_of_two_real_drivers(app):
 
 
 def test_every_driver_has_a_card_for_the_driver_picker(app):
-    """The strategy battle's picker: each driver's car number, name, team and photo (OpenF1 from 2023; a 2022 race
-    takes each driver from the nearest race, so Verstappen is still number 1)."""
+    """Driver picker for the strategy battle: each driver's car number, name, team and photo (OpenF1 from 2023; a
+    2022 race takes each driver from the nearest race, so Verstappen is still number 1)."""
     race = app.get(f"/races/{RACE}").json()
     assert set(race["cards"]) == set(race["drivers"])
     assert race["cards"]["LEC"]["number"] == 16 and race["cards"]["LEC"]["photo"].startswith("https://")
     old = app.get("/races/2022_05").json()["cards"]
-    assert old["VER"]["number"] == 1 and "VET" not in old            # (Vettel retired before OpenF1: his number shows)
+    assert old["VER"]["number"] == 1 and "VET" not in old            # Vettel retired before OpenF1, so he has no card
 
 
 def test_the_engineer_briefing(app):
-    """The next race's track, its tyres (shorter on a hotter day and in a game race) and the race prediction."""
+    """Briefing for the next race's track: tyres (shorter life on a hotter day and in a game race) and the race
+    prediction."""
     tracks = app.get("/engineer").json()
     nxt = tracks["next"]
     assert any(t["circuit"] == nxt and t["next"] for t in tracks["tracks"])
@@ -268,6 +269,6 @@ def test_the_race_outcome_chart_adds_up(app):
 def test_the_race_preview(app):
     w = app.get("/preview").json()
     assert sum(d["win"] for d in w["drivers"]) == pytest.approx(1, abs=0.01)
-    assert isinstance(w["is_past"], bool)                    # (true once the race has been run)
+    assert isinstance(w["is_past"], bool)                    # true once the race has been run
     assert app.get("/preview/2026_17").status_code == 200
     assert app.get("/preview/2022_01").status_code == 404                    # tested on 2025 and 2026 only

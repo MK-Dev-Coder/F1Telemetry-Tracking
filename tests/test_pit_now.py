@@ -1,4 +1,4 @@
-"""pit_now.py: if they pit now - what the stop costs and where they'd rejoin."""
+"""Tests for pit_now.py: if they pit now, what the stop costs and where they'd rejoin."""
 import json
 
 import pandas as pd
@@ -25,7 +25,7 @@ def test_a_track_never_seen_uses_the_usual_cost():
 
 def test_new_tyres_are_free_under_a_red_flag():
     assert pit_now.cost(TABLE, PIT_LOSS, "Austin", "RED FLAG") == (0.0, (0.0, 0.0), "red")
-    assert pit_now.rejoin(lap(), "BBB", 0.0)["position"] == 2                 # keeps the place
+    assert pit_now.rejoin(lap(), "BBB", 0.0)["position"] == 2                 # keeps the position
 
 
 def test_the_saved_table_learned_the_same_order():
@@ -63,14 +63,15 @@ def test_no_gap_no_answer():
 
 
 def test_a_lap_with_cars_missing_from_the_timing_has_no_answer():
-    """Miami 2025 lap 25 has only P10-P19: the places after a stop can't be counted (P10 isn't "P7 after a stop")."""
+    """Miami 2025 lap 25 only has P10-P19, so the positions after a stop can't be worked out (P10 isn't "P7 after a
+    stop")."""
     rows = lap().assign(Position=[10.0, 11.0, 12.0, 13.0, 14.0])
     assert pit_now.rejoin_all(rows, 22.0) == {}
     assert pit_now.rejoin(rows, "AAA", 22.0) is None
 
 
 def test_cars_close_by_keep_their_places():
-    """A car 0.04 s away is shown with a gap of 0.0: its place says whether it's ahead or behind."""
+    """A car 0.04 s away is shown with a gap of 0.0; its position shows whether it's ahead or behind."""
     rows = lap().assign(GapToLeader=[0.0, 5.0, 21.96, 22.04, 31.0])
     around = {c["driver"]: c for c in pit_now.rejoin(rows, "AAA", 22.0)["around"]}
     assert (around["CCC"]["position"], around["CCC"]["gap"]) == (2, -0.0)     # just ahead

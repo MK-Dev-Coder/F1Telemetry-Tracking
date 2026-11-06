@@ -21,7 +21,7 @@ def plain(text):
     return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()   # "São" -> "Sao"
 
 
-# Recipe 1: the FastF1 races, with the circuit name from FastF1's calendar
+# FastF1 races, with the circuit name from FastF1's calendar
 def fastf1_races():
     fastf1.Cache.enable_cache(CACHE_DIR)
     fastf1.set_log_level("WARNING")
@@ -37,7 +37,7 @@ def fastf1_races():
     return laps
 
 
-# Recipe 2: the OpenF1 races, with the circuit name OpenF1 gave the race
+# OpenF1 races, with OpenF1's circuit name
 def openf1_races():
     tables = []
     for f in sorted(OPENF1_DIR.glob("*.parquet")):
@@ -46,7 +46,7 @@ def openf1_races():
     return pd.concat(tables, ignore_index=True)
 
 
-# Recipe 3: one table with every lap. A race we have from both sources keeps the FastF1 copy.
+# One table with every lap. If a race is in both sources, keep the FastF1 one.
 def main():
     ff = fastf1_races()
     of = openf1_races()

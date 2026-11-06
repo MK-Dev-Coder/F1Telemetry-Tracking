@@ -1,13 +1,14 @@
-"""Evaluation of the race outcome model (each driver's chance to win, finish on the podium and score points,
-lap by lap), for the dissertation. Everything is measured on the 17 races of 2026, never used to train or tune it.
+"""Evaluation of the race outcome model (each driver's chance to win, get a podium and score points, lap by lap)
+for the dissertation. Everything is measured on the 17 races of 2026, never used to train or tune it.
 
-RQ4a  How good are the chances?    Log loss and Brier score with 95% confidence intervals, against two baselines.
-RQ4b  When does it know?           The scores by how far into the race; the winner's chance as the race goes on.
+RQ4a  How good are the chances?    Log loss and Brier score with 95% confidence intervals, vs two baselines.
+RQ4b  When does it know?           Scores by how far into the race; the winner's chance as the race goes on.
 RQ4c  Can the % be trusted?        Calibration of the win, podium and points chances.
 RQ4d  Are the SHAP reasons sound?  Do they follow racing logic, and which reasons matter most? Two case studies.
 RQ4e  Is it fast enough live?      Time for one lap: every driver's chances and their reasons.
-    python src/evaluate_race_model.py   -> figures/race_*.png and data/race_evaluation.md (run train_race_model.py first)
-"""
+
+Run: python src/evaluate_race_model.py -> figures/race_*.png and data/race_evaluation.md (run train_race_model.py
+first)"""
 import textwrap
 import time
 import warnings
@@ -27,14 +28,14 @@ import matplotlib.pyplot as plt               # noqa: E402
 
 warnings.filterwarnings("ignore", category=UserWarning)
 RNG = np.random.default_rng(42)
-BOOT = 1000                                   # bootstrap resamples (whole races are drawn)
+BOOT = 1000                                   # bootstrap resamples (whole races)
 REPORT = DATA_DIR / "race_evaluation.md"
 MODELS = ["LightGBM", "Position only", "Grid only"]
 COLOURS = {"LightGBM": "tab:blue", "Position only": "tab:orange", "Grid only": "tab:grey"}
 STAGES = [(0, 0.1, "Start (0-10%)"), (0.1, 0.25, "10-25%"), (0.25, 0.5, "25-50%"), (0.5, 0.75, "50-75%"),
           (0.75, 0.9, "75-90%"), (0.9, 1.01, "Last 10%")]
-# What racing logic says a higher value should do to every chance (only where there is one clear answer:
-# e.g. more laps to go is bad for the leader but good for a car behind, so it has no single direction)
+# What racing logic says a higher value should do to every chance (only where there is one clear answer; e.g. more
+# laps to go is bad for the leader but good for a car behind, so it has no single direction)
 EXPECTED = {"GapAhead": "less", "GapBehind": "more",
             "PlacesToK": "less", "MarginK": "more", "MarginKPerLap": "more", "GridToK": "less",
             "AdjustedPlacesToK": "less", "AdjustedMarginK": "more", "StopsVsAhead": "more", "StopsVsLeader": "more",
@@ -47,10 +48,10 @@ def logloss(y, p):
     return -(y * np.log(p) + (1 - y) * np.log(1 - p))
 
 
-# Recipe 1: the 2026 laps with every model's chances (from train_race_model.py), and the model's SHAP values
+# The 2026 laps with every model's chances (from train_race_model.py) and the model's SHAP values
 def load():
     booster, info = ro.load_model()
-    rows = load_rows(ro.load_results())                          # the results training used
+    rows = load_rows(ro.load_results())                          # same results as in training
     rows = ro.add_pit_adjusted(rows[rows["Year"] == 2026].copy(), info["pit_loss"]).reset_index(drop=True)
     saved = pd.read_parquet(DATA_DIR / "race_test_predictions.parquet")
     keys = ["RaceId", "Driver", "LapNumber"]
@@ -63,7 +64,7 @@ def load():
 
 
 # ---------------------------------------------------------------------------------------------------------
-# RQ4a, recipe 2: log loss and Brier score with 95% confidence intervals (whole races resampled)
+# RQ4a: log loss and Brier score with 95% confidence intervals (whole races resampled)
 def overall(rows):
     races = rows["RaceId"].values
     by_race = {r: np.flatnonzero(races == r) for r in np.unique(races)}
@@ -87,9 +88,9 @@ def overall(rows):
 
 
 # ---------------------------------------------------------------------------------------------------------
-# RQ4b, recipe 3: the scores at each stage of the race. "Favourite wins" = the driver with the highest win
-# chance on that lap really won. The finish error compares the likely finish (the median) with the real one
-# ("Current position" = the naive guess that nobody moves again).
+# RQ4b: scores at each stage of the race. "Favourite wins" = the driver with the highest win chance on that lap really
+# won. The finish error compares the predicted finish (median) with the real one ("Current position" = the naive guess
+# that nobody moves again).
 def by_stage(rows):
     out = []
     for stage, part in rows.groupby("Stage", observed=True):
@@ -143,7 +144,7 @@ def stage_charts(stages, rows):
 
 
 # ---------------------------------------------------------------------------------------------------------
-# RQ4c, recipe 4: calibration - when it says 30%, does it happen about 30% of the time?
+# RQ4c: calibration. When it says 30%, does it happen about 30% of the time?
 def calibration(rows):
     edges = [0, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5, 0.65, 0.8, 0.9, 0.98, 1.0001]
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.8))
@@ -170,8 +171,8 @@ def calibration(rows):
 
 
 # ---------------------------------------------------------------------------------------------------------
-# RQ4d, recipe 5: does each reason push the chances the way racing logic says? (Spearman correlation
-# between a feature's value and its SHAP value; weak = |r| < 0.1, unused = the model never uses it)
+# RQ4d: does each reason push the chances the way racing logic says? (Spearman correlation between a feature's value
+# and its SHAP value; weak = |r| < 0.1, unused = the model never uses it)
 def logic_check(rows, shap):
     out = []
     for name, want in EXPECTED.items():
@@ -192,7 +193,7 @@ def logic_check(rows, shap):
 
 
 def importance(shap):
-    """The average size of each reason, in % points, for the win, podium and points chances."""
+    """Average size of each reason in % points, for the win, podium and points chances."""
     size = pd.DataFrame({target: values.abs().mean() for target, (values, _, _) in shap.items()})
     size = size.sort_values("win", ascending=False)
     top = size.head(14)[::-1]
@@ -208,8 +209,8 @@ def importance(shap):
     return size.rename(columns=str.title), save(fig, "race_shap_importance.png")
 
 
-# Recipe 6: two case studies - the lap where the model and the current order disagreed most about the winner
-# and the model was right, and the biggest upset (the real winner's lowest chance in the second half)
+# Two case studies: the lap where the model and the current order disagreed most about the winner and the model was
+# right, and the biggest upset (the real winner's lowest chance in the second half)
 def cases(rows, shap):
     leader = rows[rows["Position"] == 1].drop_duplicates(["RaceId", "LapNumber"]).set_index(["RaceId", "LapNumber"])["Driver"]
     fav = rows.loc[rows.groupby(["RaceId", "LapNumber"])["LightGBM|win"].idxmax()].set_index(["RaceId", "LapNumber"])
@@ -222,7 +223,7 @@ def cases(rows, shap):
         found.append(("The model saw the winner before the order did", idx))
     late = rows[(rows["Final"] == 1) & (rows["RaceProgress"] >= 0.5)]
     found.append(("The biggest upset", late["LightGBM|win"].idxmin()))
-    for old in FIGURES_DIR.glob("race_case*.png"):                     # the charts of an earlier run
+    for old in FIGURES_DIR.glob("race_case*.png"):                     # delete charts from an earlier run
         old.unlink()
     out = []
     for k, (kind, idx) in enumerate(found, start=1):
@@ -279,8 +280,8 @@ def race_chart(rows, race="2026_17"):
 
 
 # ---------------------------------------------------------------------------------------------------------
-# RQ4e, recipe 7: the time for one lap in the app - every driver's chances (fitted together) and the
-# SHAP reasons for the win, podium and points chances
+# RQ4e: time for one lap in the app (every driver's fitted chances and the SHAP reasons for the win, podium and points
+# chances)
 def speed(rows, booster, info):
     times, laps = [], list(rows.groupby(["RaceId", "LapNumber"]))
     for i in RNG.choice(len(laps), min(200, len(laps)), replace=False):          # 200 laps picked at random

@@ -17,11 +17,11 @@ FIRST_YEAR = 2023                    # OpenF1 has no data before 2023
 PAUSE = 2.1                          # seconds between requests (free users: 30 requests a minute)
 TYPICAL_LANE = 22.0                  # seconds in the pit lane, when OpenF1 doesn't say
 COLUMNS = LAP_COLUMNS + WEATHER_COLUMNS + ["Year", "Round", "EventName", "TotalLaps", "Source"]
-QUICK = os.environ.get("F1_OPENF1_QUICK") == "1"   # an automatic build (newraces.py): it tries again next time
+QUICK = os.environ.get("F1_OPENF1_QUICK") == "1"   # set by newraces.py: give up and retry next time
                                                     # instead of waiting for hours
 
 
-# Recipe 1: ask OpenF1 for one thing, and wait politely if it says no
+# One request to OpenF1, waiting and retrying if it says no
 def get(endpoint, **params):
     for attempt in range(3 if QUICK else 30):
         try:
@@ -49,7 +49,7 @@ def get(endpoint, **params):
     raise RuntimeError(f"OpenF1 did not answer for {endpoint} {params}")
 
 
-# Recipe 2: the races of one year that have finished, with FastF1's round number and name
+# Finished races of one year, with FastF1's round number and name
 def rounds_by_date(year):
     """FastF1's schedule of one year: race day -> the event (its RoundNumber and EventName)."""
     schedule = fastf1.get_event_schedule(year, include_testing=False)
@@ -78,7 +78,7 @@ def race_list(year):
 
 
 def saved_race(year, rnd):
-    """One race whose OpenF1 answers are saved already (newraces.py saves the ones the cloud fetched): its round, name
+    """A race whose OpenF1 data is already saved (newraces.py saves the ones the cloud fetched): its round, name
     and session from the file and FastF1's schedule, without asking OpenF1 again. None if it isn't saved."""
     file = OPENF1_JSON_DIR / f"{year}_{rnd:02d}.json.gz"
     if not file.exists():
@@ -89,12 +89,12 @@ def saved_race(year, rnd):
 
 
 def races_of(year, only=None):
-    """The races to build: one saved race straight from its file, else the year's finished races (from OpenF1)."""
+    """Races to build: one saved race straight from its file, or else the year's finished races (from OpenF1)."""
     saved = saved_race(*only) if only else None
     return [saved] if saved else race_list(year)
 
 
-# Recipe 3: download everything about one race (or read it back if we already have it)
+# Download everything for one race (or load it if we already have it)
 def download_race(race, json_file):
     if json_file.exists():
         return json.loads(gzip.decompress(json_file.read_bytes()))
@@ -109,8 +109,8 @@ def times(column):
     return pd.to_datetime(column, format="ISO8601", utc=True)
 
 
-# Recipe 4: each driver's tyres. OpenF1 gets the stints wrong for drivers who start from the
-# pit lane, so when the numbers agree we take the stint changes from the pit stops instead.
+# Each driver's tyres. OpenF1 gets the stints wrong for drivers who start from the pit lane, so when the counts match
+# we take the stint changes from the pit stops instead.
 def tyre_table(stints, pit_in_laps, laps):
     rows = []
     for number, driver_laps in laps.groupby("driver_number"):
@@ -137,8 +137,8 @@ def tyre_table(stints, pit_in_laps, laps):
     return tyres.drop_duplicates(["driver_number", "lap_number"])     # one tyre row per lap, always
 
 
-# Recipe 5: the track status code during each moment of the race (FastF1's codes:
-# 1 green, 2 yellow, 4 safety car, 5 red flag, 6 virtual safety car, 7 VSC ending)
+# Track status code at each moment of the race (FastF1's codes: 1 green, 2 yellow, 4 safety car, 5 red flag, 6 virtual
+# safety car, 7 VSC ending)
 def status_timeline(race_control):
     timeline, safety, yellows = [], None, set()
     for msg in sorted(race_control, key=lambda m: m["date"]):
@@ -148,7 +148,7 @@ def status_timeline(race_control):
                 safety = "7" if "ENDING" in text else "6"
             elif "DEPLOYED" in text:
                 safety = "4"
-        elif flag == "RED" or text.startswith("RED FLAG"):  # (2026: "RED FLAG - RACE SUSPENDED", with no flag)
+        elif flag == "RED" or text.startswith("RED FLAG"):  # in 2026 it's "RED FLAG - RACE SUSPENDED" with no flag
             safety = "5"
         elif flag in ("GREEN", "CLEAR") and scope == "Track":
             safety, yellows = None, set()
@@ -172,7 +172,7 @@ def lap_status(start, end, timeline):
     return "".join(dict.fromkeys(codes))                    # e.g. "671" = VSC, ending, green
 
 
-# Recipe 6: turn one race into one table with the same columns as the FastF1 files
+# Turn one race into a table with the same columns as the FastF1 files
 def race_table(raw, year, rnd, event_name):
     t0 = pd.Timestamp(raw["session"]["date_start"])
     drivers = pd.DataFrame(raw["drivers"]).drop_duplicates("driver_number")
@@ -187,8 +187,8 @@ def race_table(raw, year, rnd, event_name):
     # Pit stops: OpenF1's "date" is when the car leaves the pit lane
     pit = pd.DataFrame(raw["pit"], columns=["driver_number", "lap_number", "date", "lane_duration",
                                             "pit_duration"])
-    if pit.empty:                       # OpenF1 has no pit data for a few early 2023 races, so use the
-        outs = laps[laps["is_pit_out_lap"] == True]         # laps out of the pits: the stop was the lap before
+    if pit.empty:                       # no pit data for a few early 2023 races: use the
+        outs = laps[laps["is_pit_out_lap"] == True]         # out-laps instead (the stop was the lap before)
         pit = pd.DataFrame({"driver_number": outs["driver_number"], "lap_number": outs["lap_number"] - 1,
                             "date": outs["date_start"], "lane_duration": TYPICAL_LANE, "pit_duration": None})
         pit = pit[(pit["lap_number"] >= 1) & pit["date"].notna()]
@@ -247,9 +247,9 @@ def race_table(raw, year, rnd, event_name):
     return table[COLUMNS].sort_values(["Driver", "LapNumber"]).reset_index(drop=True)
 
 
-# Recipe 7: every finished race from 2023 on, skipping the ones already saved.
-# Run "python src/collect_openf1.py 2026 17" to (re)build just one race, or
-# "python src/collect_openf1.py rebuild" to rebuild every race from the saved json files.
+# Every finished race from 2023 on, skipping the ones already saved.
+# Run "python src/collect_openf1.py 2026 17" to (re)build one race, or "python src/collect_openf1.py rebuild" to
+# rebuild every race from the saved json files.
 def main():
     CACHE_DIR.mkdir(exist_ok=True)
     OPENF1_JSON_DIR.mkdir(parents=True, exist_ok=True)

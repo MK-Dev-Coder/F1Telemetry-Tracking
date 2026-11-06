@@ -9,8 +9,8 @@ import pandas as pd
 from build_timing import COLOURS_FILE, MESSAGES_FILE, NAMES_FILE, TIMING_FILE, TRACKS_FILE
 from config import OPENF1_JSON_DIR
 
-# Made by build_timing.py. Without them the app still runs, just with no sector times,
-# mini-sectors, race control messages or track maps.
+# Files made by build_timing.py. Without them the app still runs, just without sector times, mini-sectors, race
+# control messages and track maps.
 def by_race(file):
     rows = pd.read_parquet(file) if file.exists() else pd.DataFrame()
     return {race: r for race, r in rows.groupby("RaceId")} if "RaceId" in rows else {}
@@ -24,7 +24,7 @@ TIMING, MESSAGES = by_race(TIMING_FILE), by_race(MESSAGES_FILE)
 TRACKS, COLOURS, NAMES = read_json(TRACKS_FILE), read_json(COLOURS_FILE), read_json(NAMES_FILE)
 OPENF1_CATEGORY = {"Flag": "FLAG", "SafetyCar": "SAFETY CAR", "SessionStatus": "FLAG", "Other": "CONTROL"}
 TYRE_WORD = {"SOFT": "soft", "MEDIUM": "medium", "HARD": "hard", "INTERMEDIATE": "intermediate", "WET": "wet"}
-RACES = {}                                    # filled in by api.py: race id -> every lap of that race
+RACES = {}                                    # filled by api.py: race id -> all laps of that race
 
 
 def num(v):
@@ -33,7 +33,7 @@ def num(v):
 
 
 def median(values):
-    """The median as a plain float, or None when every value is missing (and no warning about it)."""
+    """Median as a plain float, or None if all values are missing (without the warning)."""
     return num(values.median()) if values.notna().any() else None
 
 
@@ -47,21 +47,21 @@ def colour(time, personal_best, overall_best):
 SPEEDS = ["I1", "I2", "ST"]                    # km/h at the two intermediate points and the speed trap (higher = better)
 
 
-# Recipe 1: everything that doesn't change with the lap you look at, worked out once per race
+# Everything that doesn't depend on the lap being viewed, computed once per race
 @lru_cache(maxsize=40)
 def prepare(race_id):
     laps = RACES[race_id].copy()
     timing = TIMING.get(race_id)
     if timing is not None:
         laps = laps.merge(timing.reindex(columns=["Driver", "LapNumber", "S1", "S2", "S3", "Seg1", "Seg2", "Seg3", *SPEEDS]),
-                          on=["Driver", "LapNumber"], how="left")      # (older timing files have no speeds)
-    else:                                                                # no timing file: no sector times
+                          on=["Driver", "LapNumber"], how="left")      # older timing files have no speeds
+    else:                                                                # no timing file, so no sector times
         for col in ["S1", "S2", "S3", *SPEEDS]:
             laps[col] = np.nan
         for col in ["Seg1", "Seg2", "Seg3"]:
             laps[col] = None
     laps = laps.sort_values(["Driver", "LapNumber"]).reset_index(drop=True)
-    # A lap with no end time (OpenF1 often has none for the last lap): estimate it from the lap before
+    # Lap with no end time (OpenF1 often has none for the last lap): estimate it from the lap before
     by_driver = laps.groupby("Driver")
     estimate = by_driver["Time"].shift(1) + laps["LapTime"].fillna(by_driver["LapTime"].shift(1))
     laps["Time"] = laps["Time"].fillna(estimate)
@@ -72,7 +72,7 @@ def prepare(race_id):
         best_by_lap = laps.groupby("LapNumber")[col].min().cummin()      # anyone's best up to this lap
         laps[f"Best_{col}"] = laps["LapNumber"].map(best_by_lap)
         laps[f"Col_{col}"] = [colour(t, pb, best) for t, pb, best in zip(laps[col], laps[f"PB_{col}"], laps[f"Best_{col}"])]
-    for col in SPEEDS:                                                     # the same, highest speed first
+    for col in SPEEDS:                                                     # same for speeds, highest is best
         laps[col] = pd.to_numeric(laps[col], errors="coerce")
         laps[f"PB_{col}"] = laps.groupby("Driver")[col].cummax()
         laps[f"PB_{col}"] = laps.groupby("Driver")[f"PB_{col}"].ffill()
@@ -85,8 +85,8 @@ def prepare(race_id):
 
 
 def lights_out(laps):
-    """When the race started, on the Time clock: the start of lap 1, or an estimate when lap 1 has no times
-    (a red flag on lap 1, or a gap in the data): the first timed lap minus that many typical laps."""
+    """Race start on the Time clock: the start of lap 1, or an estimate if lap 1 has no times (red flag on lap 1 or
+    missing data): the first timed lap minus that many typical laps."""
     first = laps[laps["LapNumber"] == laps["LapNumber"].min()]
     zero = (first["Time"] - first["LapTime"]).min()
     if pd.isna(zero):
@@ -112,8 +112,8 @@ def lap_text(gap, leader_lap):
     return f"{gap:+.3f}"                                                 # a negative gap keeps its sign
 
 
-# Recipe 2: the messages up to this lap - race control's own (2023 on), plus pit stops,
-# overtakes and fastest laps worked out from the timing
+# Messages up to this lap: race control's own (2023 on), plus pit stops, overtakes and fastest laps worked out from
+# the timing
 @lru_cache(maxsize=40)
 def all_messages(race_id):
     laps, zero = prepare(race_id)
@@ -121,7 +121,7 @@ def all_messages(race_id):
     real = MESSAGES.get(race_id)
     if real is not None:
         for _, m in real.iterrows():
-            if m["Flag"] == "BLUE":                                       # dozens per race: left out
+            if m["Flag"] == "BLUE":                                       # dozens per race, so skip them
                 continue
             out.append({"lap": int(m["Lap"]) if pd.notna(m["Lap"]) else 1, "seconds": num(m["Seconds"]),
                         "cat": OPENF1_CATEGORY.get(m["Category"], "CONTROL"), "text": str(m["Message"])})
@@ -162,7 +162,7 @@ def all_messages(race_id):
     return sorted(out, key=lambda m: (m["lap"], m["seconds"] if m["seconds"] is not None else -1e9), reverse=True)
 
 
-# Recipe 3: the live timing screen at the end of one lap
+# Live timing screen at the end of one lap
 def snapshot(race_id, lap):
     laps, _ = prepare(race_id)
     upto = laps[laps["LapNumber"] <= lap]
@@ -217,8 +217,8 @@ def snapshot(race_id, lap):
     gone = [(mine["Position"].iloc[-1], code, mine) for code, mine in upto[~upto["Driver"].isin(racing)].groupby("Driver")]
     for final, code, mine in sorted(gone, key=lambda g: (g[0] if pd.notna(g[0]) else 99)):
         last = mine.iloc[-1]
-        # Still racing but missing from the data on this lap (the car shows up again later), so don't call
-        # it retired. At the flag, F1 classifies anyone who completed 90% of the race distance.
+        # Still racing but missing from the data on this lap (the car shows up again later), so don't mark it as
+        # retired. At the flag F1 classifies anyone who completed 90% of the race distance.
         no_data = ((laps["Driver"] == code) & (laps["LapNumber"] > lap)).any()
         finished = not no_data and lap >= race_laps and last["LapNumber"] >= 0.9 * distance
         status = "NO DATA" if no_data else "FINISHED" if finished else "OUT"
@@ -238,8 +238,8 @@ def snapshot(race_id, lap):
 
 
 def newest(messages, lap, each=80):
-    """The newest messages up to this lap (the list is newest first), at most `each` of every kind: the page filters
-    them by kind, and the many pit stops and overtakes mustn't push race control's own messages out."""
+    """Newest messages up to this lap (newest first), at most `each` of every kind. The page filters them by kind,
+    and the many pit stops and overtakes shouldn't push out race control's own messages."""
     kept, count = [], {}
     for m in messages:
         if m["lap"] <= lap and count.get(m["cat"], 0) < each:
@@ -260,9 +260,9 @@ def track(circuit, race_id):
     return {**shape, "sector_ends": fractions}
 
 
-# Each driver's car number, name, team and photo, from OpenF1's driver list of each race (2023 on). The photos are
-# F1's own: OpenF1 gives their address, and the page loads them from F1's site (without the internet it shows the
-# car number instead). A race without its own list (2022) takes each driver from the nearest race that has one.
+# Each driver's car number, name, team and photo, from OpenF1's driver list for each race (2023 on). The photos are
+# F1's: OpenF1 gives the link and the page loads them from F1's site (with no internet it shows the car number
+# instead). A race without its own list (2022) takes each driver from the nearest race that has one.
 @lru_cache(maxsize=1)
 def driver_lists():
     out = {}

@@ -1,15 +1,14 @@
-"""The cloud's processing step: an AWS Lambda function that checks every table sent to the bucket's data/ folder and
-writes a short report next to it, in checks/ (data/all_laps/all_laps.parquet -> checks/data/all_laps/all_laps.json).
+"""Lambda function that checks every table uploaded to the bucket's data/ folder and writes a short report to
+checks/ (data/all_laps/all_laps.parquet -> checks/data/all_laps/all_laps.json).
 
-It runs by itself on each upload (an S3 trigger on data/, for files ending .parquet). It checks that the file
-arrived whole (its SHA-256 against the one aws_sync.py sent with it), counts the rows, seasons and races, and, for
-the lap tables, looks for missing columns, laps listed twice, lap times missing and tyres it doesn't know. A report
-says "ok" or "problems found", with the problems.
+It runs on each upload (S3 trigger on data/, files ending .parquet). It checks that the file arrived whole (SHA-256
+against the one aws_sync.py sent), counts rows, seasons and races, and for lap tables looks for missing columns,
+duplicate laps, missing lap times and unknown tyres. The report says "ok" or "problems found" with the list of
+problems.
 
-In AWS (docs/AWS_SETUP.md has every step): a Python 3.12 function, this file pasted as lambda_function.py (the handler is
-lambda_function.lambda_handler, AWS's default), the layer AWSSDKPandas-Python312 (AWS's own, with pandas), 512 MB and
-a 1-minute timeout, and permission to read data/* and write checks/* in the bucket.
-"""
+AWS setup (all steps in docs/AWS_SETUP.md): Python 3.12 function, this file pasted as lambda_function.py (handler
+lambda_function.lambda_handler, the default), layer AWSSDKPandas-Python312 (AWS's own, has pandas), 512 MB, 1
+minute timeout, and permission to read data/* and write checks/* in the bucket."""
 import hashlib
 import io
 import json
@@ -20,7 +19,7 @@ import pandas as pd
 
 TYRES = {"SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"}
 LAP_COLUMNS = ["Driver", "LapNumber", "LapTime", "Stint", "Compound", "TyreLife", "Position", "Year", "Round"]
-EXPECTED = {                                     # each table's columns that the app can't do without
+EXPECTED = {                                     # columns each table must have for the app
     "all_laps": LAP_COLUMNS + ["RaceId", "Circuit"],
     "features": ["RaceId", "Driver", "LapNumber", "TyreLife", "Compound", "LapsLeft", "PitSoon"],
     "timing": ["RaceId", "Driver", "LapNumber", "S1", "S2", "S3"],
@@ -30,8 +29,8 @@ EXPECTED = {                                     # each table's columns that the
 
 
 def kind(key):
-    """Which table a file in the bucket is: the name of a table in data/, or "race" for one race's laps (the
-    downloads from FastF1 in data/raw/ and from OpenF1 in data/openf1/)."""
+    """Which table a file in the bucket is: a table name in data/, or "race" for one race's laps (FastF1 downloads
+    in data/raw/, OpenF1 ones in data/openf1/)."""
     parts = key.split("/")
     if len(parts) == 3 and parts[1] in ("raw", "openf1"):
         return "race"
@@ -39,7 +38,7 @@ def kind(key):
 
 
 def check(table, what=None):
-    """What is in one table and anything wrong with it."""
+    """Summary of one table and any problems in it."""
     report = {"rows": len(table), "columns": len(table.columns), "problems": [], "notes": []}
     if len(table) == 0:
         report["problems"].append("no rows")
@@ -70,7 +69,7 @@ def check(table, what=None):
 
 
 def lambda_handler(event, context, s3=None):
-    """AWS calls this with the files just sent (an S3 event)."""
+    """Called by AWS with the files just uploaded (S3 event)."""
     if s3 is None:
         import boto3
         s3 = boto3.client("s3")
@@ -85,7 +84,7 @@ def lambda_handler(event, context, s3=None):
             report = check(pd.read_parquet(io.BytesIO(body)), kind(key))
         except Exception as e:                   # not a table at all
             report = {"status": "problems found", "problems": [f"can't be read as a table: {e}"], "notes": []}
-        whole = None if sent is None else hashlib.sha256(body).hexdigest() == sent    # None: sent without one
+        whole = None if sent is None else hashlib.sha256(body).hexdigest() == sent    # None if sent without a hash
         if whole is False:
             report["problems"].insert(0, "the file isn't the one that was sent (its SHA-256 differs)")
             report["status"] = "problems found"

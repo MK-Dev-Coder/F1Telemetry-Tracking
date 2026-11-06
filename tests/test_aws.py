@@ -1,5 +1,6 @@
-"""The cloud data layer (aws_sync.py), its check in the cloud (aws_check.py) and the Athena tables (aws_athena.py),
-against a made-up bucket in memory: no AWS account, internet or keys are needed, and the real data isn't touched."""
+"""Tests for the cloud data layer (aws_sync.py), the cloud check (aws_check.py) and the Athena tables
+(aws_athena.py), using a fake bucket in memory: no AWS account, internet or keys needed, and the real data isn't
+touched."""
 import hashlib
 import json
 
@@ -13,7 +14,7 @@ from conftest import FakeS3, make_race
 
 
 def project(root, laps=None):
-    """A made-up project folder: the race data, a FastF1 race, a model, and the game's own data."""
+    """Fake project folder with race data, a FastF1 race, a model and the game's data."""
     for folder in ("data/raw", "data/f1_25/2026-10-28", "data/driver", "models"):
         (root / folder).mkdir(parents=True, exist_ok=True)
     (laps if laps is not None else make_race()).to_parquet(root / "data" / "all_laps.parquet", index=False)
@@ -34,7 +35,7 @@ def test_what_goes_to_the_cloud(tmp_path):
     root = project(tmp_path)
     assert aws_sync.local_files(root) == ["data/all_laps.parquet", "data/raw/2022_01.parquet",
                                           "data/team_colours.json", "models/pit_model.json"]
-    # the game's recordings and the driver report made from them never leave the PC; the app rebuilds the replay
+    # the game recordings and the driver report never leave the PC, and the app rebuilds the replay file
     assert aws_sync.key_for("data/all_laps.parquet") == "data/all_laps/all_laps.parquet"     # a folder per table
     assert aws_sync.key_for("data/raw/2022_01.parquet") == "data/raw/2022_01.parquet"
     assert aws_sync.key_for("models/pit_model.json") == "models/pit_model.json"
@@ -50,14 +51,14 @@ def test_a_new_pc_gets_the_same_files(tmp_path):
     for path in aws_sync.local_files(here):
         assert (new / path).read_bytes() == (here / path).read_bytes()
     assert not (new / "data" / "f1_25").exists() and not (new / "data" / "driver").exists()
-    assert aws_sync.upload(s3, "b", here, log=lambda *_: None)[0] == 0          # nothing changed: nothing sent
+    assert aws_sync.upload(s3, "b", here, log=lambda *_: None)[0] == 0          # nothing changed, nothing sent
     assert aws_sync.download(s3, "b", new, log=lambda *_: None)[0] == 0
     assert aws_sync.upload(s3, "b", here, everything=True, log=lambda *_: None)[0] == 4    # --all: every file again
 
 
 def test_a_change_is_never_lost(tmp_path):
-    """The laptop fetched the data; then the PC sends a new race (colours) while the laptop changes the model.
-    The laptop's download takes the new colours but keeps its own model, and its upload then sends the model."""
+    """The laptop downloads the data, then the PC uploads a new race (colours) while the laptop changes the model.
+    The laptop's download gets the new colours but keeps its own model, and its upload then sends the model."""
     pc, laptop = project(tmp_path / "pc"), tmp_path / "laptop"
     laptop.mkdir()
     s3, quiet = FakeS3(), (lambda *_: None)
@@ -82,8 +83,8 @@ def test_a_change_is_never_lost(tmp_path):
 
 
 def test_a_failed_upload_leaves_the_cloud_in_order(tmp_path):
-    """The connection drops while the PC sends a new race: the files that did go up are in the manifest, so another
-    PC can still fetch them (each is checked against it); the failed one goes up next time."""
+    """The connection drops while the PC uploads a new race: the files that did upload are in the manifest so
+    another PC can still fetch them, and the failed one is sent next time."""
     pc, laptop = project(tmp_path / "pc"), tmp_path / "laptop"
     laptop.mkdir()
     s3, quiet = FakeS3(), (lambda *_: None)
@@ -100,10 +101,10 @@ def test_a_failed_upload_leaves_the_cloud_in_order(tmp_path):
     s3.upload_file = dropped
     with pytest.raises(OSError):
         aws_sync.upload(s3, "b", pc, log=quiet)
-    assert aws_sync.download(s3, "b", laptop, log=quiet)[0] == 1                  # the colours, not refused
+    assert aws_sync.download(s3, "b", laptop, log=quiet)[0] == 1                  # the colours file, not refused
     assert "2025_02" in (laptop / "data" / "team_colours.json").read_text(encoding="utf-8")
     s3.upload_file = sent
-    assert aws_sync.upload(s3, "b", pc, log=quiet)[0] == 1                         # the model, next time
+    assert aws_sync.upload(s3, "b", pc, log=quiet)[0] == 1                         # the model goes next time
 
 
 def test_a_broken_download_is_refused(tmp_path):

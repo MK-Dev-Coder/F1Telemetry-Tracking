@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* F1 25: the player's own sessions, in the same pit-wall look as the real-race page. */
+/* F1 25: the player's own sessions, with the same pit-wall look as the real-race page. */
 :root{
   color-scheme: dark;
   --bg:#0a0d12; --panel:#10151c; --panel-2:#151c26; --line:#212a36; --line-2:#2c3746;
@@ -73,14 +73,14 @@ button,select,input{font:inherit;color:inherit}
 .lb2-row{display:grid;align-items:center;gap:0 10px;height:40px;padding-inline:12px;font-family:var(--f-num);font-size:14px;font-variant-numeric:tabular-nums;color:#e9ecf2}
 .lb2-row:nth-child(even){background:#1c1d27}
 .lb2-row.me{background:#1e2a3a;box-shadow:inset 3px 0 0 var(--lap-a)}
-.lb2-row.gone, .lb2-row.gone *{color:#9aa0ae!important}     /* out of the race: grey, still readable (6.5:1) */
+.lb2-row.gone, .lb2-row.gone *{color:#9aa0ae!important}     /* out of the race: grey but readable (6.5:1) */
 .lb2-row.hd{height:40px;background:#1f202b;font-family:var(--f-ui);font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:#d7dae2}
 .lb2-row.hd > span:first-child{grid-column:span 3}
 .lb2-row.laps{grid-template-columns:24px 4px minmax(170px,1.6fr) repeat(6,minmax(90px,1fr))}
 .lb2-row.secs{grid-template-columns:24px 4px minmax(170px,1.6fr) repeat(7,minmax(90px,1fr))}
 .lb2-row.tyres{grid-template-columns:24px 4px minmax(170px,1.2fr) 120px minmax(280px,3fr) 60px}
 .lb2-row.result{grid-template-columns:24px 4px minmax(170px,1.6fr) repeat(6,minmax(90px,1fr))}
-/* events: a timeline with an icon per event; the key ones as cards (like a match's play-by-play) */
+/* events: a timeline with an icon per event, and the key ones as cards (like a match play-by-play) */
 .evf{display:flex;gap:6px;padding:10px 14px 4px}
 .evf button{background:#15151e;border:1px solid #3a3c4a;color:#c9cfdb;border-radius:14px;padding:3px 12px;font-size:14px;cursor:pointer}
 .evf button[aria-pressed="true"]{background:#e9ecf2;color:#15151e;border-color:#e9ecf2;font-weight:700}
@@ -128,7 +128,7 @@ button,select,input{font:inherit;color:inherit}
 .chip.rainchip{border-color:#2f7bff;background:#0e1a30;color:#bfe0ff;font-weight:700;cursor:pointer;font-family:inherit}
 .chip.rainchip:hover{background:#13284a}
 @media (max-width:900px){ .wx-row{grid-template-columns:1fr} .wx-hero{grid-template-columns:1fr} .wx-big{display:none} .wx-hero h2{font-size:26px} }
-/* the bottom strip: the latest key event and who leads */
+/* bottom strip: the latest key event and who leads */
 .ticker{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 380px;background:#15151e;border:1px solid #2c2e3b;border-radius:5px;padding:4px 12px;font-size:14px;color:#e9ecf2}
 .ticker:empty{display:none}
 .ticker .tk-i{flex:none;display:grid;place-items:center}
@@ -209,7 +209,7 @@ button,select,input{font:inherit;color:inherit}
 .alert .pm i{background:var(--yellow)}
 .reason{font-family:var(--f-ui);font-size:14px;color:#c9cfdb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .reason em{font-style:normal;font-family:var(--f-num);margin-right:6px}
-.reason em.up{color:#ff5c85} .reason em.down{color:#3fa4ff}      /* the SHAP colours, lighter for text (4.5:1) */
+.reason em.up{color:#ff5c85} .reason em.down{color:#3fa4ff}      /* SHAP colours, lighter for text (4.5:1 contrast) */
 .sp{background:#15151e;border-radius:3px;padding:14px 16px 16px;position:sticky;top:12px;color:#e9ecf2}
 .sp h3{margin:0;font-size:20px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}
 .sp .sub{color:#9aa0ae;font-size:13px;margin:2px 0 10px}
@@ -266,9 +266,9 @@ button,select,input{font:inherit;color:inherit}
 .setup .muted{color:#9aa0ae;font-size:14px}
 .setup a{color:#7fd3ff}
 
-/* team radio: a round button at the bottom right that pops open into a pill (settings, what was just said, the big
-   talk button, fold), with the messages or the settings above it. Folded, it opens for a moment while you talk or
-   the engineer answers, like a phone's dynamic island. */
+/* team radio: a round button at the bottom right that opens into a pill (settings, what was just said, the big talk
+   button, fold), with the messages or settings above it. When folded it opens for a moment while you talk or the
+   engineer answers, like a phone's dynamic island. */
 .radio{--rw:min(400px,calc(100vw - 32px));position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;
   align-items:flex-end;gap:10px;color:#e9ecf2;font-size:14px;pointer-events:none}
 .radio > *{pointer-events:auto}
@@ -369,7 +369,7 @@ button,select,input{font:inherit;color:inherit}
 .modes{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
 .mode{display:inline-flex;flex-direction:column;gap:2px;border:1px solid #2c2e3b;border-radius:6px;padding:6px 10px;min-width:130px;font-size:13px;color:#9aa0ae}
 .mode b{font-size:14px;color:#fff;letter-spacing:.04em} .mode.on{border-color:#5ee0cf;background:#0f2624} .mode.on b{color:#5ee0cf}
-/* F1 26's energy ring: the battery outside, energy harvested this lap against the limit inside */
+/* F1 26 energy ring: battery on the outside, energy harvested this lap vs the limit inside */
 .energy{display:grid;grid-template-columns:132px minmax(0,1fr);gap:16px;align-items:center;margin:10px 0 4px}
 .ering{width:132px;height:132px;display:block}
 .ering circle{fill:none;stroke-width:10;stroke-linecap:round}
@@ -413,8 +413,8 @@ footer{margin:12px auto 0;color:var(--muted);font-size:13px;max-width:1600px}
 @media (max-width:1000px){ .car,.strat-grid{grid-template-columns:1fr} .map{height:460px} .sp{position:static} }
 @media (prefers-reduced-motion: reduce){ .lt-live.on i{animation:none} }
 
-/* On a computer the page fits the screen: the title bar, the tabs and the bottom strip stay put, and only the race
-   data scrolls (a long side panel scrolls on its own). Phones and short windows scroll the whole page, as before. */
+/* On a computer the page fits the screen: the title bar, tabs and bottom strip stay in place and only the race data
+   scrolls (a long side panel scrolls on its own). Phones and short windows scroll the whole page. */
 @media (min-width:900px) and (min-height:700px){
   html{height:100%} body{height:100%;display:flex;flex-direction:column;overflow:hidden}
   body > .top,body > footer{flex:none}
@@ -427,9 +427,9 @@ footer{margin:12px auto 0;color:var(--muted);font-size:13px;max-width:1600px}
   .lt-foot{padding-right:96px}
   body > footer{margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:96px}
 }
-/* beside the table (wider than 1000 pixels) a long side panel scrolls on its own; below the table it doesn't */
+/* next to the table (wider than 1000 px) a long side panel scrolls on its own; below the table it doesn't */
 @media (min-width:1001px) and (min-height:700px){ .sp{top:0;max-height:calc(var(--body-h,100vh) - 24px);overflow-y:auto;overscroll-behavior:contain} }
-/* each driver's photo (or car number) in front of the name */
+/* driver photo (or car number) before the name */
 .lb-name .nm{min-width:0;overflow:hidden;text-overflow:ellipsis}
 /* the driver report */
 .dr{display:grid;gap:12px}
@@ -694,7 +694,7 @@ const gapText = s => s == null ? "" : "+" + s.toFixed(3);
 const tcls = c => c === "p" ? "t-p" : c === "g" ? "t-g" : c === "y" ? "t-y" : "";
 const tyre = (c, age) => { const [l, n, col] = TY[c] || TY.UNKNOWN;
   return `<span class="ty" title="${n}${age != null ? `, ${age} laps old` : ""}">${age != null ? `<span class="ty-age" style="color:${col}">${age}</span>` : ""}<b style="color:${col}"><span>${l}</span></b></span>`; };
-// One page, two games: at /app/f1-26.html it shows the F1 26 sessions (the 2026 Season Pack's cars), else F1 25's
+// One page for two games: at /app/f1-26.html it shows the F1 26 sessions (2026 Season Pack cars), otherwise F1 25's
 const GAME = /f1-26/.test(location.pathname) ? "F1 26" : "F1 25", OTHER = GAME === "F1 26" ? "F1 25" : "F1 26";
 const PAGE = { "F1 25": "f1-25.html", "F1 26": "f1-26.html" };
 const AERO = { straight: "#c9cfdb", overtake: "#5ee0cf" };          // F1 26: straight mode and overtake mode
@@ -735,8 +735,8 @@ async function init() {
   radioInit();
   await refreshStatus();
   await refreshSessions();
-  // A link from the home screen (?session=...) opens that session (on the other game's page if it's from there);
-  // otherwise the live one, else the newest
+  // A link from the home screen (?session=...) opens that session (on the other game's page if it belongs there);
+  // otherwise the live one, or else the newest
   const asked = new URLSearchParams(location.search).get("session"), elsewhere = G.all.find(s => s.id === asked && s.game && s.game !== GAME);
   if (elsewhere) { location.replace(PAGE[elsewhere.game] + location.search); return; }
   const live = G.sessions.find(s => s.live), want = G.sessions.find(s => s.id === asked);
@@ -759,13 +759,13 @@ async function refreshStatus() {
 
 async function refreshSessions() {
   G.all = await getJSON("/game/sessions");
-  // The other game's sessions are on its own page. A live one whose game isn't known yet (no session packet
-  // so far) waits; a saved one that never had a session packet stays with F1 25
+  // The other game's sessions are on its own page. A live one whose game isn't known yet (no session packet so far)
+  // waits; a saved one that never had a session packet stays with F1 25
   G.sessions = G.all.filter(s => s.game ? s.game === GAME : GAME === "F1 25" && !s.live);
   sessionButton();
 }
 
-// The session button in the title bar: the session's flag, track, type and time; it opens the picker
+// Session button in the title bar (flag, track, type and time), opens the picker
 function sessionButton() {
   const s = G.sessions.find(x => x.id === G.id);
   const when = s && new Date(s.started * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
@@ -775,7 +775,7 @@ function sessionButton() {
   $("session").setAttribute("aria-label", s ? `Session: ${s.track} ${s.type}, ${when}. Choose another session` : "Choose a session");
 }
 
-// The picker: your sessions by day, newest first, each with its Grand Prix's flag
+// Picker: your sessions by day, newest first, each with its Grand Prix flag
 function openSessionPicker() {
   const days = [];
   for (const s of G.sessions) {                       // newest first already
@@ -821,12 +821,12 @@ async function loadSession(id) {
   if (G.tab === "strat") loadStrategy();
 }
 
-// The live stream: every second while you drive
+// Live stream: a message every second while you drive
 function listen() {
   const es = new EventSource("/game/live");
   es.onmessage = async e => {
     const d = JSON.parse(e.data);
-    if (!d.live) {                                    // the session just ended: fetch it whole (all its events)
+    if (!d.live) {                                    // the session just ended, so fetch all of it (all its events)
       Radio.live = null;
       if (G.otherLive) { G.otherLive = null; renderChips(); }
       if (G.view && G.view.live) { const id = G.id; G.view.live = false; renderChips();
@@ -835,8 +835,8 @@ function listen() {
     }
     Radio.live = d.session.id;                             // the radio is for the session you're driving
     if (d.radio) radioCalls(d.session.id, d.radio);       // the engineer's own calls, for that session
-    if (!d.session.game) return;                           // its game isn't known yet: the next message tells
-    if (d.session.game !== GAME) {                         // you're driving in the other game: a link to its page
+    if (!d.session.game) return;                           // game not known yet, the next message will say
+    if (d.session.game !== GAME) {                         // you're driving in the other game: show a link to its page
       if (G.sessions.some(s => s.id === d.session.id)) await refreshSessions();   // listed here before its session packet came
       if (G.otherLive !== d.session.id) { G.otherLive = d.session.id; renderChips(); }
       return;
@@ -881,8 +881,8 @@ function render() {
 
 function playerRow() { return G.view?.leaderboard?.find(r => r.player); }
 
-// Position, team colour and name: the start of every leaderboard-style row
-// A driver's photo in the team colour (the car number without one): the real driver's card, from OpenF1
+// Position, team colour and name: the start of every leaderboard-style row.
+// Driver photo in the team colour (car number if no photo), from the real driver's card from OpenF1
 const face = r => { const k = G.cards[r.driver] || {};
   return Versus.face({ code: r.driver, colour: r.colour || "#8a96a8", number: k.number, photo: k.photo }, "sm"); };
 const nameCell = (r, k, tag = "") => `<span class="lb-pos ${k === 0 ? "first" : ""}">${r.position || "–"}</span><span class="lb-bar" style="background:${esc(r.colour)}"></span>` +
@@ -944,7 +944,7 @@ const EV_COLOUR = { sc: "#ffd60a", vsc: "#ffd60a", red: "#ff3346", chequered: "#
 // Is the event about you (your penalty, your overtake or collision)?
 const mine = (e, me) => !!me && (e.car === me.car || (e.cars || []).includes(me.car));
 
-// The bottom strip: the newest key event (or one of yours), and who leads (in a race) or is fastest
+// Bottom strip: the newest key event (or one of yours), and who leads (in a race) or is fastest
 function renderTicker() {
   const v = G.view, me = playerRow(), e = v.events.find(x => evKind(x)[2] || mine(x, me));
   const lead = v.leaderboard.find(r => r.position === 1) || v.leaderboard[0], i = v.info || {};
@@ -955,8 +955,8 @@ function renderTicker() {
 }
 
 /* ---------------- weather ---------------- */
-// The game's forecast for this session (it sends one) and the conditions lap by lap, like a weather app: a
-// headline and the outlook, the next minutes as cards, the chance of rain, the temperatures, and the details
+// The game's forecast for this session and the conditions lap by lap, like a weather app: a headline and outlook, the
+// next minutes as cards, the chance of rain, the temperatures and the details
 const WET = ["Light rain", "Heavy rain", "Storm"];
 const isWet = x => WET.includes(x.weather) || x.rain >= 50;           // rain, or a 50% chance or more
 function outlook(info) {
@@ -964,7 +964,7 @@ function outlook(info) {
   return { f, raining, soon: raining ? null : ahead.find(isWet) || null, dry: raining ? ahead.find(x => !isWet(x)) || null : null,
            until: f.at(-1)?.in ?? 0, peak: f.reduce((m, x) => !m || x.rain > m.rain ? x : m, null) };
 }
-// Your usual lap: the middle of your clean laps (no pit stop, not invalid)
+// Your usual lap: median of your clean laps (no pit stop, not invalid)
 function usualLap(v) { const t = (v.laps || []).filter(l => l.time && !l.invalid && !l.pitted).map(l => l.time).sort((a, b) => a - b); return t.length ? t[t.length >> 1] : null; }
 // In a race: the lap you'll be on in that many minutes, at your usual pace
 function lapIn(v, minutes) {
@@ -975,7 +975,7 @@ function lapIn(v, minutes) {
   const at = me.lap + Math.round(minutes * 60 / pace);
   return total && at > total ? "after the flag" : `lap ${at}`;
 }
-// The header's chip: rain on the way, or raining now (it opens the weather view)
+// Header chip: rain coming, or raining now (opens the weather view)
 function rainChip(i) {
   const o = outlook(i);
   return o.soon ? `<button class="chip rainchip" data-go="weather" title="Open the weather">Rain in ${o.soon.in} min · ${o.soon.rain}%</button>`
@@ -983,8 +983,8 @@ function rainChip(i) {
 }
 
 /* ---------------- more from your sessions ---------------- */
-// One of the session's extra answers (the report, the corners...): fetched once, and again at most every `every` ms
-// while the session is live; meanwhile the last answer is used
+// One of the session's extra results (the report, the corners...): fetched once, and again at most every `every` ms
+// while the session is live; in between the last result is used
 async function fetchFor(kind, url, every = 5000) {
   const id = G.id, c = G.more[kind];
   if (c && c.url === url && (c.wait || !G.view?.live || Date.now() - c.at < every)) return c.data;
@@ -997,8 +997,8 @@ const kpi = (k, v, sub = "") => `<div class="an-kpi"><small>${k}</small><b>${v}<
 const signed = (v, d = 3) => v == null ? "–" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(d)}`;
 const tyreName = c => (TY[c] || TY.UNKNOWN)[1];
 
-// The report: your result, places lap by lap, stints and stops, consistency, your pace against the cars around you
-// on the same tyre, your best lap against your theoretical best and pole, and in a Time Trial your rival
+// Report: your result, positions lap by lap, stints and stops, consistency, your pace vs the cars around you on the
+// same tyre, your best lap vs your theoretical best and pole, and in a Time Trial your rival
 async function boardReport() {
   const id = G.id, r = await fetchFor("report", `/game/sessions/${id}/report`);
   if (!r || G.id !== id || G.tab !== "board" || G.sub.board !== "report") return;
@@ -1058,7 +1058,7 @@ function ttHtml(t) {
     `<p class="note">The small numbers: your gap to your rival in each sector (red: slower). Your rival's lap is the game's own (its ghost).</p></section>`;
 }
 
-// Your own tyre wear: when each tyre of the set reaches 70%, from how fast it has worn so far
+// Your tyre wear: when each tyre of the set will reach 70%, from how fast it has worn so far
 function wearCard(g) {
   const w = g.wear, NAMES = { FL: "Front left", FR: "Front right", RL: "Rear left", RR: "Rear right" };
   if (!w) return `<section class="eg-box"><header class="eg-hd"><h2>Your tyre wear</h2><p>When each tyre reaches 70% wear shows after two laps on a set.</p></header></section>`;
@@ -1073,7 +1073,7 @@ function wearCard(g) {
     wears, and when it reaches ${w.line}% (from about there the grip falls away).</p></header>${line}<div class="an-wheels">${["FL", "FR", "RL", "RR"].map(cell).join("")}</div></section>`;
 }
 
-// Where you lose time: the lap you picked against another (by default your fastest), corner by corner
+// Where you lose time: the lap you picked vs another (your fastest by default), corner by corner
 async function loadCorners() {
   const id = G.id, a = G.tele.a, b = G.tele.b, q = new URLSearchParams(), el = $("corners");
   if (a) q.set("lap", a);
@@ -1093,7 +1093,7 @@ async function loadCorners() {
     `<ol class="an-corners">${d.corners.map(row).join("")}</ol></div>`;
 }
 
-// Lock-ups (orange) and wheelspin (blue) on the track map; a ring where it happened on two laps or more
+// Lock-ups (orange) and wheelspin (blue) on the track map, with a ring where it happened on two or more laps
 async function loadSlips() {
   const id = G.id, d = await fetchFor("slips", `/game/sessions/${id}/slips`, 10000);
   if (!d || G.id !== id || G.mapShow !== "slips") return;
@@ -1114,8 +1114,8 @@ function drawSlips(x, P) {
     x.font = "800 12px 'Titillium Web'"; x.fillStyle = "#fff"; x.textAlign = "center"; x.fillText(`${h.laps.length}×`, px, py - 18); });
 }
 
-// The Car tab: energy per lap (harvested and used, against the limit in F1 26) and where on the lap; in F1 26 also
-// overtake mode (did a pass come with it?) and active aero
+// Car tab: energy per lap (harvested and used, vs the limit in F1 26) and where on the lap; in F1 26 also overtake
+// mode (did a pass come with it?) and active aero
 async function carEnergy() {
   const id = G.id, d = await fetchFor("energy", `/game/sessions/${id}/energy`, 10000);
   if (!d || G.id !== id || !$("carEnergy")) return;
@@ -1151,7 +1151,7 @@ function energyHtml(d) {
   return out;
 }
 
-// When to switch tyres: the game's own pace for your sets now, over the laps left, against what a stop costs here
+// When to switch tyres: the game's pace for your sets now over the laps left, vs the cost of a stop here
 async function wxSwitch() {
   const id = G.id, d = await fetchFor("switch", `/game/sessions/${id}/switch`, 5000);
   if (!d || G.id !== id || !$("wxSwitch")) return;
@@ -1170,7 +1170,7 @@ function switchHtml(d) {
   const o = outlook(G.view?.info), soon = !d.wet_now && o.soon ? ` Rain is expected in ${o.soon.in} minutes (${o.soon.rain}%).` : d.wet_now && o.dry ? ` It should dry up in ${o.dry.in} minutes.` : "";
   const kinds = d.wet_now ? ["SOFT", "MEDIUM", "HARD"] : ["INTERMEDIATE", "WET"], h = d.history.filter(x => kinds.some(k => x[k] != null));
   let chart = "";
-  if (h.length >= 2) {                                   // each lap's word from the game, against the fitted set (0)
+  if (h.length >= 2) {                                   // the game's number for each lap, vs the fitted set (0)
     const W = 600, H = 150, L = 34, x = n => L + (n - h[0].lap) / Math.max(1, h.at(-1).lap - h[0].lap) * (W - L - 10), clamp = v => Math.max(-6, Math.min(6, v));
     const y = v => 10 + (6 - clamp(v)) / 12 * (H - 30);
     const lines = kinds.map(k => { const pts = h.filter(p => p[k] != null); return pts.length < 2 ? "" :
@@ -1208,9 +1208,9 @@ async function renderProgress() {
       `<div class="an-kpis">${kpi("Your best", fmtLap(t.best.best_lap), `${esc(t.best.type)} · ${day(t.best.started)}`)}${kpi("Since your first", t.gain > 0 ? `${t.gain.toFixed(3)} s` : "–", t.gain > 0 ? "quicker" : "your first was your best")}</div>${spark(t.points)}</div>`).join("")}</div>`;
 }
 
-/* The driver report: a model (LightGBM, explained with SHAP) that learns from every corner of your clean laps against
-   your best lap, and keeps learning as you drive: what costs you time, how you drive, what to work on, and whether
-   you're getting better. */
+/* Driver report: a model (LightGBM, explained with SHAP) that learns from every corner of your clean laps vs your
+   best lap, and keeps learning as you drive: what costs you time, how you drive, what to work on, and whether you're
+   improving. */
 const HABIT_COLOUR = { brake_early: "#ff5a66", speed_loss: "#ffb020", throttle_late: "#3bc46e", coast_more: "#5ec8ff",
   steer_more: "#c77dff", lock: "#ff6fa8", spin: "#2f7bff" };
 function habitTip(h) {
@@ -1237,7 +1237,7 @@ async function renderDriver() {
   if (!d || G.tab !== "prog" || G.sub.prog !== "driver") return;
   $("prog").innerHTML = d.error ? `<div class="empty-note">${esc(d.error)}</div>` : driverHtml(d);
 }
-// Your starts: your reaction time when the lights go out, race by race, and the places it makes you on lap 1
+// Your starts: reaction time at lights out race by race, and the places gained on lap 1
 function startsHtml(st) {
   const head = `<section class="box"><h3>Your starts</h3>`;
   if (!st) return head + `<p class="note">Your reaction time at the start shows after your first race.</p></section>`;
@@ -1271,13 +1271,13 @@ function driverHtml(d) {
   const better = H.filter(h => h.improving), worse = H.filter(h => h.worse);
   const day = t => new Date(t * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   const acc = d.model.mae != null && d.model.base ? Math.round((1 - d.model.mae / d.model.base) * 100) : null;
-  // The engineer's read: the report in a few sentences
+  // Engineer's summary: the report in a few sentences
   const read = `Across <b>${d.laps} clean laps</b> in ${d.sessions} sessions, a lap costs you <b>${d.lap_lost.toFixed(2)} s</b> against your best lap of the session.` +
     (top.length ? ` Most of it goes on <b>${top.map(h => h.name.toLowerCase()).join("</b>, then <b>")}</b>.` : "") +
     (better.length ? ` You're getting better at ${better.slice(0, 2).map(h => h.name.toLowerCase()).join(" and ")}.` : "") +
     (worse.length ? ` Watch ${worse.slice(0, 2).map(h => h.name.toLowerCase()).join(" and ")}: lately ${worse.length > 1 ? "they cost" : "it costs"} you more.` : "") +
     (d.starts?.timed ? ` At the start you react in <b>${d.starts.average.toFixed(2)} s</b> on average${d.starts.improving ? ", and getting quicker" : d.starts.worse ? ", a little slower lately" : ""}.` : "");
-  // Where your time goes: a wedge for each habit, its size the time it costs on a lap
+  // Where your time goes: a wedge for each habit, sized by the time it costs per lap
   const R = 96, C = 110, n = H.length, wedge = (k, r) => { const a0 = -Math.PI / 2 + k * 2 * Math.PI / n + 0.03, a1 = a0 + 2 * Math.PI / n - 0.06;
     return `M${C},${C} L${C + r * Math.cos(a0)},${C + r * Math.sin(a0)} A${r},${r} 0 0 1 ${C + r * Math.cos(a1)},${C + r * Math.sin(a1)} Z`; };
   const wheel = `<svg viewBox="0 0 220 220" class="dr-wheel" role="img" aria-label="Where your time goes: a wedge for each habit, bigger is more time">` +
@@ -1373,14 +1373,14 @@ async function renderSetups() {
 }
 
 /* ---------------- engineer ---------------- */
-// The engineer's briefing: the game's own plan (the pit window its strategy screen planned, where you'd rejoin if
-// you pitted now, how long it says each tyre lasts and your sets), then real F1 at this track, at this race's length
+// Engineer's briefing: the game's own plan (the pit window from its strategy screen, where you'd rejoin if you pitted
+// now, how long it says each tyre lasts, and your sets), then real F1 at this track at this race's length
 async function loadEngineer() {
   const id = G.id;
   if (!id) return;
   if (G.eng?.id !== id) G.eng = { id, game: null, at: 0, ask: 0, temp: null, rain: false, real: null, err: null, key: null, shown: null };
   const e = G.eng, mine = ++e.ask;
-  if (!e.game || (G.view?.live && Date.now() - e.at > 5000)) {      // live: the game's window and the sets change
+  if (!e.game || (G.view?.live && Date.now() - e.at > 5000)) {      // live: the game's pit window and the sets change
     e.at = Date.now();
     let g;
     try { g = await getJSON(`/game/sessions/${id}/engineer`); }
@@ -1414,7 +1414,7 @@ async function loadEngineer() {
 }
 
 // The game's own plan: the race as a lap line with the game's pit window (from its strategy screen) and real F1's
-// stop; how long the game says each tyre lasts against real F1 here; and your sets
+// stop, how long the game says each tyre lasts vs real F1 here, and your sets
 function gamePlan(g, real) {
   const U = Engineer.ui, win = w => w && (w[0] || w[1]) ? w : null, plan = win(g.pit_plan), now = win(g.pit_window), sc = g.scale || {};
   const laps = g.total_laps || 0, f = real?.game_laps ? real.laps / real.game_laps : 1, top = real?.plans?.[0];
@@ -1504,7 +1504,7 @@ function renderWeather() {
   wxSwitch();
 }
 
-// The chance of rain over the forecast's minutes, with the line where rain is likely (50%)
+// Chance of rain over the forecast minutes, with a line where rain is likely (50%)
 function rainChart(f) {
   if (f.length < 2) return `<p class="note">The chart appears when the game sends a forecast.</p>`;
   const W = 600, H = 190, L = 40, R = 12, T = 12, B = 26, max = Math.max(...f.map(s => s.in), 1);
@@ -1519,7 +1519,7 @@ function rainChart(f) {
     f.map(s => `<circle cx="${x(s.in)}" cy="${y(s.rain)}" r="4" fill="#3fa4ff"/><text x="${x(s.in)}" y="${H - 6}" text-anchor="middle">${s.in ? "+" + s.in : "Now"}</text>`).join("") + `</svg>`;
 }
 
-// The track and air temperature at the end of each lap, with that lap's weather above it
+// Track and air temperature at the end of each lap, with that lap's weather above it
 function tempChart(laps) {
   if (laps.length < 2) return `<p class="note">The temperatures appear after two laps.</p>`;
   const W = 600, H = 200, L = 40, R = 12, T = 34, B = 24, vals = laps.flatMap(l => [l.track_temp, l.air_temp]);
@@ -1592,7 +1592,7 @@ function renderBoard() {
         `<span class="r">${fmtLap(ideal)}</span></div>`; }).join("");
   } else {
     c = "tyres";
-    // The stints along the session (the race's length, else the laps so far), with the lap in progress added
+    // Stints over the session (the race length, or else the laps so far), with the lap in progress added
     const total = Math.max(v.race ? i.total_laps || 0 : 0, ...rows.map(r => r.lap), 1), now = me?.lap;
     const running = r => !["DNF", "DSQ", "RETIRED", "FINISHED", "NOT CLASSIFIED"].includes(r.status);
     const stintsNow = r => { const st = r.stints.map(h => ({ ...h })), last = st.at(-1);
@@ -1606,7 +1606,8 @@ function renderBoard() {
   $("board").innerHTML = `<div class="lb2-row hd ${c}">${head}</div>` + body;
 }
 
-// Every car's position at the end of each lap, in its team colour (each line is labelled, as team mates share a colour)
+// Every car's position at the end of each lap in its team colour (each line is labelled since team mates share a
+// colour)
 function lapChart(cars) {
   const el = document.createElement("div");
   const laps = Math.max(0, ...cars.flatMap(c => c.positions.map(p => p[0]))), n = Math.max(0, ...cars.flatMap(c => c.positions.map(p => p[1])));
@@ -1654,7 +1655,7 @@ function renderStrategy() {
     $("stratLap").value = G.strat.lap ?? "";
   }
   if (G.strat.car == null || !s.drivers.some(d => d.car === G.strat.car)) G.strat.car = (s.drivers.find(d => d.player) || s.drivers[0])?.car;
-  // While live a message comes every second: redraw only when something changed, so a row keeps its focus
+  // While live a message comes every second, so only redraw when something changed (a row keeps its focus)
   const viewKey = JSON.stringify([G.id, G.strat.car, s.lap, s.laps_worked_out, s.track_status, s.outcome_lap, Object.keys(G.cards).length,
     s.drivers.map(d => [d.car, d.pit_chance, d.status, d.outcome?.win, d.outcome?.likely])]);
   if (viewKey === G.strat.viewKey && $("stratTable")) return;
@@ -1700,7 +1701,7 @@ const soonText = scale => scale && scale.factor > 1.05
 async function loadCarDetail() {
   const id = G.id, car = G.strat.car, lap = G.strat.data.lap, ask = G.strat.ask;
   if (car == null) return;
-  const me = G.strat.data.drivers.find(x => x.player);               // the strategy battle: you against this car
+  const me = G.strat.data.drivers.find(x => x.player);               // strategy battle: you vs this car
   const [d, duel] = await Promise.all([getJSON(`/game/sessions/${id}/strategy/${car}?lap=${lap}`).catch(() => null),
     me && me.car !== car ? getJSON(`/game/sessions/${id}/duel/${me.car}/${car}?lap=${lap}`).catch(() => null) : null]);
   if (id !== G.id || car !== G.strat.car || ask !== G.strat.ask) return;
@@ -1735,7 +1736,7 @@ function renderCarDetail() {
   if (det.outcome) outcomeSection(d, det);
 }
 
-// Car against car: the car ahead and behind (battle forecast, undercut threat), and you against this car side by side
+// Car vs car: the car ahead and behind (battle forecast, undercut threat), and you vs this car side by side
 function fights(d) {
   const all = G.strat.data.drivers, nice = x => (x.name || x.driver).replace(/\b\w+/g, w => w[0] + w.slice(1).toLowerCase());
   const nameOf = c => { const x = all.find(y => y.driver === c); return x ? nice(x) : c; };
@@ -1753,8 +1754,8 @@ function fights(d) {
   return html;
 }
 
-// The race outcome model in the panel: the chance to win, finish on the podium and score points, why (SHAP), and
-// the chances lap by lap. Its laps are whole laps: the last one every car still racing has finished.
+// Race outcome model in the panel: the chance to win, get a podium and score points, why (SHAP), and the chances lap
+// by lap. It uses whole laps: the last one every car still racing has finished.
 const OCN = { win: "Win", podium: "Podium", points: "Points" }, OCC = { win: "#e8c547", podium: "#c9cfdb", points: "#3bc46e" };
 const OC_FIELD = { win: "one winner", podium: "three podium places", points: "ten points places" };
 const pc = v => v == null ? "–" : v > 0 && v < 0.005 ? "<1%" : v > 0.995 && v < 1 ? ">99%" : Math.round(v * 100) + "%";
@@ -1811,7 +1812,7 @@ function outcomeChart(o, totalLaps) {
   return wrap;
 }
 
-// The pit stop chance on every lap up to the lap shown, the alert line, and the real stops (white lines)
+// Pit stop chance on every lap up to the lap shown, the threshold, and the real stops (white lines)
 function chanceChart(det) {
   const W = 520, H = 170, L = 32, R = 8, T = 10, B = 22, ns = "http://www.w3.org/2000/svg";
   const total = Math.max(det.total_laps, det.laps.at(-1)?.lap || 1), shown = det.laps.filter(p => p.lap <= det.lap);
@@ -1885,7 +1886,7 @@ function renderTelemetry() {
     (B.length ? `<span><i style="background:var(--lap-b)"></i>Lap ${d.compare} ${fmtLap(lapB?.time)}</span>` : "");
   const far = arr => arr.reduce((m, p) => Math.max(m, p.distance), 0);
   const maxD = Math.max(far(A), far(B), 1);
-  // Time into the lap: the game's own lap timer, or (sessions recorded before it was kept) from the first sample
+  // Time into the lap: the game's own lap timer, or from the first sample for sessions recorded before it was saved
   const rel = arr => { const t0 = arr[0]?.t ?? 0; return arr.map(p => ({ ...p, rt: p.lap_time ?? p.t - t0 })); };
   const a = rel(A), b = rel(B);
   const at = (arr, dist) => { let lo = 0, hi = arr.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (arr[m].distance <= dist) lo = m; else hi = m; }
@@ -1915,7 +1916,7 @@ function renderTelemetry() {
       bands: laps.flatMap(([pts, lap]) => [{ pts, lap, on: p => p.aero === 1, colour: AERO.straight, name: "AERO" },
                                            { pts, lap, on: p => p.overtake === 1, colour: AERO.overtake, name: "OT" }]) });
   }
-  if (a.some(p => p.slip_FL != null)) {                  // wheel slip (sessions recorded before it was kept have none)
+  if (a.some(p => p.slip_FL != null)) {                  // wheel slip (older sessions don't have it)
     const lockups = runs(a, p => frontSlip(p) < LOCK_UP && p.brake > 0.2), spins = runs(a, p => rearSlip(p) > WHEELSPIN && p.throttle > 0.3);
     charts.push({ title: `Wheel slip, lap ${d.lap}: ${plural(lockups, "lock-up")}, ${plural(spins, "wheelspin")}`, h: 100, zero: true,
                   marks: [LOCK_UP, WHEELSPIN], clamp: [-1, 1], fmt: v => v.toFixed(2),
@@ -1975,8 +1976,8 @@ function renderTelemetry() {
   $("charts").replaceChildren(wrap);
 }
 
-// The lap in numbers before the charts (like a workout summary), and how it was driven: the share of the lap on
-// full throttle, part throttle, coasting and braking, and in F1 26 in straight mode and overtake mode
+// The lap in numbers before the charts (like a workout summary), and how it was driven: share of the lap on full
+// throttle, part throttle, coasting and braking, and in F1 26 in straight mode and overtake mode
 function lapSummary(a, b, d, lapA, lapB) {
   const el = document.createElement("div"); el.className = "tsum";
   const stats = pts => {
@@ -1995,7 +1996,7 @@ function lapSummary(a, b, d, lapA, lapB) {
   };
   const A = stats(a), B = b.length ? stats(b) : null;
   if (!A) return el;
-  // Against the compared lap: green when this lap is better (higher or lower, as the number goes)
+  // Vs the compared lap: green when this lap is better (higher or lower, depending on the number)
   const vs = (x, y, unit, digits, higherBetter) => {
     if (!B || x == null || y == null || Math.abs(x - y) < 0.5 * 10 ** -digits) return B ? `<em>same as lap ${d.compare}</em>` : "";
     const good = higherBetter ? x > y : x < y;
@@ -2018,14 +2019,14 @@ function lapSummary(a, b, d, lapA, lapB) {
   return el;
 }
 
-// Wheel slip: a front tyre turning slower than the car is locking up, a rear one turning faster is spinning.
-// The dashed lines are where about the 1% most extreme moments of your own races start (chosen on your Miami race).
+// Wheel slip: a front tyre turning slower than the car is locking up, a rear one turning faster is spinning. The
+// dashed lines mark where roughly the most extreme 1% of moments in your own races start (picked using a Miami race).
 const PEDAL = { throttle: "#199e70", brake: "#c98500", front: "#9085e9", rear: "#d95926" };   // checked for colour blindness
 const LOCK_UP = -0.12, WHEELSPIN = 0.15;
 const frontSlip = p => p.slip_FL == null ? null : Math.min(p.slip_FL, p.slip_FR);
 const rearSlip = p => p.slip_RL == null ? null : Math.max(p.slip_RL, p.slip_RR);
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
-// How many times something happens on a lap: moments less than 50 m apart count as the same one
+// How many times something happens on a lap (moments less than 50 m apart count as one)
 const runs = (pts, when, gap = 50) => { let n = 0, end = -Infinity; for (const p of pts) if (when(p)) { if (p.distance - end > gap) n++; end = p.distance; } return n; };
 // F1 26: where each mode was on along the lap, one row each (labelled in its lap's colour), over the active aero zones
 function bands(ch, add, x, maxD, L, top, bottom) {
@@ -2043,8 +2044,8 @@ function bands(ch, add, x, maxD, L, top, bottom) {
 }
 const keyFor = lines => lines.some(l => l.label) ? `<span class="key">${lines.map(l => `<span><i style="background:${l.colour}"></i>${esc(l.label)}</span>`).join("")}</span>` : "";
 
-// The G-force diagram: every moment of the lap as one dot - cornering left and right, accelerating up and
-// braking down. Spikes over 6 g (kerbs, contact) are left out.
+// G-force diagram: every moment of the lap as a dot (cornering left/right, accelerating up, braking down). Spikes
+// over 6 g (kerbs, contact) are left out.
 function gForce(a, b, d) {
   const ok = p => p && p.g_lat != null && Math.abs(p.g_lat) <= 6 && Math.abs(p.g_long) <= 6;
   const pa = a.filter(ok), pb = b.filter(ok), S = 320, C = S / 2, ns = "http://www.w3.org/2000/svg";
@@ -2109,7 +2110,7 @@ function drawMap() {
   { const [px, py] = P(...pts[0]), q = 4; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { x.fillStyle = (i + j) % 2 ? "#fff" : "#111"; x.fillRect(px - 6 + j * q, py - 6 + i * q, q, q); } }
   m.sector_marks.forEach(sm => { const [px, py] = P(sm.x, sm.z); x.fillStyle = "#ffd60a"; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill();
     x.font = "700 12px 'Titillium Web'"; x.fillText("S" + sm.sector, px + 7, py - 6); });
-  (G.mapShow === "slips" ? [] : [...m.cars]).sort((p, q) => (p.player ? 1 : 0) - (q.player ? 1 : 0)).forEach(car => {   // (lock-ups: no cars)
+  (G.mapShow === "slips" ? [] : [...m.cars]).sort((p, q) => (p.player ? 1 : 0) - (q.player ? 1 : 0)).forEach(car => {   // lock-ups: no cars
     const [px, py] = P(car.x, car.z);
     x.save(); x.globalAlpha = car.in_pit ? 0.5 : 1;
     if (car.player) { x.shadowColor = car.colour; x.shadowBlur = 18; }
@@ -2124,7 +2125,7 @@ function drawMap() {
 }
 
 /* ---------------- car ---------------- */
-// The Car tab's charts: tyre temperatures, pressures and wear through the session (from /car, twice a second)
+// Car tab charts: tyre temperatures, pressures and wear through the session (from /car, twice a second)
 const CORNERS = [["FL", "Front left", "#3987e5"], ["FR", "Front right", "#d95926"], ["RL", "Rear left", "#199e70"], ["RR", "Rear right", "#c98500"]];
 async function loadCarSeries() {
   const id = G.id;
@@ -2173,8 +2174,8 @@ function renderCarCharts() {
    chart("Wear (%)", "wear", v => Math.round(v))].forEach(c => c && box.append(c));
 }
 
-// F1 26: the battery as a ring (like an electric car's charge), with the energy harvested this lap against the
-// 2026 limit inside it
+// F1 26: the battery as a ring (like an electric car's charge), with the energy harvested this lap vs the 2026 limit
+// inside it
 function energyRing(c, ers, MJ, ersMode) {
   const harvest = c.ers_limit ? Math.min(100, c.ers_harvested / c.ers_limit * 100) : 0;
   const arc = (r, share, cls) => { const len = 2 * Math.PI * r;
@@ -2239,7 +2240,7 @@ function renderCar() {
   const ers = c.ers != null ? Math.min(100, c.ers / 4e6 * 100) : null;
   const dmg = Object.entries(c.damage || {}).map(([k, v]) => `<span>${esc(k.replace(/_/g, " "))}</span><span class="meter"><i style="width:${v || 0}%;background:${v > 40 ? "#ff8a8a" : "#c9cfdb"}"></i></span><span class="v">${v ?? 0}%</span>`).join("");
   const wearLaps = (G.view.laps || []).filter(l => l.tyre_wear);
-  // Energy this lap and, in F1 26, the 2026 rules: the most the car may harvest per lap, overtake mode, active aero
+  // Energy this lap and, in F1 26, the 2026 rules: max harvest per lap, overtake mode, active aero
   const MJ = j => (j / 1e6).toFixed(2) + " MJ", m = c.modes;
   const ersMode = { 0: "None", 1: "Medium", 2: "Hotlap", 3: c.format >= 2026 ? "Boost" : "Overtake" }[c.ers_mode];
   const tile = (name, value, on) => `<span class="mode${on ? " on" : ""}">${name}<b>${value}</b></span>`;
@@ -2278,17 +2279,17 @@ function renderCar() {
 
 /* ---------------- team radio ---------------- */
 // Hold T (or the red button) and talk: the browser turns your voice into text, the engineer answers from your live
-// data (in the local AI's words when it's running), and the answer is spoken with radio beeps. The engineer's
-// own calls ("box, box", safety car, fastest lap...) come in the live stream and are spoken once each.
-// The radio is a round button at the bottom right. Click it and it pops open into a pill: settings, what was just
-// said, the talk button and fold, with the messages (or the settings) above it. Folded, it opens for a few seconds
-// while you talk or the engineer answers, so it never covers the data for long.
+// data (in the local AI's words when it's running), and the answer is spoken with radio beeps. The engineer's own
+// calls ("box, box", safety car, fastest lap...) come in the live stream and are spoken once each.
+// The radio is a round button at the bottom right. Click it and it opens into a pill (settings, what was just said,
+// the talk button and fold) with the messages or settings above it. When folded it opens for a few seconds while you
+// talk or the engineer answers, so it never covers the data for long.
 const Radio = { on: false, listening: false, rec: null, voice: null, voices: [], spoken: {}, log: [], micOff: 0,
-  live: null,                        // the session you're driving (questions go to it, not to one you're looking at)
+  live: null,                        // the session you're driving (questions go to it, not to the one you're viewing)
   queue: [], timer: null, talking: false, utterance: null,    // what the engineer is about to say, and is saying
   view: "closed",                    // closed (the round button), open (the messages) or set (the settings)
   heard: null, ai: null,             // the line shown in the pill; the local AI's status
-  prefs: { volume: 1, rate: 1, beep: 0.6, calls: true, speak: true, peek: true } };   // kept in this browser
+  prefs: { volume: 1, rate: 1, beep: 0.6, calls: true, speak: true, peek: true } };   // saved in this browser
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const isTyping = e => /^(input|textarea|select)$/i.test(e.target.tagName);
 const PLAY = `<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>`;
@@ -2307,8 +2308,8 @@ function radioInit() {
     (Radio.view === "closed" ? $("radioFab") : $("radioGear")).focus();
   });
   try { if (localStorage.getItem("radioOpen") === "1") radioView("open"); } catch (e) { /* fine without it */ }
-  // Room at the bottom of the page for the radio, so the last rows of a table can scroll up above it (on a computer
-  // the page fits the screen instead, and the round button sits over the end of the bottom strip)
+  // Space at the bottom of the page for the radio, so the last rows of a table can scroll above it (on a computer the
+  // page fits the screen instead, and the round button sits over the end of the bottom strip)
   const oneScreen = matchMedia("(min-width:900px) and (min-height:700px)");
   const room = () => { document.body.style.paddingBottom = oneScreen.matches ? "" : `${$("radio").offsetHeight + 28}px`; };
   if ("ResizeObserver" in window) new ResizeObserver(room).observe($("radio"));
@@ -2323,7 +2324,7 @@ function radioInit() {
   $("radioAsk").onsubmit = e => { e.preventDefault(); const t = $("radioText").value.trim(); if (t) { $("radioText").value = ""; radioAsk(t); } };
   if ("speechSynthesis" in window) { speechSynthesis.onvoiceschanged = pickVoice; pickVoice(); }
   else $("rsVoices").innerHTML = `<p class="rs-none">This browser can't speak. The answers still show as text.</p>`;
-  // The settings: a voice (hear it with the play button), how loud and fast it talks, and what it says
+  // Settings: the voice (test it with the play button), how loud and fast it talks, and what it says
   $("rsVoices").onclick = e => {
     const play = e.target.closest("[data-play]"), row = e.target.closest("[data-v]");
     if (play) { e.stopPropagation(); hearVoice(play.dataset.play); } else if (row) chooseVoice(row.dataset.v);
@@ -2342,9 +2343,9 @@ function radioInit() {
   radioPill();
 }
 
-// The voices: the one you picked, else a British one (the natural kind when the browser has it: Edge does).
-// The list has every English voice, British and natural ones first: "natural" ones sound best but come over the
-// internet; the others are on this PC and start at once.
+// Voices: the one you picked, or else a British one (a "natural" one if the browser has it, Edge does). The list has
+// every English voice, British and natural ones first; natural ones sound best but use the internet, the others are
+// on this PC and start at once.
 function pickVoice() {
   const v = speechSynthesis.getVoices(), english = v.filter(x => /^en/i.test(x.lang));
   let saved = null;
@@ -2423,7 +2424,7 @@ function unpeek(ms) { clearTimeout(Radio.peekTimer); Radio.peekTimer = setTimeou
 async function radioStatus() {
   try {
     const s = Radio.ai = await getJSON("/game/radio/status");
-    clearTimeout(Radio.statusTimer);                 // one check waiting at a time, however often it's asked
+    clearTimeout(Radio.statusTimer);                 // only one check waiting at a time, however often it's called
     if (s.ai && !s.warm) Radio.statusTimer = setTimeout(radioStatus, 4000);
   } catch (e) { Radio.ai = null; }
   radioPill();
@@ -2447,7 +2448,7 @@ function radioPill() {
   if (Radio.listening) { label = `Listening · ${mmss(Date.now() - Radio.since)}`; line = h && h.who === "you" ? h.text : "Listening…"; }
   else if (h) { label = h.who === "eng" ? `Engineer${h.tag ? " · " + h.tag : ""}` : h.who === "you" ? "You" : "Team radio"; line = h.text; }
   if ($("radioLabel").textContent !== label) $("radioLabel").textContent = label;
-  if ($("radioHear").textContent !== line) $("radioHear").textContent = line;     // (read out only when it changes)
+  if ($("radioHear").textContent !== line) $("radioHear").textContent = line;     // only on change: read out once
   $("radio").classList.toggle("said", !Radio.listening && !!h && h.who === "eng");
 }
 
@@ -2455,7 +2456,7 @@ function talkStart() {
   if (!Radio.on) radioPower(true);
   if (!Recognition) { radioView("open"); $("radioText").focus(); return; }
   if (Radio.listening) return;
-  hush(false);                       // you talk over the engineer: it stops (what's waiting is said after)
+  hush(false);                       // you talk over the engineer: it stops (anything waiting is said after)
   const rec = Radio.rec = new Recognition();
   rec.lang = "en-GB"; rec.interimResults = true; rec.maxAlternatives = 1;     // your words show as they're heard
   Radio.asked = false;
@@ -2495,14 +2496,14 @@ async function radioAsk(text) {
     hear(a.text, "eng", tag);
     if (Radio.prefs.speak) speak(a.say || a.text);
     radioNote(a.note || "");
-    radioStatus();                   // the AI may have started, stopped or failed to load since (asked at most every 30 s)
+    radioStatus();                   // the AI may have started, stopped or failed to load since (checked every 30 s max)
   } catch (e) { radioLine("eng", `No answer: ${e.message}`); hear(`No answer: ${e.message}`, "note"); }
 }
 
-// The beep first, then the voice after a short pause: right after the microphone stops, a headset (Bluetooth
-// above all) takes a moment to switch from talking mode back to listening mode, and the first words would
-// come out broken. Starting the voice at the same moment as the beep can clip it too. Nothing is said while
-// you talk (it waits until you let go), one thing at a time; turning the radio off stops it all.
+// Beep first, then the voice after a short pause: right after the mic stops, a headset (especially Bluetooth) takes a
+// moment to switch back from talking mode to listening mode, and the first words would come out broken. Starting the
+// voice together with the beep can clip it too. Nothing is said while you talk (it waits until you let go), one thing
+// at a time; turning the radio off stops everything.
 function speak(text) {
   if (!Radio.on || !("speechSynthesis" in window)) return;
   Radio.queue.push(text);
@@ -2518,8 +2519,8 @@ function sayNext() {
     Radio.timer = setTimeout(() => {
       Radio.timer = null;
       if (!Radio.on || Radio.listening || !Radio.queue.length) return;
-      const u = Radio.utterance = new SpeechSynthesisUtterance(Radio.queue.shift());   // kept: Chrome can lose
-      if (Radio.voice) u.voice = Radio.voice;                                          // its end event otherwise
+      const u = Radio.utterance = new SpeechSynthesisUtterance(Radio.queue.shift());   // kept so Chrome doesn't lose
+      if (Radio.voice) u.voice = Radio.voice;                                          // its end event
       u.lang = Radio.voice?.lang || "en-GB"; u.rate = Radio.prefs.rate; u.volume = Radio.prefs.volume;
       u.onend = u.onerror = e => {
         if (Radio.utterance !== u) return;           // stopped by hush()
@@ -2561,7 +2562,7 @@ function radioLine(who, text, tag) {
 }
 const radioNote = t => { $("radioNote").textContent = t; };
 
-// The radio "beep": a short tone, made in the page (no sound files), as loud as the setting
+// Radio beep: a short tone generated in the page (no sound files), at the volume setting
 let audio = null;
 function beep(freq) {
   if (!Radio.prefs.beep) return;
@@ -2574,14 +2575,14 @@ function beep(freq) {
   } catch (e) { /* no sound: fine */ }
 }
 
-// The engineer's own calls in the live stream: each new one is shown and said once (not the old ones when the
-// page opens); with "Engineer's calls" off they only show
+// The engineer's own calls from the live stream: each new one is shown and spoken once (not the old ones when the
+// page opens); with "Engineer's calls" off they're only shown
 function radioCalls(sid, calls) {
   const last = Radio.spoken[sid];
   if (last === undefined) { Radio.spoken[sid] = Math.max(0, ...calls.map(c => c.id)); return; }
   calls.filter(c => c.id > last).forEach(c => {
     radioLine("eng", c.text, "call");
-    if (Radio.on) hear(c.text, "eng", "call");                  // (off: only in the messages)
+    if (Radio.on) hear(c.text, "eng", "call");                  // if off, only shown in the messages
     if (Radio.prefs.calls) speak(c.say || c.text);
     Radio.spoken[sid] = c.id;
   });

@@ -1,10 +1,10 @@
-/* The race picker: a pop-up window with a tab for every season (real races) or your sessions (F1 25), each with
-   its country's flag. Shared by f1.html and f1-25.html: RacePicker.open({...}) shows it, RacePicker.flag(code)
-   and RacePicker.place(name) give the flag and the Grand Prix of a circuit for the pages' own buttons. */
+/* Race picker: a pop-up with a tab for every season (real races) or your sessions (F1 25), each with its country's
+   flag. Shared by f1.html and f1-25.html: RacePicker.open({...}) shows it, RacePicker.flag(code) and
+   RacePicker.place(name) give a circuit's flag and Grand Prix for the pages' own buttons. */
 (() => {
   "use strict";
 
-  // Where each circuit is: the real races' circuit names and the game's tracks -> [country code, Grand Prix]
+  // Circuit name (real races) or game track -> [country code, Grand Prix]
   const PLACES = {
     "Melbourne": ["au", "Australian Grand Prix"], "Shanghai": ["cn", "Chinese Grand Prix"],
     "Sakhir": ["bh", "Bahrain Grand Prix"], "Jeddah": ["sa", "Saudi Arabian Grand Prix"],
@@ -29,7 +29,7 @@
     return [code, kind ? `${gp} (${kind.toLowerCase()})` : gp];
   };
 
-  // Flags come from the flag-icons set; offline, the country's letters show instead
+  // Flags come from the flag-icons set; offline the country letters show instead
   const FLAGS = "https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/flags/4x3/";
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const flag = code => code
