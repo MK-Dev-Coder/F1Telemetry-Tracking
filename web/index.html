@@ -27,6 +27,8 @@ body{font-family:var(--f-ui);font-size:15px;line-height:1.4;padding:12px 16px 32
 .help-btn{margin-left:auto;width:36px;height:36px;border-radius:50%;border:1px solid var(--line-2);background:var(--panel);color:var(--fg);
   font:900 18px/1 var(--f-ui);cursor:pointer;display:grid;place-items:center}
 .help-btn:hover{border-color:var(--muted);background:var(--panel-2)}
+.help-btn + .help-btn{margin-left:0}
+.flag-btn svg{width:20px;height:20px}
 main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:1200px;width:100%;margin:0 auto;padding-block:32px}
 h1{margin:0 0 6px;font-size:40px;font-weight:900;letter-spacing:.02em;line-height:1.05}
 .lead{margin:0 0 28px;color:var(--muted);max-width:60ch}
@@ -121,6 +123,26 @@ dialog.help::backdrop{background:rgba(5,7,10,.75)}
 .help .got{flex:none;border:0;border-radius:999px;padding:10px 22px;background:var(--brand);color:#fff;font:800 14px/1 var(--f-ui);
   letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
 .help .got:hover{background:#f21d48}
+/* the F1 rules box: the same look, with the F1 app's red stripes, the points, the tyres and the flags as pictures */
+.stripes{display:flex;gap:6px;margin:10px 0 2px} .stripes i{width:46px;height:5px;background:var(--brand);transform:skewX(-35deg)}
+.stripes i + i{width:28px}
+#rules .help-tabs{overflow-x:auto;scrollbar-width:none}
+#rules .help-tabs button{flex:1 0 auto;padding-inline:14px}
+.pts{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;margin:0;padding:10px 12px;border-radius:12px;background:#181922;border:1px solid #262833}
+.pts span{display:grid;justify-items:center;gap:2px;font-family:var(--f-num)}
+.pts small{font-size:11px;color:#8a90a0} .pts b{font-size:16px;color:#fff} .pts span:first-child b{color:#ffd60a}
+.pts-cap{margin:0 0 -4px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8a90a0}
+.tyres{display:flex;justify-content:space-around;gap:8px;padding:12px;border-radius:12px;background:#181922;border:1px solid #262833}
+.tyre{display:grid;justify-items:center;gap:5px;font-size:12.5px;color:#c9cfdb}
+.tyre i{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:5px solid var(--c);background:#0d0e13;
+  font:900 15px var(--f-ui);font-style:normal;color:#fff;box-shadow:inset 0 0 0 3px #2c2e3b}
+.flaglist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.flaglist li{display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:10px;align-items:center;padding:9px 12px;border-radius:10px;
+  background:#181922;border:1px solid #262833}
+.flaglist .ic{grid-row:span 2;display:grid;place-items:center}
+.flaglist b{font-size:14.5px;color:#fff} .flaglist small{font-size:13px;line-height:1.35;color:#9aa0ae}
+@media (max-width:760px){ .flaglist{grid-template-columns:1fr} .pts{grid-template-columns:repeat(5,minmax(0,1fr));row-gap:8px}
+  #rules .help-tabs button{padding-inline:6px} }
 @media (prefers-reduced-motion: no-preference){
   dialog.help[open]{animation:pop .18s ease-out} @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}}
   dialog.help,.help-kicker,.help-tabs button,.tiles .ic,.steps li::before,.setup-note svg{transition:color .2s,background-color .2s,border-color .2s,box-shadow .2s}
@@ -169,6 +191,8 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
 <header class="top">
   <img class="mark" src="f1-logo.png" alt="F1" width="96" height="24" onerror="this.remove()">
   <div><b>STRATEGY PREDICTOR</b><small>Pit wall · race strategy</small></div>
+  <button class="help-btn flag-btn" id="rulesBtn" aria-haspopup="dialog" aria-controls="rules" aria-label="F1 rules explained" title="F1 rules explained">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 4h13v10H6z" fill="#fff"/><path d="M6 4h3.25v2.5H6zM12.5 4h3.25v2.5H12.5zM9.25 6.5h3.25V9H9.25zM15.75 6.5H19V9h-3.25zM6 9h3.25v2.5H6zM12.5 9h3.25v2.5H12.5zM9.25 11.5h3.25V14H9.25zM15.75 11.5H19V14h-3.25z" fill="#15151e"/></svg></button>
   <button class="help-btn" id="helpBtn" aria-haspopup="dialog" aria-controls="help" aria-label="How it works" title="How it works">?</button>
 </header>
 <main>
@@ -235,7 +259,7 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
         <h2 id="helpTitle">Three ways in</h2>
         <p id="helpLead">Replay real F1 races, or see your own laps from the game.</p>
       </div>
-      <button class="close" id="helpClose" aria-label="Close"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      <button class="close" id="helpClose" data-close aria-label="Close"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
     </div>
 
     <div class="help-tabs" role="tablist" aria-label="Ways in">
@@ -306,41 +330,159 @@ footer{max-width:1200px;width:100%;margin:0 auto;color:var(--dim);font-size:13px
 
   <div class="help-foot">
     <span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>Your game recordings stay on this PC.</span>
-    <button class="got" id="helpOk">Got it</button>
+    <button class="got" id="helpOk" data-close>Got it</button>
   </div>
 </dialog>
 
+<dialog class="help" id="rules" aria-labelledby="rulesTitle" aria-describedby="rulesLead" data-tab="weekend">
+  <div class="help-body">
+    <div class="help-head">
+      <div>
+        <span class="help-kicker">F1 rules</span>
+        <h2 id="rulesTitle">How a race works</h2>
+        <p id="rulesLead">The rules you need to follow a race, and the strategy calls in this app.</p>
+        <span class="stripes" aria-hidden="true"><i></i><i></i></span>
+      </div>
+      <button class="close" data-close aria-label="Close"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+
+    <div class="help-tabs" role="tablist" aria-label="Rules">
+      <button role="tab" id="rTabWeekend" data-tab="weekend" aria-controls="rWeekend" aria-selected="true" style="--c:var(--brand)">Weekend</button>
+      <button role="tab" id="rTabTyres" data-tab="tyres" aria-controls="rTyres" aria-selected="false" tabindex="-1" style="--c:var(--brand)">Tyres</button>
+      <button role="tab" id="rTabStrategy" data-tab="strategy" aria-controls="rStrategy" aria-selected="false" tabindex="-1" style="--c:var(--brand)">Strategy</button>
+      <button role="tab" id="rTabFlags" data-tab="flags" aria-controls="rFlags" aria-selected="false" tabindex="-1" style="--c:var(--brand)">Flags</button>
+      <button role="tab" id="rTab2026" data-tab="new" aria-controls="r2026" aria-selected="false" tabindex="-1" style="--c:var(--brand)">2026</button>
+    </div>
+
+    <div class="help-panes">
+      <section class="help-pane" id="rWeekend" role="tabpanel" aria-labelledby="rTabWeekend">
+        <p class="pts-cap">Points in a Grand Prix</p>
+        <div class="pts" role="img" aria-label="Points: P1 25, P2 18, P3 15, P4 12, P5 10, P6 8, P7 6, P8 4, P9 2, P10 1">
+          <span><small>P1</small><b>25</b></span><span><small>P2</small><b>18</b></span><span><small>P3</small><b>15</b></span>
+          <span><small>P4</small><b>12</b></span><span><small>P5</small><b>10</b></span><span><small>P6</small><b>8</b></span>
+          <span><small>P7</small><b>6</b></span><span><small>P8</small><b>4</b></span><span><small>P9</small><b>2</b></span>
+          <span><small>P10</small><b>1</b></span>
+        </div>
+        <ul class="tiles">
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="5.5"/><path d="M8 9V6.2M6.5 1.8h3"/></svg></span>
+            <b>Practice</b><small>Teams try set-ups and tyres. No points.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13.5h3.5V8H2zM6.25 13.5h3.5V3h-3.5zM10.5 13.5H14V6h-3.5z"/></svg></span>
+            <b>Qualifying</b><small>Three knockout rounds. The fastest lap in Q3 takes pole.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14V2.5h7l-1.5 2.8L10 8H3"/></svg></span>
+            <b>The race</b><small>About 305 km, at most 2 hours. Points for the top 10.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"/></svg></span>
+            <b>Sprint weekends</b><small>Six a year add a short Saturday race: points for the top 8.</small></li>
+        </ul>
+        <p class="fine"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.3V11M8 5.1h.01"/></svg>
+          <span>Since 2025 there's no extra point for the fastest lap.</span></p>
+      </section>
+
+      <section class="help-pane" id="rTyres" role="tabpanel" aria-labelledby="rTabTyres" hidden>
+        <div class="tyres" role="img" aria-label="The tyres: soft, medium, hard, intermediate and wet">
+          <span class="tyre" style="--c:#ff4d5e"><i>S</i>Soft</span><span class="tyre" style="--c:#ffd60a"><i>M</i>Medium</span>
+          <span class="tyre" style="--c:#eef1f5"><i>H</i>Hard</span><span class="tyre" style="--c:#3bc46e"><i>I</i>Inter</span>
+          <span class="tyre" style="--c:#2f7bff"><i>W</i>Wet</span>
+        </div>
+        <ul class="tiles">
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 11.5a5.5 5.5 0 1 1 11 0"/><path d="M8 11.5l2.6-3.2"/></svg></span>
+            <b>Softer is faster</b><small>Soft has the most grip but wears out first. Hard lasts longest.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="8" r="3.5"/><circle cx="11" cy="8" r="3.5"/></svg></span>
+            <b>Two dry tyres</b><small>In a dry race everyone must use two different dry tyres, so everyone stops.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5c2.5 3 4 5 4 7a4 4 0 0 1-8 0c0-2 1.5-4 4-7z"/></svg></span>
+            <b>Rain tyres</b><small>Inters for a damp track, wets for heavy rain. Then the two-tyre rule doesn't apply.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg></span>
+            <b>Tyre age</b><small>Old tyres lose time every lap: that's when the pit model's chance goes up.</small></li>
+        </ul>
+      </section>
+
+      <section class="help-pane" id="rStrategy" role="tabpanel" aria-labelledby="rTabStrategy" hidden>
+        <ul class="tiles">
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 2.5a3 3 0 0 0-3.3 4L2.5 11.2 4.8 13.5l4.7-4.7a3 3 0 0 0 4-3.3l-1.8 1.8-1.9-.4-.4-1.9z"/></svg></span>
+            <b>Pit stop</b><small>New tyres take 2–3 s, but the whole stop costs around 20 s.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 11.5L7 7l2.5 2.5 4-4M10 5.5h3.5V9"/></svg></span>
+            <b>Undercut</b><small>Pit first: new tyres are faster, so you come out ahead of the car you followed.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8h11M10 4.5L13.5 8 10 11.5"/></svg></span>
+            <b>Overcut</b><small>Stay out longer and gain while the car that pitted warms up its new tyres.</small></li>
+          <li><span class="ic" data-flag="sc"></span>
+            <b>Safety car = cheap stop</b><small>Under a safety car or VSC everyone is slow, so a stop costs much less.</small></li>
+        </ul>
+        <p class="fine"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.3V11M8 5.1h.01"/></svg>
+          <span>Penalties: 5 or 10 seconds, served at the next stop or added at the end. Worse ones mean a drive-through or a stop-and-go.</span></p>
+      </section>
+
+      <section class="help-pane" id="rFlags" role="tabpanel" aria-labelledby="rTabFlags" hidden>
+        <ul class="flaglist">
+          <li><span class="ic" data-flag="green"></span><b>Green</b><small>Track clear: racing again.</small></li>
+          <li><span class="ic" data-flag="yellow"></span><b>Yellow</b><small>Danger ahead: slow down, no overtaking.</small></li>
+          <li><span class="ic" data-flag="red"></span><b>Red</b><small>Session stopped: cars wait in the pit lane.</small></li>
+          <li><span class="ic" data-flag="blue"></span><b>Blue</b><small>A faster car is lapping you: let it by.</small></li>
+          <li><span class="ic" data-flag="bw"></span><b>Black and white</b><small>A warning, e.g. for track limits.</small></li>
+          <li><span class="ic" data-flag="chequered"></span><b>Chequered</b><small>The end of the session.</small></li>
+          <li><span class="ic" data-flag="sc"></span><b>Safety car</b><small>The field queues behind it: no overtaking.</small></li>
+          <li><span class="ic" data-flag="vsc"></span><b>Virtual safety car</b><small>Everyone slows to a set speed.</small></li>
+        </ul>
+      </section>
+
+      <section class="help-pane" id="r2026" role="tabpanel" aria-labelledby="rTab2026" hidden>
+        <ul class="tiles">
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 6.5h13M3 10h10M4 6.5v6M12 6.5v6"/></svg></span>
+            <b>Active aero</b><small>Moving wings: low drag on straights, more grip in corners.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"/></svg></span>
+            <b>Overtake mode</b><small>Replaces DRS: within 1 s of the car ahead you get extra electric power.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="4.5" width="11" height="7" rx="1.5"/><path d="M14.5 7v2M4 7h4v2H4z"/></svg></span>
+            <b>Half electric</b><small>About half the power comes from the battery, on 100% sustainable fuel.</small></li>
+          <li><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 2.5H7v4H2.5zM9 6.5h4.5v4H9zM2.5 10.5H7v3H2.5z"/></svg></span>
+            <b>New grid</b><small>11 teams and 22 cars: Cadillac joins and Sauber becomes Audi.</small></li>
+        </ul>
+        <p class="fine"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.3V11M8 5.1h.01"/></svg>
+          <span>The cars are also smaller and about 30 kg lighter. The F1 26 section shows active aero and overtake mode lap by lap.</span></p>
+      </section>
+    </div>
+  </div>
+
+  <div class="help-foot">
+    <span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14.5V2"/><path d="M3 2.5h9.5l-2 3 2 3H3"/></svg>The FIA's rules, made simple. Small details change each season.</span>
+    <button class="got" data-close>Got it</button>
+  </div>
+</dialog>
+
+<script src="flags.js"></script>
 <script src="picker.js"></script>
 <script>
 (async () => {
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 
-  // "How it works" box: one tab per way in (arrow keys move between them); it closes with x, Got it, Esc or a
-  // click outside
-  const help = document.getElementById("help"), tabs = [...help.querySelectorAll('[role="tab"]')];
-  function showTab(tab, focus) {
-    for (const t of tabs) {
-      const on = t === tab;
-      t.setAttribute("aria-selected", on);
-      t.tabIndex = on ? 0 : -1;
-      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
-    }
-    help.dataset.tab = tab.dataset.tab;            // the box takes the tab's colour
-    if (focus) tab.focus();
-  }
-  tabs.forEach((t, i) => {
-    t.onclick = () => showTab(t);
-    t.onkeydown = e => {
-      const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
-      if (to === undefined) return;
-      e.preventDefault();
-      showTab(tabs[(to + tabs.length) % tabs.length], true);
+  // The two pop-ups ("How it works" and the F1 rules): a tab for each part (the arrow keys move between them), and
+  // they close with x, Got it, Esc or a click outside
+  function popup(box, button) {
+    const tabs = [...box.querySelectorAll('[role="tab"]')];
+    const showTab = (tab, focus) => {
+      for (const t of tabs) {
+        const on = t === tab;
+        t.setAttribute("aria-selected", on);
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+      }
+      box.dataset.tab = tab.dataset.tab;           // "How it works" takes the tab's colour
+      if (focus) tab.focus();
     };
-  });
-  document.getElementById("helpBtn").onclick = () => help.showModal();
-  document.getElementById("helpClose").onclick = () => help.close();
-  document.getElementById("helpOk").onclick = () => help.close();
-  help.addEventListener("click", e => { if (e.target === help) help.close(); });
+    tabs.forEach((t, i) => {
+      t.onclick = () => showTab(t);
+      t.onkeydown = e => {
+        const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+        if (to === undefined) return;
+        e.preventDefault();
+        showTab(tabs[(to + tabs.length) % tabs.length], true);
+      };
+    });
+    button.onclick = () => box.showModal();
+    box.querySelectorAll("[data-close]").forEach(b => { b.onclick = () => box.close(); });
+    box.addEventListener("click", e => { if (e.target === box) box.close(); });
+  }
+  popup(document.getElementById("help"), document.getElementById("helpBtn"));
+  popup(document.getElementById("rules"), document.getElementById("rulesBtn"));
+  // the flag pictures in the rules come from flags.js, the same ones the race pages use
+  document.querySelectorAll("#rules [data-flag]").forEach(el => { el.innerHTML = window.Flags?.ICON[el.dataset.flag] || ""; });
 
   // Hover videos: play while the mouse (or keyboard focus) is on a button, stop and rewind when it leaves. If there's
   // no video file, nothing happens and the button looks normal.

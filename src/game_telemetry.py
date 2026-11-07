@@ -9,6 +9,7 @@ Record without the app:         python src/game_telemetry.py
 Re-decode every saved session:  python src/game_telemetry.py rebuild
 The app (python src/api.py) also records while it runs."""
 import atexit
+import errno
 import gzip
 import itertools
 import json
@@ -682,6 +683,16 @@ CAR_COLUMNS = (["t", "lap", "fuel", "fuel_laps", "ers"] + [f"wear_{w}" for w in 
                + ["ers_harvested", "ers_deployed"])   # the energy counters of the lap (joules)
 
 
+def listen_error(port, err):
+    """What to show when the app can't listen for the game. Usually the port is already taken (another copy of this
+    app, or another telemetry program): say that in plain words instead of the system's message."""
+    taken = err.errno in (errno.EADDRINUSE, getattr(errno, "WSAEADDRINUSE", 10048)) or getattr(err, "winerror", None) == 10048
+    if taken:
+        return (f"Port {port} is already in use: another copy of this app or another telemetry program is listening for "
+                "the game. Close it, then start this app again.")
+    return f"Can't listen on port {port}: {err}"
+
+
 # ---------------------------------------------------------------------------------------------------
 class Recorder:
     """Receives the game's packets and keeps every session up to date (thread-safe)."""
@@ -723,7 +734,7 @@ class Recorder:
             except OSError:
                 pass
         except OSError as err:
-            self.error = f"Can't listen on port {port}: {err}"
+            self.error = listen_error(port, err)
             return
         self.listening = True
         while True:

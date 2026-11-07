@@ -1,4 +1,5 @@
 """Tests for F1 25 / F1 26: reading the game's packets and laps, and keeping online players' names out."""
+import errno
 import math
 import time
 
@@ -153,6 +154,14 @@ def test_the_games_first_pit_window_is_its_plan():
     info = session(30, 34, 7)
     assert info["pit_plan"] == [12, 16] and info["pit_window"] == [30, 34] and info["pit_rejoin"] == 7
     assert session(0, 0, 0)["pit_plan"] == [12, 16]
+
+
+def test_a_port_in_use_gets_a_plain_message():
+    """Another program already listening for the game: the app says so in plain words, not the system's message."""
+    taken = gt.listen_error(20777, OSError(errno.EADDRINUSE, "Address already in use"))
+    assert "Port 20777 is already in use" in taken and "another copy of this app" in taken
+    assert "already in use" in gt.listen_error(20777, OSError(10048, "Only one usage of each socket address"))   # Windows
+    assert gt.listen_error(20777, OSError(errno.EACCES, "Permission denied")).startswith("Can't listen on port 20777")
 
 
 def test_lap_times():

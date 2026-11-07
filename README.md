@@ -18,8 +18,8 @@ MSc dissertation project, Big Data Engineering & Data Science (AthTech / Univers
   before it.
 - **The trained models are here** (`models/`), the race data isn't: it belongs to Formula 1. To run the app or
   train the models again, see [Install](#install) and [Get the data](#get-the-data) (about 30 minutes to download).
-- **The tests** (`python -m pytest tests`, 216 of them) run on GitHub Actions on every push (the badge above).
-  Without the data folder the 33 that read it are skipped and the other 183 run.
+- **The tests** (`python -m pytest tests`, 217 of them) run on GitHub Actions on every push (the badge above).
+  Without the data folder the 33 that read it are skipped and the other 184 run.
 - **The cloud data layer** (optional; the app runs without it): the data and models in Amazon S3 with versions, a
   Lambda check on each table that arrives, Athena for SQL, and a daily Lambda that fetches each new race
   ([AWS_SETUP.md](docs/AWS_SETUP.md)); the desktop app (`desktop.py`) fetches the newest data from it and builds new races.
@@ -319,7 +319,7 @@ python src/engineer.py
 python -m pytest tests
 ```
 
-216 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
+217 tests, about 10 seconds. GitHub Actions runs them on every push (`.github/workflows/tests.yml`), without the
 data. They check:
 
 - **The features:** real stops are found (not drive-throughs, not tyre changes under a red flag), and no feature
@@ -338,7 +338,7 @@ data. They check:
 - **The engineer:** a hotter day wears the tyres faster and they last less (at most 40% either way), a shorter game
   race as many laps less, a stop under the safety car costs less, rain adds the intermediates and wets, a tyre
   OpenF1 didn't name is left out, a replay knows only the races before it, and the game's first pit window is kept as its plan.
-- **F1 25 / F1 26:** bad packets are skipped, online players' names are never kept (nothing is saved before the
+- **F1 25 / F1 26:** bad packets are skipped, a port already in use gets a plain message, online players' names are never kept (nothing is saved before the
   game says whether a session is online), a race's last lap is kept at the flag, a flashback takes away a stop or a finish that came after it, a paused game is still live
   (paused, not over: the game sends nothing while paused, and "Session ended" when a session is) but a few stray
   packets aren't a session, short races are scaled, the team radio sends each question to the right topic ("chance
@@ -368,7 +368,7 @@ data. They check:
   is closed (the race preview then fails, so the build runs again later instead of keeping the old race's preview), and never sends its note to the cloud.
 
 Most tests use small made-up races. The 33 in `tests/test_with_data.py` read the data folder and the trained
-models without changing them; without the data folder they are skipped and the other 183 still run. The tests
+models without changing them; without the data folder they are skipped and the other 184 still run. The tests
 don't listen for the game, so they can run while the app is open.
 
 ## Run the app
