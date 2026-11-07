@@ -369,8 +369,41 @@ dialog.seg-dlg::backdrop{background:rgba(5,7,10,.75)}
 @media (prefers-reduced-motion: no-preference){
   dialog.seg-dlg[open]{animation:sdpop .18s ease-out} @keyframes sdpop{from{opacity:0;transform:translateY(8px) scale(.98)}}
 }
-.scrub{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;color:#c9cfdb;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
-.scrub input{flex:1;accent-color:var(--brand)}
+/* lap slider, like the F1 app's replay bar: red up to the lap shown, the safety car / VSC / red flag laps marked
+   above it, a chequered flag at the end, and a bubble with the lap while you drag it or point at it */
+.scrub{flex:1.4 1 380px;min-width:220px;display:flex;align-items:center;gap:12px}
+.sc-now{flex:none;display:flex;align-items:baseline;gap:4px;font-family:var(--f-num);color:#fff}
+.sc-now small{margin-right:4px;font:700 12px var(--f-ui);letter-spacing:.1em;color:#9aa0ae}
+.sc-now b{min-width:2ch;text-align:right;font-size:18px;font-weight:600}
+.sc-now i{font-style:normal;font-size:13px;color:#8a90a0}
+.sc-rail{position:relative;flex:1;min-width:120px;height:30px;display:flex;align-items:center}
+.sc-rail::after{content:"";position:absolute;right:0;top:50%;width:14px;height:6px;margin-top:-3px;border-radius:0 3px 3px 0;pointer-events:none;
+  background:repeating-conic-gradient(#fff 0 25%, #1b1c26 0 50%) 0 0 / 6px 6px}
+.sc-flags{position:absolute;left:8px;right:8px;top:4px;height:4px;pointer-events:none}
+.sc-flags i{position:absolute;top:0;height:4px;border-radius:2px;background:var(--yellow)} .sc-flags i.red{background:var(--red)}
+#lap{--f:0;--fx:calc(8px + (100% - 16px) * var(--f));position:relative;z-index:1;width:100%;height:30px;margin:0;background:none;cursor:pointer;
+  appearance:none;-webkit-appearance:none}
+#lap::-webkit-slider-runnable-track{height:6px;border-radius:3px;
+  background:linear-gradient(90deg, var(--brand) 0 var(--fx), #2c2e3b var(--fx) calc(100% - 14px), transparent calc(100% - 14px))}
+#lap::-moz-range-track{height:6px;border-radius:3px;
+  background:linear-gradient(90deg, var(--brand) 0 var(--fx), #2c2e3b var(--fx) calc(100% - 14px), transparent calc(100% - 14px))}
+#lap::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;box-sizing:border-box;width:16px;height:16px;margin-top:-5px;border-radius:50%;
+  background:#fff;border:3px solid var(--brand);box-shadow:0 0 0 4px rgba(225,6,50,.2);transition:transform .15s}
+#lap::-moz-range-thumb{box-sizing:border-box;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--brand);
+  box-shadow:0 0 0 4px rgba(225,6,50,.2);transition:transform .15s}
+#lap:hover::-webkit-slider-thumb,#lap:active::-webkit-slider-thumb{transform:scale(1.2)}
+#lap:hover::-moz-range-thumb,#lap:active::-moz-range-thumb{transform:scale(1.2)}
+#lap:focus-visible{outline:none}
+#lap:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px #000,0 0 0 5px #fff}
+#lap:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px #000,0 0 0 5px #fff}
+.sc-tip{position:absolute;bottom:calc(100% + 2px);left:0;z-index:2;transform:translateX(-50%);padding:5px 10px;border-radius:7px;background:#fff;
+  color:#15151e;font:700 13px/1.2 var(--f-ui);text-align:center;white-space:nowrap;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.45);
+  opacity:0;transition:opacity .15s}
+.sc-tip::after{content:"";position:absolute;left:50%;top:100%;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:#fff}
+.sc-tip small{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#b07800}
+.sc-tip small.red{color:var(--brand)}
+.sc-tip.show{opacity:1}
+@media (prefers-reduced-motion: reduce){ #lap::-webkit-slider-thumb,#lap::-moz-range-thumb,.sc-tip{transition:none} }
 .lt-chips{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
 .lt-chip{display:flex;align-items:center;gap:10px;background:#fff;color:#15151e;border-radius:5px;padding:8px 14px;font-size:14px}
 .lt-chip b{font-family:var(--f-num);font-weight:600}
@@ -541,7 +574,14 @@ footer{margin:12px auto 0;color:var(--dim);font-size:13px;max-width:1600px}
 
     <div class="lt-foot">
       <button class="seg-btn" id="segInfoBtn" aria-haspopup="dialog" aria-controls="segDlg"><span class="seg-ico" aria-hidden="true"><i></i><i></i><i></i></span><span><small>Learn about</small>SEGMENTS</span></button>
-      <label class="scrub">Lap <input type="range" id="lap" min="1" max="1" value="1"></label>
+      <div class="scrub">
+        <span class="sc-now" aria-hidden="true"><small>LAP</small><b id="scLap">1</b><i id="scTot"></i></span>
+        <div class="sc-rail">
+          <div class="sc-flags" id="scFlags" aria-hidden="true"></div>
+          <input type="range" id="lap" min="1" max="1" value="1" aria-label="Lap">
+          <span class="sc-tip" id="scTip" aria-hidden="true"></span>
+        </div>
+      </div>
       <div class="ticker" id="ticker" aria-live="polite" aria-label="Latest race control message"></div>
       <div class="lt-chips">
         <div class="lt-chip"><span class="lapbar"><i id="ftLapBar"></i></span><span id="ftLap"><b>-</b></span></div>
@@ -656,7 +696,14 @@ async function init() {
   $("speed").onclick = e => { e.stopPropagation(); speedMenu($("speedMenu").hidden); };
   $("speedMenu").onclick = e => { const b = e.target.closest("[data-speed]"); if (b) pickSpeed(+b.dataset.speed); };
   document.addEventListener("click", e => { if (!e.target.closest(".tp-spd")) speedMenu(false); });
-  $("lap").oninput = e => { stop(); setLap(+e.target.value); };
+  $("lap").oninput = e => { stop(); scrubFill(); scrubTip(+e.target.value); setLap(+e.target.value); };
+  // the bubble shows the lap under the pointer, and goes when the pointer leaves (or a moment after a key press)
+  $("lap").addEventListener("pointermove", e => {
+    const r = e.currentTarget.getBoundingClientRect(), f = Math.min(1, Math.max(0, (e.clientX - r.left - 8) / (r.width - 16)));
+    scrubTip(Math.round(1 + f * (+e.currentTarget.max - 1)));
+  });
+  $("lap").addEventListener("pointerleave", () => scrubTip(null));
+  $("lap").addEventListener("keyup", () => setTimeout(() => { if (!$("lap").matches(":hover")) scrubTip(null); }, 1200));
   let revealTimer = 0;
   $("reveal").onchange = e => {
     S.reveal = e.target.checked;
@@ -742,6 +789,7 @@ async function loadRace(id) {
   seen.textContent = S.info.seen_in_training ? `${S.info.year} · in the training data` : `${S.info.year} · new to the model`;
   seen.className = "chip note" + (S.info.seen_in_training ? "" : " new");
   $("lap").max = S.info.laps;
+  scrubMarks(); scrubFill();
   prepareTrack();
   await setLap(S.info.lap_list?.[0] ?? 1);
   renderTabs();
@@ -757,6 +805,37 @@ function snapLap(n, dir) {
   if (dir > 0) return list.find(x => x > n) ?? list.at(-1);
   if (dir < 0) return [...list].reverse().find(x => x < n) ?? list[0];
   return list.reduce((a, b) => Math.abs(b - n) < Math.abs(a - n) ? b : a);
+}
+// Lap slider: the red fill up to the lap shown, the safety car / VSC / red flag laps above it, and the bubble
+const statusAt = lap => (S.info?.track_status || []).find(s => s.lap === lap && s.status !== "YELLOW")?.status;   // yellow flags are local
+function scrubMarks() {
+  const total = S.info.laps, pos = lap => Math.min(100, Math.max(0, (lap - 1) / Math.max(total - 1, 1) * 100));
+  const runs = [];                                 // laps in a row with the same status
+  for (const s of S.info.track_status || []) {
+    if (s.status === "YELLOW") continue;
+    const last = runs.at(-1);
+    if (last && last.status === s.status && s.lap === last.to + 1) last.to = s.lap;
+    else runs.push({ status: s.status, from: s.lap, to: s.lap });
+  }
+  $("scFlags").innerHTML = runs.map(r => {
+    const a = pos(r.from - .5), b = pos(r.to + .5);
+    return `<i class="${r.status === "RED FLAG" ? "red" : ""}" style="left:${a.toFixed(2)}%;width:${Math.max(b - a, .8).toFixed(2)}%"></i>`;
+  }).join("");
+  $("scTot").textContent = `/ ${total}`;
+}
+function scrubFill() {
+  const el = $("lap"), min = +el.min, max = +el.max, v = +el.value, st = statusAt(v);
+  el.style.setProperty("--f", max > min ? (v - min) / (max - min) : 0);
+  $("scLap").textContent = v;
+  el.setAttribute("aria-valuetext", `Lap ${v} of ${max}${st ? ", " + FLAG[st][0] : ""}`);
+}
+function scrubTip(lap) {
+  const tip = $("scTip"), el = $("lap");
+  if (lap == null) { tip.classList.remove("show"); return; }
+  const max = +el.max, f = max > 1 ? (lap - 1) / (max - 1) : 0, st = statusAt(lap);
+  tip.innerHTML = `Lap ${lap}` + (st ? `<small class="${st === "RED FLAG" ? "red" : ""}">${esc(FLAG[st][0])}</small>` : "");
+  tip.style.left = `${8 + (el.getBoundingClientRect().width - 16) * f}px`;
+  tip.classList.add("show");
 }
 async function setLap(n, dir = 0) {
   if (!S.info) return;
@@ -838,7 +917,7 @@ function apply(snap, animate) {
   if (!S.strat) S.strat = S.a;
   const [flagText, flagCls] = FLAG[snap.track_status] || FLAG.GREEN;
   const lapTxt = `${snap.lap} / ${snap.total_laps}`;
-  $("lapchip").textContent = lapTxt; $("lap").value = snap.lap;
+  $("lapchip").textContent = lapTxt; $("lap").value = snap.lap; scrubFill();
   $("flagchip").textContent = flagText; $("flagchip").className = "chip flag " + flagCls;
   $("tyrechip").textContent = snap.compounds_used.map(c => TY[c][0]).join(" · ") || "-";
   const w = snap.weather, deg = v => v == null ? "-" : v.toFixed(1) + "°C";
