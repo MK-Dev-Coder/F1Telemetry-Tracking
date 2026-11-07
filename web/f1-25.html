@@ -258,13 +258,6 @@ button,select,input{font:inherit;color:inherit}
 .sets td{padding:4px 8px;border-bottom:1px solid #20222c} .sets tr.on td{background:#1e2a3a} .sets tr.gone td{color:#8b93a3}
 .dmg .meter{margin:0} .dmg .v{font-family:var(--f-num);text-align:right}
 
-/* setup */
-.setup{background:#15151e;border-radius:3px;padding:22px 24px;color:#d7dae2;max-width:900px;margin:10px auto}
-.setup h2{margin:0 0 6px;font-size:24px;font-weight:900;letter-spacing:.02em}
-.setup ol{padding-left:20px;line-height:1.7} .setup code,.setup .addr{font-family:var(--f-num);background:#2c2e3b;border-radius:3px;padding:1px 6px;color:#fff}
-.setup table{border-collapse:collapse;margin:6px 0 4px;font-size:14px} .setup td{padding:3px 14px 3px 0} .setup td:first-child{color:#9aa0ae}
-.setup .muted{color:#9aa0ae;font-size:14px}
-.setup a{color:#7fd3ff}
 
 /* team radio: a round button at the bottom right that opens into a pill (settings, what was just said, the big talk
    button, fold), with the messages or settings above it. When folded it opens for a moment while you talk or the
@@ -392,23 +385,93 @@ button,select,input{font:inherit;color:inherit}
 .zt span{display:block;background:#2a2c38;border-radius:5px;overflow:hidden}
 .zt i{display:block;height:9px;border-radius:5px;background:var(--c)} .zt span.b i{height:5px;opacity:.6}
 .zones .v{font-family:var(--f-num);text-align:right;font-size:13px}
-/* how to connect: what the app sees right now, then three steps */
-.cstate{display:flex;align-items:center;gap:16px;border:1px solid #2c2e3b;border-radius:10px;padding:14px 18px;margin:14px 0 18px;background:#1c1d27}
-.cstate.ok{border-color:#1d5c35;background:#0f2a1a} .cstate.warn{border-color:#6b5a0b;background:#2e2806} .cstate.bad{border-color:#7a1c22;background:#330b0e}
-.cstate b{display:block;font-size:17px;color:#fff} .cstate span{color:#c9cfdb;font-size:13.5px}
-.cdot{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:900;color:#15151e;position:relative}
-.cstate.ok .cdot{background:var(--green)} .cstate.warn .cdot{background:var(--yellow)} .cstate.bad .cdot{background:#ff8a8a} .cstate.idle .cdot{background:#9aa0ae}
-.cstate.wait .cdot{background:#2f9fd0}
-.cstate.wait .cdot::before,.cstate.wait .cdot::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #2f9fd0;animation:cwave 2s infinite}
-.cstate.wait .cdot::after{animation-delay:1s}
-@keyframes cwave{from{transform:scale(1);opacity:.9}to{transform:scale(1.9);opacity:0}}
-@media (prefers-reduced-motion:reduce){ .cstate.wait .cdot::before,.cstate.wait .cdot::after{animation:none} }
-.setup .csteps{display:grid;gap:10px;margin:0 0 14px;padding:0;list-style:none;line-height:1.45}
-.csteps li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;background:#1c1d27;border:1px solid #2c2e3b;border-radius:8px;padding:12px 14px}
-.csteps .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:#2c2e3b;color:#fff}
-.csteps li.done .n{background:var(--green);color:#15151e}
-.csteps h3{margin:2px 0 4px;font-size:15px;color:#fff}
-.cbar{height:6px;border-radius:3px;background:#2c2e3b;overflow:hidden;margin:4px 0 0} .cbar i{display:block;height:100%;background:var(--green)}
+/* "How to connect" pop-up, like a set-up guide: the 3 steps on the left (ticked when the app sees them done), and on
+   the right what the app sees right now (the controller, the PC and the signal between them) and the open step */
+dialog.cx{--acc:#2f9fd0;width:min(900px, calc(100% - 32px));max-height:calc(100% - 32px);padding:0;overflow:hidden;border:1px solid #2c2e3b;
+  border-top:3px solid var(--acc);border-radius:14px;background:#15151e;color:var(--fg);box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.g26 dialog.cx{--acc:#5ee0cf}
+dialog.cx[open]{display:flex;flex-direction:column}
+dialog.cx::backdrop{background:rgba(5,7,10,.75)}
+.cx-close{position:absolute;top:14px;right:14px;z-index:2;width:34px;height:34px;border-radius:50%;border:1px solid #3a3c4a;background:#15151e;
+  color:var(--fg);cursor:pointer;display:grid;place-items:center}
+.cx-close svg{width:14px;height:14px} .cx-close:hover{background:#22242f}
+.cx-main{flex:1;min-height:0;display:grid;grid-template-columns:250px minmax(0,1fr)}
+.cx-rail{display:flex;flex-direction:column;gap:18px;padding:22px 18px;background:#12131a;border-right:1px solid #262833;overflow-y:auto}
+.cx-kicker{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+.cx-rail h2{margin:2px 0 0;font-size:24px;font-weight:900;line-height:1.1}
+.cx-steps{display:grid;gap:6px}
+.cx-steps button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:1px solid transparent;border-radius:10px;background:none;
+  color:#c9cfdb;font:600 14.5px var(--f-ui);text-align:left;cursor:pointer}
+.cx-steps button:hover{background:#1b1c26}
+.cx-steps button[aria-selected="true"]{background:#1f2130;border-color:#33364a;color:#fff}
+.cx-steps .n{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#2c2e3b;color:#fff;font:800 12px var(--f-ui)}
+.cx-steps .done .n{background:var(--green);color:#0b0c10}
+.cx-prog{display:grid;gap:6px;font-size:13px;color:#9aa0ae}
+.cx-prog .bars{display:grid;grid-template-columns:repeat(3,1fr);gap:4px} .cx-prog .bars b{height:5px;border-radius:3px;background:#2c2e3b}
+.cx-prog .bars b.on{background:var(--green)}
+.cx-pc{display:grid;gap:8px;margin-top:auto;padding-top:14px;border-top:1px solid #262833}
+.cx-pc small{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8a90a0}
+.cx-val{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 10px;border-radius:8px;background:#1b1c26;
+  border:1px solid #2c2e3b;font-family:var(--f-num);font-size:14px;color:#fff;min-width:0}
+.cx-val span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cx-copy{flex:none;border:0;border-radius:6px;padding:5px 9px;background:#2c2e3b;color:#c9cfdb;font:700 12px var(--f-ui);cursor:pointer}
+.cx-copy:hover{background:#3a3d4d;color:#fff}
+.cx-body{min-height:0;overflow-y:auto;padding:22px 24px 20px;scrollbar-width:thin;scrollbar-color:#3a3c4a transparent}
+/* what the app sees right now */
+.cx-live{--c:#2f9fd0;display:grid;justify-items:center;gap:4px;margin:0 46px 18px 0;padding:18px 16px 16px;border-radius:12px;text-align:center;
+  background:#101119;border:1px solid #262833}
+.cx-live.ok{--c:var(--green)} .cx-live.idle{--c:#9aa0ae} .cx-live.warn{--c:var(--yellow)} .cx-live.bad{--c:#ff8a8a}
+.cx-link{display:flex;align-items:center;gap:12px;margin-bottom:8px;color:var(--c)}
+.cx-dev{position:relative;width:50px;height:50px;border-radius:50%;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent)}
+.cx-dev svg{width:24px;height:24px}
+.cx-dev em{position:absolute;right:-5px;bottom:-5px;width:21px;height:21px;border-radius:50%;background:var(--c);color:#0b0c10;
+  font:800 12px/21px var(--f-ui);font-style:normal;text-align:center}
+.cx-dots{display:flex;gap:6px} .cx-dots i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.3}
+.cx-live b{font-size:17px;color:#fff} .cx-live > span{max-width:52ch;font-size:13.5px;line-height:1.4;color:#c9cfdb}
+.cx-panes{display:grid}
+.cx-pane{grid-area:1/1} .cx-pane.off{visibility:hidden}
+.cx-pane h3{margin:0 0 10px;font-size:17px;color:#fff}
+.cx-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cx-list li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;align-items:start;padding:11px 12px;border-radius:10px;background:#181922;
+  border:1px solid #262833;font-size:14px;line-height:1.45;color:#d7dae2}
+.cx-list svg{width:20px;height:20px;color:var(--acc)}
+.cx-path{margin:0 0 10px;font-size:14px;color:#c9cfdb}
+.cx-table{display:grid;grid-template-columns:auto minmax(0,1fr);border:1px solid #262833;border-radius:10px;overflow:hidden;font-size:14px}
+.cx-table > span,.cx-table > b{padding:8px 12px;border-top:1px solid #262833} .cx-table > :nth-child(-n+2){border-top:0}
+.cx-table > span{color:#9aa0ae;background:#13141b} .cx-table > b{color:#fff;font-family:var(--f-num);font-weight:600;background:#181922}
+.cx-table small{font-family:var(--f-ui);font-weight:400;color:#8a90a0}
+.cx-note{margin:10px 0 0;font-size:13px;line-height:1.45;color:#8a90a0}
+.cx-pane code,.cx-pane .addr{font-family:var(--f-num);font-size:13px;background:#2c2e3b;border-radius:4px;padding:1px 6px;color:#fff}
+.cx-pane a{color:#7fd3ff}
+.cx-dash{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;margin-top:12px;padding:12px;border-radius:10px;
+  background:color-mix(in srgb,var(--acc) 8%,#15151e);border:1px solid color-mix(in srgb,var(--acc) 30%,#262833);font-size:13.5px;line-height:1.45;color:#c9cfdb}
+.cx-dash svg{width:20px;height:20px;color:var(--acc)} .cx-dash b{display:block;color:#fff;font-size:14.5px;margin-bottom:2px}
+.cx-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 24px;border-top:1px solid #262833;
+  background:#12131a;font-size:13px;color:#9aa0ae}
+.cx-foot span{display:flex;align-items:center;gap:8px}
+.cx-foot i{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.cx-done{flex:none;border:0;border-radius:999px;padding:10px 22px;background:var(--brand);color:#fff;font:800 14px/1 var(--f-ui);
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.cx-done:hover{background:#f21d48}
+.cx-inline{margin-left:8px;border:1px solid #3a3c4a;border-radius:999px;padding:5px 12px;background:none;color:#fff;font:700 13px var(--f-ui);cursor:pointer}
+.cx-inline:hover{background:#22242f}
+@media (prefers-reduced-motion: no-preference){
+  dialog.cx[open]{animation:cxpop .18s ease-out} @keyframes cxpop{from{opacity:0;transform:translateY(8px) scale(.98)}}
+  .cx-live.wait .cx-dots i,.cx-live.ok .cx-dots i{animation:cxflow 1.4s infinite} .cx-live.ok .cx-dots i{animation-duration:.9s}
+  .cx-dots i:nth-child(2){animation-delay:.15s} .cx-dots i:nth-child(3){animation-delay:.3s} .cx-dots i:nth-child(4){animation-delay:.45s}
+  .cx-dots i:nth-child(5){animation-delay:.6s}
+  .cx-live.wait .cx-dev:last-child::after{content:"";position:absolute;inset:-1px;border-radius:50%;border:2px solid var(--c);animation:cxwave 2s infinite}
+  .cx-foot i{animation:cxblink 2s infinite}
+}
+@keyframes cxflow{0%,100%{opacity:.2}40%{opacity:1}}
+@keyframes cxwave{from{transform:scale(1);opacity:.8}to{transform:scale(1.7);opacity:0}}
+@keyframes cxblink{50%{opacity:.35}}
+@media (max-width:760px){
+  .cx-main{display:block;overflow-y:auto} .cx-rail{border-right:0;border-bottom:1px solid #262833;padding:18px 16px;overflow:visible}
+  .cx-steps{grid-template-columns:repeat(3,minmax(0,1fr))} .cx-steps button{flex-direction:column;gap:4px;font-size:12.5px;text-align:center;padding:8px 4px}
+  .cx-pc{margin-top:0} .cx-body{overflow:visible;padding:18px 16px} .cx-live{margin-right:0} .cx-foot{padding:12px 16px}
+}
 footer{margin:12px auto 0;color:var(--muted);font-size:13px;max-width:1600px}
 @media (max-width:1000px){ .car,.strat-grid{grid-template-columns:1fr} .map{height:460px} .sp{position:static} }
 @media (prefers-reduced-motion: reduce){ .lt-live.on i{animation:none} }
@@ -562,7 +625,7 @@ footer{margin:12px auto 0;color:var(--muted);font-size:13px;max-width:1600px}
         <button class="lt-tab" role="tab" data-tab="prog" aria-selected="false">Progress</button>
       </nav>
       <a class="lt-btn" id="dashLink" href="dash.html" target="_blank" rel="noopener" title="Your race in big numbers, for a phone or tablet">Phone dash</a>
-      <button class="lt-btn" id="help">How to connect</button>
+      <button class="lt-btn" id="help" aria-haspopup="dialog" aria-controls="cxDlg">How to connect</button>
     </div>
     <div class="lt-sub">
       <span class="lt-live" id="live">RECORDED <i></i></span>
@@ -570,7 +633,6 @@ footer{margin:12px auto 0;color:var(--muted);font-size:13px;max-width:1600px}
       <span class="lt-subr" id="conn"></span>
     </div>
     <div class="lt-body">
-      <div id="vSetup" hidden></div>
       <div id="vBoard">
         <div class="lt-banner" id="banner"></div>
         <div class="lb2-scroll"><div class="lb2" id="board"></div></div>
@@ -665,6 +727,9 @@ footer{margin:12px auto 0;color:var(--muted);font-size:13px;max-width:1600px}
 </aside>
 <footer id="foot">F1 25 sends this data over your home network (UDP telemetry). Unofficial project, not associated with Formula 1 or EA.</footer>
 
+<!-- "How to connect" pop-up: filled in by cxBuild() -->
+<dialog class="cx" id="cxDlg" aria-labelledby="cxTitle"></dialog>
+
 <script src="flags.js"></script>
 <script src="stints.js"></script>
 <script src="picker.js"></script>
@@ -712,12 +777,16 @@ async function init() {
   $("gameName").innerHTML = GAME === "F1 26" ? `F1 26<span class="yr">2026 SEASON</span>` : "F1 25";
   document.querySelector(".lt").setAttribute("aria-label", `${GAME} telemetry`);
   $("foot").textContent = `${GAME === "F1 26" ? "F1 25's 2026 Season Pack" : "F1 25"} sends this data over your home network (UDP telemetry). Unofficial project, not associated with Formula 1 or EA.`;
-  document.querySelector(".lt-tabs").onclick = e => { const b = e.target.closest(".lt-tab"); if (b) { G.tab = b.dataset.tab; G.setup = false; render(); } };
+  document.querySelector(".lt-tabs").onclick = e => { const b = e.target.closest(".lt-tab"); if (b) { G.tab = b.dataset.tab; render(); } };
   $("sub").onclick = e => { const b = e.target.closest(".lt-st"); if (b) { G.sub[G.tab] = b.dataset.sub; render(); } };
   $("session").onclick = openSessionPicker;
-  $("help").onclick = () => { G.setup = !G.setup; render(); };
-  $("chips").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) { G.tab = b.dataset.go; G.setup = false; render(); } });
-  $("board").addEventListener("click", e => { const b = e.target.closest("[data-ev]"); if (b) { G.evFilter = b.dataset.ev; renderBoard(); } });
+  $("help").onclick = () => openConnect();
+  $("cxDlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });   // a click outside closes it
+  $("chips").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) { G.tab = b.dataset.go; render(); } });
+  $("board").addEventListener("click", e => {
+    if (e.target.closest("[data-connect]")) return openConnect();
+    const b = e.target.closest("[data-ev]"); if (b) { G.evFilter = b.dataset.ev; renderBoard(); }
+  });
   $("lapA").onchange = () => { G.tele.a = +$("lapA").value; loadTelemetry(); };
   $("lapB").onchange = () => { G.tele.b = $("lapB").value ? +$("lapB").value : null; loadTelemetry(); };
   $("stratLap").onchange = () => { G.strat.lap = $("stratLap").value ? +$("stratLap").value : null; loadStrategy(); };
@@ -741,7 +810,7 @@ async function init() {
   if (elsewhere) { location.replace(PAGE[elsewhere.game] + location.search); return; }
   const live = G.sessions.find(s => s.live), want = G.sessions.find(s => s.id === asked);
   if (want && !want.live) G.manual = true;
-  if (G.sessions.length) await loadSession((want || live || G.sessions[0]).id); else { G.setup = true; render(); }
+  if (G.sessions.length) await loadSession((want || live || G.sessions[0]).id); else { render(); openConnect(); }
   listen();
   setInterval(refreshStatus, 5000);
 }
@@ -754,7 +823,7 @@ async function refreshStatus() {
   $("conn").textContent = !st ? "The app isn't running" : !st.listening ? (st.error || "Not listening")
     : st.save_error ? `Can't save (trying again): ${st.save_error}` : st.live_session ? (st.paused ? "The game is paused" : "Receiving the game")
     : st.packets ? `Last packet ${st.seconds_since_last_packet}s ago` : "Waiting for the game";
-  if (G.setup) renderSetup();
+  if ($("cxDlg").open) cxUpdate();
 }
 
 async function refreshSessions() {
@@ -814,7 +883,6 @@ async function loadSession(id) {
   const view = await getJSON(`/game/sessions/${id}`);
   if (G.id !== id) return;                            // another session was picked meanwhile
   G.view = view;
-  G.setup = false;
   render();
   if (G.tab === "tele") loadTelemetry();
   if (G.tab === "map") loadMap();
@@ -859,14 +927,19 @@ function listen() {
 function render() {
   const has = !!G.view;
   $("sub").innerHTML = (SUBS[G.tab] || []).map(([k, n]) => `<button class="lt-st" role="tab" data-sub="${k}" aria-selected="${G.sub[G.tab] === k}">${n}</button>`).join("");
-  document.querySelectorAll(".lt-tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === G.tab && !G.setup)));
-  $("vSetup").hidden = !G.setup;
-  $("vBoard").hidden = G.setup || G.tab !== "board"; $("vTele").hidden = G.setup || G.tab !== "tele";
-  $("vStrat").hidden = G.setup || G.tab !== "strat";
-  $("vMap").hidden = G.setup || G.tab !== "map"; $("vCar").hidden = G.setup || G.tab !== "car";
-  $("vWeather").hidden = G.setup || G.tab !== "weather"; $("vEng").hidden = G.setup || G.tab !== "eng";
-  $("vProg").hidden = G.setup || G.tab !== "prog";
-  if (G.setup) { renderSetup(); renderChips(); return; }
+  document.querySelectorAll(".lt-tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === G.tab)));
+  $("vBoard").hidden = G.tab !== "board"; $("vTele").hidden = G.tab !== "tele";
+  $("vStrat").hidden = G.tab !== "strat";
+  $("vMap").hidden = G.tab !== "map"; $("vCar").hidden = G.tab !== "car";
+  $("vWeather").hidden = G.tab !== "weather"; $("vEng").hidden = G.tab !== "eng";
+  $("vProg").hidden = G.tab !== "prog";
+  if (!has && !G.sessions.length) {               // nothing recorded yet: say so, with the way to connect
+    $("vBoard").hidden = false;
+    $("banner").textContent = "";
+    $("board").innerHTML = `<div class="empty-note">No sessions yet: connect the game and drive, and your session shows up here by itself.` +
+      `<button type="button" class="cx-inline" data-connect>How to connect</button></div>`;
+    return;
+  }
   if (!has) return;
   renderChips();
   if (G.tab === "board") renderBoard();
@@ -1400,7 +1473,7 @@ async function loadEngineer() {
     Object.assign(e, { real: d, err, key });
   }
   const shown = JSON.stringify([g, key, G.sub.eng, Object.keys(G.cards).length, G.view?.live && playerRow()?.lap]);
-  if (G.tab !== "eng" || G.setup || shown === e.shown) return;        // nothing new since it was drawn
+  if (G.tab !== "eng" || shown === e.shown) return;        // nothing new since it was drawn
   e.shown = shown;
   const part = G.sub.eng, plan = gamePlan(g, e.real);
   if (!e.real) {
@@ -2588,53 +2661,139 @@ function radioCalls(sid, calls) {
   });
 }
 
-/* ---------------- setup ---------------- */
-function renderSetup() {
-  const st = G.status, ip = st?.suggested_address || "this PC's address", port = st?.port || 20777, fmt = GAME === "F1 26" ? "2026" : "2025";
-  // What the app sees right now (checked every 5 seconds): it turns green when the game's packets arrive
+/* ---------------- how to connect ---------------- */
+// A pop-up like a set-up guide: the 3 steps on the left (ticked when the app sees them done), and on the right what
+// the app sees right now (checked every 5 seconds) and the open step
+const CX_SVG = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const CX_ICON = {
+  pad: CX_SVG('<path d="M6.5 6.5h11a4.5 4.5 0 0 1 4.5 4.5v2.5a3.5 3.5 0 0 1-6.3 2.1L14.5 14h-5l-1.2 1.6A3.5 3.5 0 0 1 2 13.5V11a4.5 4.5 0 0 1 4.5-4.5z"/><path d="M7 9.5v3M5.5 11h3"/><path d="M16 10.5h.01M18 12h.01" stroke-width="2.6"/>'),
+  pc: CX_SVG('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>'),
+  wifi: CX_SVG('<path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.8 16a5 5 0 0 1 6.4 0"/><path d="M12 19.5h.01" stroke-width="2.8"/>'),
+  app: CX_SVG('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M6.5 6.5h.01M9.5 6.5h.01" stroke-width="2.4"/>'),
+  shield: CX_SVG('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>'),
+  flag: CX_SVG('<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>'),
+  code: CX_SVG('<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>'),
+  phone: CX_SVG('<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>'),
+  x: CX_SVG('<path d="M6 6l12 12M18 6L6 18"/>')
+};
+function cxState() {
+  const st = G.status, ip = st?.suggested_address || "", port = st?.port || 20777, fmt = GAME === "F1 26" ? "2026" : "2025";
   const unknown = (st?.wrong_size_packets || []).find(w => ![2024, 2025, 2026].includes(w.format));
   const ago = s => s < 90 ? `${Math.round(s)} seconds` : s < 5400 ? `${Math.round(s / 60)} minutes` : `${Math.round(s / 3600)} hours`;
-  const [state, icon, title, text] = !st ? ["bad", "✕", "The app isn't running", "Start it with start_app.bat, then open this page again."]
-    : !st.listening ? ["bad", "✕", "Can't listen for the game", st.error || "Another program may be using the port."]
+  const [state, mark, title, text] = !st ? ["bad", "×", "The app isn't running", G.cxError || "Start it from the desktop shortcut or start_app.bat, then open this page again."]
+    : !st.listening ? ["bad", "×", "Can't listen for the game", st.error || "Another program may be using the port."]
     : unknown ? ["warn", "!", `The game sends UDP Format ${unknown.format}`, `This app reads 2024, 2025 and 2026: set UDP Format to ${fmt} in the game's Telemetry Settings.`]
     : st.live_session && st.paused ? ["ok", "‖", "The game is paused", "It sends nothing while paused: your session carries on when you do."]
     : st.live_session ? ["ok", "✓", "Receiving the game", `${st.packets.toLocaleString()} packets so far. Your session shows up by itself.`]
     : st.packets ? ["idle", "…", "Connected before", `The last packet came ${ago(st.seconds_since_last_packet)} ago. Start a session in the game.`]
-    : ["wait", "", "Waiting for the game on this network…", `This PC is ${esc(ip)}, listening on port ${port}. Change the game's settings below and drive.`];
-  const heard = !!st?.packets, done = [heard, heard && !unknown, !!st?.live_session];
-  const step = (k, title, body) => `<li class="${done[k] ? "done" : ""}"><span class="n">${done[k] ? "✓" : k + 1}</span><div><h3>${title}</h3>${body}</div></li>`;
-  $("vSetup").innerHTML = `<div class="setup"><h2>Connect your PS5</h2>
-    ${GAME === "F1 26" ? `<p>This is the <b>F1 26</b> section: your sessions with the 2026 cars from F1 25's <b>2026 Season Pack</b>. Set UDP Format to
-      <b>2026</b> to get active aero, overtake mode and the energy limit per lap. Your other sessions are on the <a href="f1-25.html">F1 25 page</a>.</p>`
-      : `<p class="muted">Driving the 2026 cars (the 2026 Season Pack)? Those sessions are on the <a href="f1-26.html">F1 26 page</a>.</p>`}
-    <div class="cstate ${state}" role="status" aria-live="polite"><span class="cdot" aria-hidden="true">${icon}</span><div><b>${title}</b><span>${text}</span></div></div>
-    <div class="cbar" aria-hidden="true"><i style="width:${done.filter(Boolean).length / 3 * 100}%"></i></div>
-    <p class="muted">${done.filter(Boolean).length} of 3 steps done</p>
-    <ol class="csteps">
-      ${step(0, "Same network", `<p class="muted">The PS5 and this PC on the same Wi-Fi or router, and this app running (<code>start_app.bat</code>).
-        If nothing arrives, Windows may be blocking it: allow Python on <b>private networks</b> when Windows asks.</p>`)}
-      ${step(1, "The game's telemetry settings", `<p class="muted">In F1 25: <b>Settings → Telemetry Settings</b>.</p>
-        <table>
-          <tr><td>UDP Telemetry</td><td><b>On</b></td></tr>
-          <tr><td>UDP Broadcast Mode</td><td><b>On</b> (the easiest: the game sends to every device at home)</td></tr>
-          <tr><td>UDP IP Address</td><td>only used with Broadcast Mode Off: <span class="addr">${esc(ip)}</span></td></tr>
-          <tr><td>UDP Port</td><td><span class="addr">${port}</span></td></tr>
-          <tr><td>UDP Send Rate</td><td><b>20 Hz</b> (or higher)</td></tr>
-          <tr><td>UDP Format</td><td><b>${fmt}</b>${GAME === "F1 26" ? " (2025 works too, without active aero and overtake mode)" : " (or 2026 with the 2026 Season Pack)"}</td></tr>
-          <tr><td>Your Telemetry</td><td><b>Public</b></td></tr>
-        </table>`)}
-      ${step(2, "Drive", `<p class="muted">Any session: time trial, practice or a race against the AI. It shows up here by itself, live.
-        No PS5 to hand? <code>python src/game_simulator.py</code> sends a short test race.</p>`)}
-    </ol>
-    <div class="cdash"><h3>A second screen: the dash</h3><p class="muted">Your race in big numbers (position, gaps, last lap, tyres, fuel
-      and energy) on a phone or tablet next to the TV. ${st?.lan ? `On the phone, on the same Wi-Fi, open <span class="addr">http://${esc(ip)}:8000/app/dash.html</span>.`
-      : `On this PC: <a href="dash.html" target="_blank" rel="noopener">open the dash</a>. For a phone, start the app with <code>start_app_lan.bat</code> instead
-      (at home only: anyone on your network can then open the app), then open <span class="addr">http://${esc(ip)}:8000/app/dash.html</span> on the phone.`}</p></div>
-    ${G.sessions.length ? `<p><button class="lt-btn" style="background:var(--brand)" id="closeSetup">Back to my sessions</button></p>` : ""}</div>`;
-  const back = $("closeSetup"); if (back) back.onclick = () => { G.setup = false; render(); };
+    : ["wait", "", "Waiting for the game…", `This PC is ${ip || "on this network"}, listening on port ${port}. Follow the steps, then drive.`];
+  const heard = !!st?.packets;
+  return { st, ip, port, fmt, state, mark, title, text, done: [heard, heard && !unknown, !!st?.live_session] };
+}
+function cxBuild() {
+  const s = cxState(), first = s.done.indexOf(false), sel = G.cxStep ?? (first < 0 ? 2 : first);
+  const step = (k, name) => `<button role="tab" id="cxTab${k}" data-step="${k}" aria-controls="cxPane${k}"><span class="n" id="cxN${k}"></span>${name}</button>`;
+  const li = (icon, html) => `<li>${CX_ICON[icon]}<span>${html}</span></li>`;
+  $("cxDlg").innerHTML = `<button class="cx-close" id="cxClose" aria-label="Close">${CX_ICON.x}</button>
+    <div class="cx-main">
+      <div class="cx-rail">
+        <div><span class="cx-kicker">How to connect</span><h2 id="cxTitle">Connect your PS5</h2></div>
+        <div class="cx-steps" role="tablist" aria-label="Steps" aria-orientation="vertical">${step(0, "Same network")}${step(1, "Game settings")}${step(2, "Drive")}</div>
+        <div class="cx-prog"><span class="bars" aria-hidden="true"><b></b><b></b><b></b></span><span id="cxProg"></span></div>
+        <div class="cx-pc"><small>This PC</small>
+          <div class="cx-val"><span id="cxIp"></span><button class="cx-copy" id="cxIpCopy" aria-label="Copy the address">Copy</button></div>
+          <div class="cx-val"><span>Port <b id="cxPort"></b></span><button class="cx-copy" id="cxPortCopy" aria-label="Copy the port">Copy</button></div>
+        </div>
+      </div>
+      <div class="cx-body">
+        <div class="cx-live" id="cxLive" role="status"></div>
+        <div class="cx-panes">
+          <section class="cx-pane" id="cxPane0" role="tabpanel" aria-labelledby="cxTab0"><h3>Same network</h3><ul class="cx-list">
+            ${li("wifi", "The PS5 and this PC on the same Wi-Fi or router.")}
+            ${li("app", "This app running: the desktop app, or <code>start_app.bat</code>.")}
+            ${li("shield", "Nothing arrives? Windows may be blocking it: allow Python on <b>private networks</b> when Windows asks.")}</ul></section>
+          <section class="cx-pane" id="cxPane1" role="tabpanel" aria-labelledby="cxTab1"><h3>The game's telemetry settings</h3>
+            <p class="cx-path">In F1 25: <b>Settings</b> › <b>Telemetry Settings</b></p>
+            <div class="cx-table">
+              <span>UDP Telemetry</span><b>On</b>
+              <span>UDP Broadcast Mode</span><b>On <small>(the easiest)</small></b>
+              <span>UDP IP Address</span><b><span id="cxIp2"></span> <small>(only with Broadcast Off)</small></b>
+              <span>UDP Port</span><b id="cxPort2"></b>
+              <span>UDP Send Rate</span><b>20 Hz <small>(or higher)</small></b>
+              <span>UDP Format</span><b>${s.fmt}</b>
+              <span>Your Telemetry</span><b>Public</b>
+            </div>
+            <p class="cx-note">${GAME === "F1 26" ? `Format 2026 adds active aero, overtake mode and the energy limit (2025 works too, without them). Sessions with the 2025 cars are on the <a href="f1-25.html">F1 25 page</a>.`
+              : `Driving the 2026 cars (2026 Season Pack)? Set it to 2026: those sessions show on the <a href="f1-26.html">F1 26 page</a>.`}</p></section>
+          <section class="cx-pane" id="cxPane2" role="tabpanel" aria-labelledby="cxTab2"><h3>Drive</h3><ul class="cx-list">
+            ${li("flag", "Any session: time trial, practice or a race. It shows up here by itself, live.")}
+            ${li("code", "No PS5 to hand? <code>python src/game_simulator.py</code> sends a short test race.")}</ul>
+            <div class="cx-dash">${CX_ICON.phone}<div><b>A second screen: the dash</b><span id="cxDash"></span></div></div></section>
+        </div>
+      </div>
+    </div>
+    <div class="cx-foot"><span><i aria-hidden="true"></i>The app checks every 5 seconds</span><button class="cx-done" id="cxDone"></button></div>`;
+  $("cxClose").onclick = $("cxDone").onclick = () => $("cxDlg").close();
+  $("cxIpCopy").onclick = $("cxPortCopy").onclick = e => cxCopy(e.currentTarget);
+  document.querySelectorAll("#cxDlg [data-step]").forEach(b => {
+    b.onclick = () => cxShowStep(+b.dataset.step);
+    b.onkeydown = e => {                           // the arrow keys move between the steps
+      const k = +b.dataset.step, to = { ArrowDown: k + 1, ArrowRight: k + 1, ArrowUp: k - 1, ArrowLeft: k - 1, Home: 0, End: 2 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault(); cxShowStep((to + 3) % 3, true);
+    };
+  });
+  cxUpdate();
+  cxShowStep(sel);
+}
+// Only the parts that change are updated every 5 seconds, so the focus and the open step stay where they are
+function cxUpdate() {
+  if (!$("cxLive")) return;
+  const s = cxState(), set = (id, html) => { const el = $(id); if (el.innerHTML !== html) el.innerHTML = html; };
+  $("cxLive").className = `cx-live ${s.state}`;
+  set("cxLive", `<div class="cx-link" aria-hidden="true"><span class="cx-dev">${CX_ICON.pad}</span><span class="cx-dots"><i></i><i></i><i></i><i></i><i></i></span>` +
+    `<span class="cx-dev">${CX_ICON.pc}${s.mark ? `<em>${s.mark}</em>` : ""}</span></div><b>${esc(s.title)}</b><span>${esc(s.text)}</span>`);
+  s.done.forEach((d, k) => { $(`cxTab${k}`).classList.toggle("done", d); $(`cxN${k}`).textContent = d ? "✓" : k + 1; });
+  const n = s.done.filter(Boolean).length;
+  document.querySelectorAll("#cxDlg .bars b").forEach((b, k) => b.classList.toggle("on", k < n));
+  $("cxProg").textContent = `${n} of 3 steps done`;
+  $("cxIp").textContent = $("cxIp2").textContent = s.ip || "-";
+  $("cxIpCopy").dataset.copy = s.ip; $("cxIpCopy").hidden = !s.ip;
+  $("cxPort").textContent = $("cxPort2").textContent = s.port;
+  $("cxPortCopy").dataset.copy = s.port;
+  const dash = s.ip ? `http://${esc(s.ip)}:8000/app/dash.html` : "";
+  set("cxDash", s.st?.lan ? `Your race in big numbers on a phone or tablet: on the same Wi-Fi, open <span class="addr">${dash}</span>.`
+    : `Your race in big numbers on a phone or tablet. On this PC: <a href="dash.html" target="_blank" rel="noopener">open the dash</a>. ` +
+      `For a phone, start the app with <code>start_app_lan.bat</code> (at home only)${dash ? `, then open <span class="addr">${dash}</span>` : ""}.`);
+  $("cxDone").textContent = G.sessions.length ? "Back to my sessions" : "Close";
+}
+function cxShowStep(k, focus) {
+  G.cxStep = k;
+  for (let i = 0; i < 3; i++) {
+    const t = $(`cxTab${i}`), on = i === k;
+    t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1;
+    $(`cxPane${i}`).classList.toggle("off", !on);
+  }
+  if (focus) $(`cxTab${k}`).focus();
+}
+async function cxCopy(btn) {
+  const v = btn.dataset.copy;
+  try { await navigator.clipboard.writeText(v); }
+  catch (e) {                                      // no clipboard API (a page over http from another PC): the old way
+    const t = document.createElement("textarea");
+    t.value = v; $("cxDlg").append(t); t.select(); document.execCommand("copy"); t.remove();
+  }
+  btn.textContent = "Copied";
+  setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+}
+function openConnect(error) {
+  G.cxError = error || null;
+  G.cxStep = null;                                 // it opens on the first step that isn't done yet
+  cxBuild();
+  if (!$("cxDlg").open) $("cxDlg").showModal();
 }
 
-init().catch(err => { $("vSetup").hidden = false; $("vSetup").innerHTML = `<div class="setup"><h2>Can't reach the app</h2><p>${esc(err.message)}. Start it with <code>python src/api.py</code>.</p></div>`; });
+init().catch(err => { G.status = null; openConnect(`${err.message}. Start the app (the desktop shortcut or start_app.bat), then open this page again.`); });
 })();
 </script>
 </body>
