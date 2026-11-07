@@ -182,7 +182,7 @@
     const whose = p.kind === "this" ? "this race" : `the last race here (${esc(p.race_id.slice(0, 4))})`;
     return `<section class="eg-box"><header class="eg-hd"><h2>Race prediction</h2><p>What the race preview said ${b} ${whose}, trained only on the races before it.</p></header>` +
       `<p class="eg-line"><b>Favourite:</b> ${esc(fav.name)} at ${pct(fav[b].win)}.` + (show && won ? ` <b>Winner:</b> ${esc(won.name)}, who had ${pct(won[b].win)}.` : "") +
-      (!show ? ` Tick "Show what happened" for the result.` : "") + `</p>` +
+      (!show ? ` Turn on "Show what happened" for the result.` : "") + `</p>` +
       `<div class="eg-pred">${head}${p.drivers.slice(0, 8).map((x, i) => row(x, i, x[b], `${x.team}${show && x.final ? ` · finished P${x.final}` : ""}`)).join("")}</div></section>`;
   }
 

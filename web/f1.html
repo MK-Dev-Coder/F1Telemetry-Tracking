@@ -91,9 +91,32 @@ button,select,input{font:inherit;color:inherit}
 .lt-st{background:none;border:0;color:#3b3f4a;font-size:15px;padding:12px 18px 9px;cursor:pointer;border-bottom:3px solid transparent}
 .lt-st:hover{color:#15151e}
 .lt-st[aria-selected="true"]{font-weight:700;color:#15151e;border-bottom-color:var(--brand)}
-.lt-subr{min-width:96px;display:flex;justify-content:flex-end}
-.reveal{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;color:#3b3f4a;white-space:nowrap}
-.reveal input{accent-color:var(--brand)}
+.lt-subr{position:relative;min-width:96px;display:flex;justify-content:flex-end}
+/* "Show what happened": a pill with a switch whose knob shows an eye with a line through it while the results are
+   hidden and an open eye when they show (like the spoiler switch in sports apps), and a short note under it when it
+   changes */
+.reveal{position:relative;display:flex;align-items:center;gap:10px;padding:4px 5px 4px 12px;border:1px solid #d5d8e0;border-radius:999px;
+  background:#fff;color:#3b3f4a;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;transition:border-color .2s,background-color .2s,color .2s}
+.reveal:hover{border-color:#aeb3bf}
+.reveal input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.rv-track{position:relative;flex:none;width:44px;height:24px;border-radius:999px;background:#c5c9d3;transition:background-color .2s}
+.rv-thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);
+  display:grid;place-items:center;color:#6f7484;transition:transform .2s,color .2s}
+.rv-thumb svg{grid-area:1/1;width:13px;height:13px;transition:opacity .2s}
+.rv-thumb .open{opacity:0}
+.reveal:has(input:checked){border-color:var(--brand);background:#fff1f4;color:#15151e}
+.reveal input:checked ~ .rv-track{background:var(--brand)}
+.reveal input:checked ~ .rv-track .rv-thumb{transform:translateX(20px);color:var(--brand)}
+.reveal input:checked ~ .rv-track .shut{opacity:0}
+.reveal input:checked ~ .rv-track .open{opacity:1}
+.reveal:has(input:focus-visible){outline:2px solid #15151e;outline-offset:2px}
+.rv-note{position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:max-content;max-width:min(360px, calc(100vw - 32px));padding:8px 12px;
+  border-radius:8px;background:#15151e;color:#fff;font-size:13px;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.35);pointer-events:none;
+  opacity:0;transform:translateY(-4px);transition:opacity .2s,transform .2s}
+.rv-note.show{opacity:1;transform:none}
+.rv-note.left{left:0;right:auto}               /* when the switch wraps to the left of the bar */
+.rv-note::before{content:"";position:absolute;left:var(--ax,calc(100% - 32px));top:-5px;border:5px solid transparent;border-top:0;border-bottom-color:#15151e}
+@media (prefers-reduced-motion: reduce){ .reveal,.rv-track,.rv-thumb,.rv-thumb svg,.rv-note{transition:none} }
 .lt-body{background:#000;padding:10px 14px 0;min-height:420px}
 .lt-banner{display:flex;justify-content:center;align-items:center;gap:8px;color:#fff;font-weight:700;letter-spacing:.06em;font-size:15px;padding:6px 0 10px;text-transform:uppercase}
 .lt-banner.yellow{color:var(--yellow)} .lt-banner.red{color:#ff8a8a}
@@ -455,7 +478,17 @@ footer{margin:12px auto 0;color:var(--dim);font-size:13px;max-width:1600px}
     <div class="lt-sub">
       <span class="lt-live" id="live">REPLAY <i></i></span>
       <nav class="lt-subtabs" id="ltSub" role="tablist" aria-label="View options"></nav>
-      <span class="lt-subr"><label class="reveal"><input type="checkbox" id="reveal"> Show what happened</label></span>
+      <span class="lt-subr">
+        <label class="reveal" title="Show the real pit stops, tyres and results">
+          <input type="checkbox" id="reveal" role="switch">
+          <span class="rv-text">Show what happened</span>
+          <span class="rv-track" aria-hidden="true"><span class="rv-thumb">
+            <svg class="shut" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z"/><path d="M2.5 2.5l11 11"/></svg>
+            <svg class="open" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>
+          </span></span>
+        </label>
+        <span class="rv-note" id="revealNote" role="status"></span>
+      </span>
     </div>
 
     <div class="lt-body">
@@ -624,7 +657,21 @@ async function init() {
   $("speedMenu").onclick = e => { const b = e.target.closest("[data-speed]"); if (b) pickSpeed(+b.dataset.speed); };
   document.addEventListener("click", e => { if (!e.target.closest(".tp-spd")) speedMenu(false); });
   $("lap").oninput = e => { stop(); setLap(+e.target.value); };
-  $("reveal").onchange = e => { S.reveal = e.target.checked; if (S.stream) { stop(); play(); } else setLap(S.lap); };
+  let revealTimer = 0;
+  $("reveal").onchange = e => {
+    S.reveal = e.target.checked;
+    // a short note under the switch for 2.4 s, like the "scores are now hidden" note in sports apps
+    const note = $("revealNote");
+    note.textContent = S.reveal ? "Showing what happened: the real stops, tyres and results" : "What happened is hidden again";
+    note.classList.remove("left");
+    note.classList.add("show");
+    if (note.getBoundingClientRect().left < 8) note.classList.add("left");      // keep it on the screen
+    const k = document.querySelector(".rv-track").getBoundingClientRect(), n = note.getBoundingClientRect();
+    note.style.setProperty("--ax", `${Math.round(k.left + k.width / 2 - n.left - 5)}px`);   // its little arrow points at the switch
+    clearTimeout(revealTimer);
+    revealTimer = setTimeout(() => note.classList.remove("show"), 2400);
+    if (S.stream) { stop(); play(); } else setLap(S.lap);
+  };
   // "Learn about segments": a pop-up that closes with x, Got it, Esc or a click outside (its car stops then)
   $("segInfoBtn").onclick = () => { const [segs, at] = sdBuild(); $("segDlg").showModal(); sdPlay(segs, at); };
   $("sdClose").onclick = $("sdOk").onclick = () => $("segDlg").close();
@@ -1256,7 +1303,7 @@ async function ocChart(t) {
   $("oc").style.minWidth = "0";
   $("oc").innerHTML = `<div class="oc-chart"><h3>${OC[t]} chance, lap by lap</h3><div id="ocBig"></div><p class="note">Every driver whose ${OC[t].toLowerCase()}
     chance reached 5% so far, in team colours (the second car of a team is dashed). Yellow bands: safety car or VSC (red: red flag). Click a line to see that driver.
-    ${S.reveal ? "Showing the whole race." : "Only the laps up to now: tick <b>Show what happened</b> for the rest."}</p></div>`;
+    ${S.reveal ? "Showing the whole race." : "Only the laps up to now: turn on <b>Show what happened</b> for the rest."}</p></div>`;
   $("ocBig").append(lineChart(series.laps, lines, { W: 900, H: 340, title: `${OC[t]} chance of each driver on each lap`, pick: code => selectDriver(code) }));
   ocPanel();
 }
@@ -1423,7 +1470,7 @@ async function previewPast() {
   $("pv").innerHTML = `<div class="pv-head"><b>${esc(p.name)}: what the preview said</b><span>Trained only on the races before it</span>` +
     `<small>Before qualifying its favourite was ${esc(before.name)} (${pc(before["before qualifying"].win)}); after qualifying ${esc(after.name)}
      (${pc(after["after qualifying"].win)}).${won ? ` ${esc(won.name)} won, with ${pc(won["before qualifying"].win)} before qualifying and ` +
-      `${pc(won["after qualifying"].win)} after.` : " Tick <b>Show what happened</b> for the result."}</small></div><div class="lb2-row hd pvp">${head}</div>` + rows;
+      `${pc(won["after qualifying"].win)} after.` : " Turn on <b>Show what happened</b> for the result."}</small></div><div class="lb2-row hd pvp">${head}</div>` + rows;
   $("pp").innerHTML = `<p class="note">The race preview was tested this way before each race of 2025 and 2026: trained again on every race
     before it, then asked about that race. The purple outline is the winner. The reasons are shown for the next race.</p>`;
 }
