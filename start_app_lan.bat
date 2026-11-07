@@ -1,5 +1,5 @@
 @echo off
-rem Starts the F1 Strategy Optimizer so phones and tablets on your home network can open it too (the dash for a
+rem Starts the F1 Strategy Predictor so phones and tablets on your home network can open it too (the dash for a
 rem second screen). Use it at home only: anyone on the same network can open the app while it runs.
 rem The first time, Windows asks whether Python may use the network: allow it on private networks.
 cd /d "%~dp0"
