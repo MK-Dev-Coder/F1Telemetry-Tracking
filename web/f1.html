@@ -302,6 +302,50 @@ details td,details th{padding:2px 6px;border-top:1px solid #2a2c38;text-align:le
 .seg-btn span:last-child{font-weight:900;font-size:17px;letter-spacing:.04em;line-height:1.05}
 .seg-ico{display:flex;gap:2px;border:1px solid #6f7484;border-radius:3px;padding:5px}
 .seg-ico i{width:5px;height:14px;background:var(--yellow)} .seg-ico i:nth-child(2){background:var(--green)} .seg-ico i:nth-child(3){background:var(--purple)}
+/* "learn about segments" pop-up: the race's track split into sectors and mini-sectors, a car driving a lap, and what
+   the colours mean */
+dialog.seg-dlg{width:min(880px, calc(100% - 32px));max-height:calc(100% - 32px);padding:0;overflow:hidden;border:1px solid #2c2e3b;
+  border-top:3px solid var(--brand);border-radius:14px;background:#15151e;color:var(--fg);box-shadow:0 24px 80px rgba(0,0,0,.6)}
+dialog.seg-dlg[open]{display:flex;flex-direction:column}
+dialog.seg-dlg::backdrop{background:rgba(5,7,10,.75)}
+.sd-body{padding:22px 26px 20px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#3a3c4a transparent}
+.sd-head{display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:16px}
+.sd-kicker{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#ff6b85}
+.sd-head h2{margin:2px 0 4px;font-size:28px;font-weight:900;line-height:1.1}
+.sd-head p{margin:0;color:#9aa0ae;max-width:64ch}
+.sd-close{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid #3a3c4a;background:none;cursor:pointer;display:grid;place-items:center}
+.sd-close svg{width:14px;height:14px} .sd-close:hover{background:#22242f}
+.sd-main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+.sd-demo{margin:0;padding:14px;border-radius:12px;background:#101119;border:1px solid #262833}
+.sd-track{display:block;width:100%;height:auto}
+.sd-track .road{fill:none;stroke:#23252f;stroke-width:12;stroke-linejoin:round;stroke-linecap:round}
+.sd-track .seg{fill:none;stroke:#3a3d4d;stroke-width:5;stroke-linejoin:round}
+.sd-track .seg.p{stroke:var(--purple)} .sd-track .seg.g{stroke:var(--green)} .sd-track .seg.y{stroke:var(--yellow)}
+.sd-track .gap{fill:#101119}
+.sd-track .cut{stroke:#fff;stroke-width:2.5;stroke-linecap:round}
+.sd-track .lbl rect{fill:#232533;stroke:#4a4d5c} .sd-track .lbl text{fill:#fff;font:700 11px var(--f-ui);letter-spacing:.06em}
+.sd-track .car{fill:#fff;stroke:var(--brand);stroke-width:3}
+.sd-bars{display:grid;grid-template-columns:repeat(3,auto);justify-content:space-between;gap:10px;margin-top:12px}
+.sd-bars small{display:block;margin-bottom:5px;font-size:11px;font-weight:700;letter-spacing:.12em;color:#8a90a0}
+.sd-bars .sg-bars{flex-wrap:wrap}
+.sd-demo figcaption{margin-top:10px;font-size:13px;line-height:1.4;color:#8a90a0}
+.sd-key h3{margin:0 0 10px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#c9cfdb}
+.sd-legend{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.sd-legend li{display:grid;grid-template-columns:34px minmax(0,1fr);column-gap:12px;align-items:center;padding:9px 12px;border-radius:10px;
+  background:#181922;border:1px solid #262833}
+.sd-legend .sg-bars{grid-row:span 2}
+.sd-legend b{font-size:14.5px;line-height:1.25;color:#fff} .sd-legend small{font-size:13px;line-height:1.35;color:#9aa0ae}
+.sd-note{margin:12px 0 0;display:flex;gap:8px;align-items:start;font-size:13px;line-height:1.45;color:#8a90a0}
+.sd-note svg{flex:none;width:15px;height:15px;margin-top:2px} .sd-note.warn{color:var(--yellow)}
+.sd-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 26px;border-top:1px solid #262833;
+  background:#12131a;font-size:13px;color:#9aa0ae}
+.sd-got{flex:none;border:0;border-radius:999px;padding:10px 22px;background:var(--brand);color:#fff;font:800 14px/1 var(--f-ui);
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.sd-got:hover{background:#f21d48}
+@media (max-width:760px){ .sd-main{grid-template-columns:1fr} .sd-body{padding:18px 16px} .sd-foot{padding:12px 16px} }
+@media (prefers-reduced-motion: no-preference){
+  dialog.seg-dlg[open]{animation:sdpop .18s ease-out} @keyframes sdpop{from{opacity:0;transform:translateY(8px) scale(.98)}}
+}
 .scrub{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;color:#c9cfdb;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
 .scrub input{flex:1;accent-color:var(--brand)}
 .lt-chips{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
@@ -418,7 +462,6 @@ footer{margin:12px auto 0;color:var(--dim);font-size:13px;max-width:1600px}
       <div id="vBoard">
         <div class="lt-banner" id="banner"></div>
         <div class="lb2-scroll"><div class="lb2" id="lb2"><div class="empty-note">Loading the race...</div></div></div>
-        <div class="seg-info" id="segInfo" hidden></div>
       </div>
       <div id="vStrategy" hidden>
         <div class="lt-banner" id="banner2"></div>
@@ -464,7 +507,7 @@ footer{margin:12px auto 0;color:var(--dim);font-size:13px;max-width:1600px}
     </div>
 
     <div class="lt-foot">
-      <button class="seg-btn" id="segInfoBtn" aria-expanded="false"><span class="seg-ico" aria-hidden="true"><i></i><i></i><i></i></span><span><small>Learn about</small>SEGMENTS</span></button>
+      <button class="seg-btn" id="segInfoBtn" aria-haspopup="dialog" aria-controls="segDlg"><span class="seg-ico" aria-hidden="true"><i></i><i></i><i></i></span><span><small>Learn about</small>SEGMENTS</span></button>
       <label class="scrub">Lap <input type="range" id="lap" min="1" max="1" value="1"></label>
       <div class="ticker" id="ticker" aria-live="polite" aria-label="Latest race control message"></div>
       <div class="lt-chips">
@@ -477,6 +520,44 @@ footer{margin:12px auto 0;color:var(--dim);font-size:13px;max-width:1600px}
 </main>
 <footer id="footer">Real race data from FastF1 (2022) and OpenF1 (2023–2026). Each lap shows only what was known at the end of that lap,
   so a replay works like the race was live. Pit chance and tyre pick come from the LightGBM models, explained with SHAP.</footer>
+
+<dialog class="seg-dlg" id="segDlg" aria-labelledby="sdTitle" aria-describedby="sdLead">
+  <div class="sd-body">
+    <div class="sd-head">
+      <div>
+        <span class="sd-kicker">Learn about</span>
+        <h2 id="sdTitle">Segments</h2>
+        <p id="sdLead">F1 splits each of the 3 sectors into small mini-sectors. Each one lights up as the car goes through it.</p>
+      </div>
+      <button class="sd-close" id="sdClose" aria-label="Close"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <div class="sd-main">
+      <figure class="sd-demo">
+        <svg class="sd-track" id="sdTrack" viewBox="0 0 400 250" role="img" aria-label="A car drives one lap. The track is split into 3 sectors and their mini-sectors, which light up as the car passes."></svg>
+        <div class="sd-bars" id="sdBars" aria-hidden="true"></div>
+        <figcaption id="sdCap"></figcaption>
+      </figure>
+      <div class="sd-key">
+        <h3>What the colours mean</h3>
+        <ul class="sd-legend">
+          <li><span class="sg-bars" aria-hidden="true"><i class="p"></i><i class="p"></i><i class="p"></i></span><b>Purple</b><small>Fastest of anyone so far</small></li>
+          <li><span class="sg-bars" aria-hidden="true"><i class="g"></i><i class="g"></i><i class="g"></i></span><b>Green</b><small>The driver's personal best</small></li>
+          <li><span class="sg-bars" aria-hidden="true"><i class="y"></i><i class="y"></i><i class="y"></i></span><b>Yellow</b><small>Slower than their best</small></li>
+          <li><span class="sg-bars" aria-hidden="true"><i class="pit"></i><i class="pit"></i><i class="pit"></i></span><b>Blue</b><small>In the pit lane</small></li>
+          <li><span class="sg-bars" aria-hidden="true"><i></i><i></i><i></i></span><b>Grey</b><small>Not reached yet on this lap</small></li>
+        </ul>
+        <p class="sd-note"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.3V11M8 5.1h.01"/></svg>
+          <span>Next to the bars: the leader's sector time, and everyone else's gap to the leader.</span></p>
+        <p class="sd-note warn" id="sdNone" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2l6.5 11.3h-13z"/><path d="M8 6.5v3.2M8 11.6h.01"/></svg>
+          <span>This race has no mini-sectors: they start in 2023 (OpenF1). Sector times still show.</span></p>
+      </div>
+    </div>
+  </div>
+  <div class="sd-foot">
+    <span>From F1's live timing, via OpenF1</span>
+    <button class="sd-got" id="sdOk">Got it</button>
+  </div>
+</dialog>
 
 <script src="flags.js"></script>
 <script src="stints.js"></script>
@@ -507,7 +588,7 @@ const SUBS = { board: [["laps", "Laps"], ["sectors", "Sectors"], ["segments", "S
   rc: [["all", "All messages"], ["PIT", "Pit lane"], ["OVERTAKE", "Overtakes"], ["TIMING", "Timing"], ["control", "Race control"]] };
 const S = { race: null, info: null, lap: 1, snap: null, tab: "board", sub: { board: "segments", strategy: "all", tracker: "h2h", outcome: "now", preview: "next", engineer: "track", rc: "all" },
   ocFor: null, ocSeries: null, preview: null, pvFor: null, pvRace: {}, eng: null,
-  reveal: false, stream: null, speed: 0, a: null, b: null, pick: null, strat: null, series: {}, segInfo: false,
+  reveal: false, stream: null, speed: 0, a: null, b: null, pick: null, strat: null, series: {},
   zoom: 1, pan: [0, 0], follow: false, cars: {}, anim: null, carPts: [] };
 
 const fmtLap = s => s == null ? "" : `${Math.floor(s / 60)}:${(s % 60).toFixed(3).padStart(6, "0")}`;
@@ -544,10 +625,14 @@ async function init() {
   document.addEventListener("click", e => { if (!e.target.closest(".tp-spd")) speedMenu(false); });
   $("lap").oninput = e => { stop(); setLap(+e.target.value); };
   $("reveal").onchange = e => { S.reveal = e.target.checked; if (S.stream) { stop(); play(); } else setLap(S.lap); };
-  $("segInfoBtn").onclick = () => { S.segInfo = !S.segInfo; $("segInfo").hidden = !S.segInfo; $("segInfoBtn").setAttribute("aria-expanded", String(S.segInfo)); };
+  // "Learn about segments": a pop-up that closes with x, Got it, Esc or a click outside (its car stops then)
+  $("segInfoBtn").onclick = () => { const [segs, at] = sdBuild(); $("segDlg").showModal(); sdPlay(segs, at); };
+  $("sdClose").onclick = $("sdOk").onclick = () => $("segDlg").close();
+  $("segDlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+  $("segDlg").addEventListener("close", () => cancelAnimationFrame(SD.raf));
   document.addEventListener("keydown", e => {
     if (e.key === "Escape" && !$("speedMenu").hidden) { speedMenu(false); $("speed").focus(); return; }
-    if (e.target.closest("select, input, .vs-back, .rp-backdrop")) return;     // inside a pop-up the keys belong to it
+    if (e.target.closest("select, input, dialog, .vs-back, .rp-backdrop")) return;     // inside a pop-up the keys belong to it
     if (e.key === " " && !e.target.closest("button, [role=button], summary")) { e.preventDefault(); S.stream ? stop() : play(); }
     if (e.key === "ArrowRight") { stop(); setLap(S.lap + 1, 1); }
     if (e.key === "ArrowLeft") { stop(); setLap(S.lap - 1, -1); }
@@ -730,7 +815,6 @@ function renderTabs() {
   $("vEngineer").hidden = S.tab !== "engineer";
   $("trk").classList.toggle("field", S.sub.tracker === "field");
   $("segInfoBtn").hidden = !(S.tab === "board" && S.sub.board === "segments");
-  if (S.tab !== "board" || S.sub.board !== "segments") $("segInfo").hidden = true; else $("segInfo").hidden = !S.segInfo;
   renderView();
 }
 function renderView() {
@@ -814,11 +898,100 @@ function viewBoard() {
   if (sub === "speeds") $("lb2").insertAdjacentHTML("beforeend", `<div class="seg-info">Speeds in km/h, from F1's timing: at two intermediate points and the speed trap
     on each lap. <span class="t-p">Purple</span> is the fastest of anyone so far, <span class="t-g">green</span> the driver's best. The bar compares
     each driver's best speed trap, from the slowest best to the fastest.</div>`);
-  $("segInfo").innerHTML = s.has_segments
-    ? `Each sector is split into mini-sectors. A mini-sector lights up as the car crosses it: <span class="t-p">purple</span> fastest of anyone,
-       <span class="t-g">green</span> the driver's personal best, <span class="t-y">yellow</span> slower than their best (F1's own colours, from OpenF1).
-       The leader shows absolute times; everyone else shows the difference to the leader.`
-    : `Mini-sectors aren't available for this race: they come from OpenF1, which starts in 2023. Sector times still show.`;
+}
+
+/* ---------------- learn about segments ---------------- */
+// The pop-up draws this race's track (or a made-up one) split into its 3 sectors and their mini-sectors, then a car
+// drives a lap and each mini-sector lights up as the car goes through it, like the bars in the Segments view
+const SD = { raf: 0 };
+const SD_COLS = ["g", "g", "y", "g", "p", "g", "y", "y", "g", "p", "g", "y"];      // made-up colours for the demo lap
+function sdShape() {
+  const t = S.info?.track;
+  if (t && t.x?.length > 20) {                     // the race's own track (y is flipped: it goes up in the data)
+    const lap = t.t[t.t.length - 1];
+    return { x: t.x, y: t.y.map(v => -v), u: t.t.map(v => v / lap), ends: t.sector_ends || [1 / 3, 2 / 3], real: true };
+  }
+  const x = [], y = [], u = [];                    // no track for this race: a simple made-up circuit
+  for (let i = 0; i <= 240; i++) {
+    const a = i / 240 * 2 * Math.PI;
+    x.push(Math.cos(a) * (1 + .18 * Math.cos(3 * a))); y.push(Math.sin(a) * .55 * (1 + .25 * Math.sin(2 * a))); u.push(i / 240);
+  }
+  return { x, y, u, ends: [1 / 3, 2 / 3], real: false };
+}
+function sdBuild() {
+  const sh = sdShape(), W = 400, H = 250, pad = 28;
+  const mnx = Math.min(...sh.x), mxx = Math.max(...sh.x), mny = Math.min(...sh.y), mxy = Math.max(...sh.y);
+  const k = Math.min((W - 2 * pad) / (mxx - mnx || 1), (H - 2 * pad) / (mxy - mny || 1));
+  const ox = (W - (mxx - mnx) * k) / 2, oy = (H - (mxy - mny) * k) / 2;
+  const P = i => [ox + (sh.x[i] - mnx) * k, oy + (sh.y[i] - mny) * k];
+  const at = u => {                                // the point a share u of the way round the lap (0..1)
+    let lo = 0, hi = sh.u.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (sh.u[m] <= u) lo = m; else hi = m; }
+    const [ax, ay] = P(lo), [bx, by] = P(hi);
+    const f = sh.u[hi] > sh.u[lo] ? Math.min(1, Math.max(0, (u - sh.u[lo]) / (sh.u[hi] - sh.u[lo]))) : 0;
+    return [ax + (bx - ax) * f, ay + (by - ay) * f];
+  };
+  const num = v => v.toFixed(1);
+  const line = (u0, u1) => {
+    const pts = [at(u0)];
+    sh.u.forEach((v, i) => { if (v > u0 && v < u1) pts.push(P(i)); });
+    pts.push(at(u1));
+    return "M" + pts.map(([x, y]) => `${num(x)},${num(y)}`).join("L");
+  };
+  // mini-sectors per sector: the most any driver has on this lap; 8 each as an example when the race has none
+  const counts = [0, 1, 2].map(s => Math.max(0, ...(S.snap?.drivers || []).map(d => (d.segments?.[s] || []).length)));
+  const real = counts.every(n => n > 0), n = real ? counts : [8, 8, 8], edges = [0, ...sh.ends, 1], segs = [];
+  n.forEach((cnt, s) => {
+    const span = edges[s + 1] - edges[s];
+    for (let j = 0; j < cnt; j++)
+      segs.push({ u0: edges[s] + span * j / cnt, u1: edges[s] + span * (j + 1) / cnt, col: SD_COLS[segs.length % SD_COLS.length] });
+  });
+  const pieces = segs.map(g => `<path class="seg" d="${line(g.u0, g.u1)}"/>`).join("");
+  const gaps = segs.map(g => { const [x, y] = at(g.u0); return `<circle class="gap" cx="${num(x)}" cy="${num(y)}" r="2.4"/>`; }).join("");
+  // a white line across the track where each sector starts (the first one is the start/finish line)
+  const cuts = edges.slice(0, 3).map(u => {
+    const [x, y] = at(u), [x0, y0] = at(Math.max(0, u - .005)), [x1, y1] = at(Math.min(1, u + .005));
+    const l = Math.hypot(x1 - x0, y1 - y0) || 1, dx = (x1 - x0) / l, dy = (y1 - y0) / l;
+    return `<line class="cut" x1="${num(x - dy * 9)}" y1="${num(y + dx * 9)}" x2="${num(x + dy * 9)}" y2="${num(y - dx * 9)}"/>`;
+  }).join("");
+  // S1, S2 and S3 next to the middle of each sector, pushed a little away from the centre
+  const labels = [0, 1, 2].map(s => {
+    let [x, y] = at((edges[s] + edges[s + 1]) / 2);
+    const dx = x - W / 2, dy = y - H / 2, l = Math.hypot(dx, dy) || 1;
+    x = Math.min(W - 18, Math.max(18, x + dx / l * 22)); y = Math.min(H - 12, Math.max(12, y + dy / l * 22));
+    return `<g class="lbl"><rect x="${num(x - 15)}" y="${num(y - 9)}" width="30" height="18" rx="9"/>` +
+      `<text x="${num(x)}" y="${num(y + 4)}" text-anchor="middle">S${s + 1}</text></g>`;
+  }).join("");
+  $("sdTrack").innerHTML = `<path class="road" d="${line(0, 1)}"/>${pieces}${gaps}${cuts}${labels}<circle class="car" id="sdCar" r="6" cx="-20" cy="-20"/>`;
+  $("sdBars").innerHTML = n.map((cnt, s) => `<span><small>S${s + 1}</small><span class="sg-bars">${"<i></i>".repeat(cnt)}</span></span>`).join("");
+  const where = sh.real ? `One lap of the ${S.info.year} ${esc(S.info.name)}` : "A made-up lap";
+  $("sdCap").innerHTML = `${where}: 3 sectors and ${segs.length} ${real ? "" : "example "}mini-sectors (spaced evenly here).`;
+  $("sdNone").hidden = real || !S.snap;
+  return [segs, at];
+}
+// The car drives a lap in 8 s, waits 1.6 s with every mini-sector lit, then starts again. If the computer asks for
+// less motion, the whole lap is just shown lit.
+function sdPlay(segs, at) {
+  cancelAnimationFrame(SD.raf);
+  const paths = [...$("sdTrack").querySelectorAll(".seg")], bars = [...$("sdBars").querySelectorAll("i")], car = $("sdCar");
+  const show = u => {
+    segs.forEach((g, i) => {
+      const col = u >= g.u1 ? g.col : "";
+      if (g.on !== col) { g.on = col; paths[i].setAttribute("class", `seg ${col}`); bars[i].className = col; }
+    });
+    const [x, y] = at(Math.min(u, 1));
+    car.setAttribute("cx", x.toFixed(1)); car.setAttribute("cy", y.toFixed(1));
+  };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { show(1); return; }
+  const LAP = 8000, HOLD = 1600;
+  let t0 = null;
+  const step = now => {
+    if (!$("segDlg").open) return;
+    t0 ??= now;
+    show(Math.min(((now - t0) % (LAP + HOLD)) / LAP, 1));
+    SD.raf = requestAnimationFrame(step);
+  };
+  SD.raf = requestAnimationFrame(step);
 }
 
 /* ---------------- pit strategy ---------------- */
