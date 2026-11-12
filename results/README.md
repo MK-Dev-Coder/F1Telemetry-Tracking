@@ -20,5 +20,6 @@ have from both sources.
 | `horizon.md`, `horizon.csv` | Why "a stop in the next 3 laps": the model for 1, 2, 3 and 5 laps | `python src/evaluate_design.py` (writes here) |
 | `feature_groups.md`, `feature_groups.csv` | What each group of features adds (the model without each group) | `python src/evaluate_design.py` (writes here) |
 | `cloud.md` | The cloud data layer: a new PC's download from S3 (files, size, time, every file the same) | `python src/aws_sync.py check` (writes here, once AWS is set up) |
+| `tools_comparison.md` | The existing tools against this project, on the June proposal's criteria plus "accuracy reported" | Checked by hand at each tool's own page on 29 Oct 2026 (the sources are in the file) |
 
 The charts are in `figures/`.

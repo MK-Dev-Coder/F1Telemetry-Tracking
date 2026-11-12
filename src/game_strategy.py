@@ -329,12 +329,13 @@ def worked_out(s, lock):
         rows = None if same else lap_rows(s) if s.is_race() else []
         status = {car: d["result_status"] for car, d in s.lap_now.items()}
         grid = {car: d.get("grid") for car, d in s.lap_now.items()}
+        live_pos = {car: d.get("position") for car, d in s.lap_now.items()}   # where each car is right now
         drivers = {car: dict(d) for car, d in s.drivers.items()}
         player = s.player
     if same:
-        return hit, status, drivers, player
+        return hit, status, drivers, player, live_pos
     if not rows:
-        return None, status, drivers, player
+        return None, status, drivers, player, live_pos
     key = (len(rows), sum(r["Time"] for r in rows), "".join(r["TrackStatus"] for r in rows))
     with _work:
         hit = _cache.get(s.uid) or hit        # another page may have just done it
@@ -344,7 +345,7 @@ def worked_out(s, lock):
             hit = new
         hit["version"] = version
         _cache[s.uid] = hit
-    return hit, status, drivers, player
+    return hit, status, drivers, player, live_pos
 
 
 def keep_why(old, new):
@@ -397,7 +398,7 @@ def number(v, digits=3):
 
 
 # Every car at the end of one lap (the latest lap while live), like the real-race Pit strategy view
-def assemble(w, status, drivers, player, lap=None):
+def assemble(w, status, drivers, player, lap=None, live_pos=None):
     laps, info = w["laps"], models()["info"]
     last = int(laps["LapNumber"].max())
     lap = min(lap or last, last)
@@ -414,9 +415,13 @@ def assemble(w, status, drivers, player, lap=None):
         gone = status.get(c) in OUT and seen.index[-1] == mine.index[-1] and row["LapNumber"] < lap   # retired
         pitting = not pd.isna(row["PitInTime"])                   # the lap ended in the pit lane
         chance = None if pitting or gone else float(w["chance"][k])
+        # The table's position is from the car's last finished lap (the model's row). While live that can be up to
+        # a lap behind the game, so the page also gets the position the game says right now.
+        now = None if gone else (live_pos or {}).get(c)
         out.append({"car": c, "driver": d.get("code", f"C{c:02d}"), "name": d.get("name", ""),
                     "colour": "#" + d.get("colour", "888888"), "team": d.get("team", ""), "player": c == player,
-                    "lap": int(row["LapNumber"]), "position": int(row["Position"]), "compound": str(row["Compound"]),
+                    "lap": int(row["LapNumber"]), "position": int(row["Position"]), "position_now": now or None,
+                    "compound": str(row["Compound"]),
                     "tyre_age": number(row["TyreLife"], 0), "status": OUT.get(status.get(c)) if gone else "PIT" if pitting else "",
                     "pitting_now": pitting, "pit_chance": number(chance),
                     "alert": chance is not None and chance >= info["threshold"],
@@ -435,17 +440,17 @@ def assemble(w, status, drivers, player, lap=None):
 
 
 def snapshot(s, lock, lap=None):
-    w, status, drivers, player = worked_out(s, lock)
+    w, status, drivers, player, live_pos = worked_out(s, lock)
     if not s.is_race():
         return {"available": False, "note": "Pit stop predictions are made during races."}
     if w is None:
         return {"available": False, "note": "The predictions appear when the cars finish their first lap."}
-    return assemble(w, status, drivers, player, lap)
+    return assemble(w, status, drivers, player, lap, live_pos)
 
 
 # One car: the full explanation at the end of one lap, and its pit stop chance on every lap
 def car_detail(s, lock, car, lap=None):
-    w, status, drivers, player = worked_out(s, lock)
+    w, status, drivers, player, _ = worked_out(s, lock)
     if w is None:
         return None
     laps = w["laps"]
@@ -485,7 +490,7 @@ def car_detail(s, lock, car, lap=None):
 
 # Strategy battle: two cars side by side up to the last whole lap (up to `lap`), same as for real races
 def duel(s, lock, a, b, lap=None):
-    w, status, drivers, player = worked_out(s, lock)
+    w, status, drivers, player, _ = worked_out(s, lock)
     o = None if w is None else w.get("outcome")
     if o is None or not models().get("battle"):
         return None

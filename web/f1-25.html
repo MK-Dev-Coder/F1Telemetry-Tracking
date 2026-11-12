@@ -1728,9 +1728,13 @@ function renderStrategy() {
     $("stratLap").value = G.strat.lap ?? "";
   }
   if (G.strat.car == null || !s.drivers.some(d => d.car === G.strat.car)) G.strat.car = (s.drivers.find(d => d.player) || s.drivers[0])?.car;
+  // While following the latest lap live, show where each car is right now (the game's live position): the model's
+  // rows are per finished lap, so their position can be up to a lap behind the game
+  const liveNow = !!G.view?.live && G.strat.lap == null;
+  const posOf = d => liveNow && d.position_now ? d.position_now : d.position;
   // While live a message comes every second, so only redraw when something changed (a row keeps its focus)
   const viewKey = JSON.stringify([G.id, G.strat.car, s.lap, s.laps_worked_out, s.track_status, s.outcome_lap, Object.keys(G.cards).length,
-    s.drivers.map(d => [d.car, d.pit_chance, d.status, d.outcome?.win, d.outcome?.likely])]);
+    s.drivers.map(d => [d.car, posOf(d), d.pit_chance, d.status, d.outcome?.win, d.outcome?.likely])]);
   if (viewKey === G.strat.viewKey && $("stratTable")) return;
   G.strat.viewKey = viewKey;
   const flag = s.track_status === "GREEN" ? "" : ` · <b>${esc(s.track_status)}</b>`;
@@ -1748,7 +1752,9 @@ function renderStrategy() {
   const head = `<span>Position</span><span>Tyre</span>` + (short ? `<span title="In the next 3 laps of the real race: about ${s.scale.horizon_here} laps of this one">Pit stop soon (≈${s.scale.horizon_here} laps)</span>` : "<span>Pit stop in next 3 laps</span>") +
     `<span>Main reason (SHAP)</span><span class="r">If they pit now</span>` +
     `<span class="r" title="The race outcome model: the likely finish, and the chance of the biggest prize still in reach">Finish</span>`;
-  const rows = s.drivers.map((d, k) => {
+  const out = x => x.status && x.status !== "PIT" ? 1 : 0;          // retired cars stay at the bottom
+  const order = [...s.drivers].sort((a, b) => out(a) - out(b) || posOf(a) - posOf(b));
+  const rows = order.map((d, k) => {
     const gone = d.status && d.status !== "PIT";
     const chance = d.pitting_now ? '<span class="st-pit">IN THE PITS</span>' : gone ? `<span class="st-gone">${esc(d.status)}</span>`
       : `<span class="chance ${d.alert ? "alert" : ""}"><span class="pm"><i style="width:${(d.pit_chance || 0) * 100}%"></i><b style="left:${s.alert_threshold * 100}%"></b></span><span class="pct">${pct(d.pit_chance)}</span></span>`;
@@ -1761,7 +1767,7 @@ function renderStrategy() {
     const o = d.outcome, fin = o ? `<span class="fin" title="Likely finish P${o.likely} (average P${o.expected}). Win ${pc(o.win)}, ` +
       `podium ${pc(o.podium)}, points ${pc(o.points)}">P${o.likely}<small>${OCN[o.for].toLowerCase()} ${pc(o[o.for])}</small></span>` : "<span></span>";
     return `<div class="lb2-row strat${d.player ? " me" : ""}${gone ? " gone" : ""}${d.car === G.strat.car ? " sel" : ""}" data-car="${d.car}" tabindex="0">` +
-      nameCell(d, k, (d.alert ? ' <em class="boxtag" title="Likely to pit in the next 3 laps">BOX</em>' : "") + lapped) +
+      nameCell({ ...d, position: posOf(d) }, k, (d.alert ? ' <em class="boxtag" title="Likely to pit in the next 3 laps">BOX</em>' : "") + lapped) +
       `<span>${tyre(d.compound, d.tyre_age)}</span>${chance}${reason}${next}${fin}</div>`; }).join("");
   if (!$("stratTable")) $("stratBody").innerHTML = `<div class="strat-grid"><div class="lb2-scroll"><div class="lb2 strat-table" id="stratTable"></div></div><div class="sp" id="sp"></div></div>`;
   $("stratTable").innerHTML = `<div class="lb2-row hd strat">${head}</div>` + rows;
