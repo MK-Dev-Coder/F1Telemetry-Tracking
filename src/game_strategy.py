@@ -257,14 +257,49 @@ def coded(answer, drivers):
     return out
 
 
+def pit_chances(w, at):
+    """Each car's chance of a pit stop soon at the end of lap `at` (1.0 for a car already in the pit lane)."""
+    laps, out = w["laps"], {}
+    for i in laps.index[laps["LapNumber"] == at]:
+        k = laps.index.get_loc(i)
+        row = laps.iloc[k]
+        out[row["Driver"]] = 1.0 if not pd.isna(row["PitInTime"]) else float(w["chance"][k])
+    return out
+
+
+def likely_rejoins(here, loss, spread, chance):
+    """Where every car would rejoin counting the other cars' own pit stop chances and how close the gaps are.
+    The game's AI mostly pits in a wave, so a car likely to pit too mostly keeps its place. Stop times vary by
+    about `spread` seconds (the middle half of real stops), so a car right on the edge of the pit window, or one
+    pitting too with only a small gap, is a toss-up instead of a hard yes or no."""
+    if not pit_now.whole(here):
+        return {}
+    names, gaps, out = here["Driver"].to_numpy(), here["GapToLeader"].to_numpy(dtype=float), {}
+    edge = lambda margin: min(1.0, max(0.0, 0.5 + margin / max(spread, 0.1)))   # how surely they end up ahead
+    for k, (name, gap) in enumerate(zip(names, gaps)):
+        ahead = 0.0
+        for j in range(len(names)):
+            if j == k:
+                continue
+            p = chance.get(names[j]) or 0.0
+            # If they pit too, the order between us only holds when the gap is clear; if they stay out, they
+            # keep the place when their gap is clearly inside the cost of my stop
+            ahead += p * edge(gap - gaps[j]) + (1.0 - p) * edge(gap + loss - gaps[j])
+        out[name] = int(round(ahead)) + 1
+    return out
+
+
 def rejoins_for(w, at, drivers):
-    """Where every car would rejoin if it pitted at the end of lap `at` (the last whole lap): {car: {...}}."""
+    """Where every car would rejoin if it pitted at the end of lap `at` (the last whole lap): {car: {...}}.
+    "likely" is the rejoin counting the other cars' own pit chances (the game's AI pits in a wave)."""
     o, m = w.get("outcome"), models()
     if o is None or at is None or not m.get("pit_now"):
         return {}
     here = o["rows"][o["rows"]["LapNumber"] == at]
-    loss = pit_now.cost(m["pit_now"], m["outcome"][1]["pit_loss"], here["Circuit"].iloc[0], lap_status(here))[0]
-    return {int(car): coded(r, drivers) for car, r in pit_now.rejoin_all(here, loss).items()}
+    loss, (low, high), _ = pit_now.cost(m["pit_now"], m["outcome"][1]["pit_loss"], here["Circuit"].iloc[0], lap_status(here))
+    likely = likely_rejoins(here, loss, high - low, pit_chances(w, at))
+    return {int(car): coded({**r, "likely": likely.get(car)}, drivers)
+            for car, r in pit_now.rejoin_all(here, loss).items()}
 
 
 def lap_status(here):
@@ -479,6 +514,8 @@ def car_detail(s, lock, car, lap=None):
         pit = coded(pit_now.what_if(models()["pit_now"], booster, info, here, str(car), now_status, pick, w["scale"]["factor"]), drivers)
         if pit:
             pit["lap"] = outcome_at
+            loss, (low, high), _ = pit_now.cost(models()["pit_now"], info["pit_loss"], here["Circuit"].iloc[0], now_status)
+            pit["likely"] = likely_rejoins(here, loss, high - low, pit_chances(w, outcome_at)).get(str(car))
     return {"car": car, "driver": drivers.get(car, {}).get("code", f"C{car:02d}"), "lap": int(row["LapNumber"]),
             "position": int(row["Position"]), "pitting_now": pitting,
             "pit_chance": None if pitting else number(w["chance"][k]), "typical_lap_chance": number(sigmoid(w["base"])),

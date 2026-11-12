@@ -16,7 +16,9 @@
     const range = w.range[0] !== w.range[1] ? ` P${Math.min(...w.range)} to P${Math.max(...w.range)}, depending on the stop.` : "";
     const cost = w.under === "red" ? "Under the red flag the cars wait in the pit lane, so new tyres cost no time."
       : `A stop costs about ${Math.round(w.cost)} s here${UNDER[w.under] || ""}.`;
-    let out = `<p class="why-line why-window"><b>${cost}</b> ${who} would rejoin P${w.position}: ${parts.join(", ")}.${range}</p>`;
+    const wave = w.likely && w.likely !== w.position
+      ? ` Counting the other cars' own pit chances (the AI mostly pits in a wave), more like <b>P${w.likely}</b>.` : "";
+    let out = `<p class="why-line why-window"><b>${cost}</b> ${who} would rejoin P${w.position}: ${parts.join(", ")}.${range}${wave}</p>`;
     // Order after the stop: two cars ahead, the driver, two behind (with the gap from the driver to each). Ahead or
     // behind is decided by position, since a gap under 0.05 s is rounded to 0.0
     const rows = [...w.around.filter(a => a.position < w.position), { driver: w.driver, position: w.position, me: true },

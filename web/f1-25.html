@@ -185,6 +185,7 @@ button,select,input{font:inherit;color:inherit}
 .lb-name em.ot{background:#5ee0cf}            /* overtake mode on (F1 26) */
 
 /* pit strategy: the models trained on real F1, live on the game */
+.rj-lk{color:#5ee0cf;font-weight:600}         /* rejoin counting the other cars' pit chances */
 .demo-note{color:#9aa0ae;font-size:13.5px;line-height:1.5;padding:0 2px 10px;max-width:120ch}
 .strat-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:12px;align-items:start}
 .lb2.strat-table{min-width:600px}
@@ -1761,7 +1762,7 @@ function renderStrategy() {
     const r = d.reasons[0];
     const reason = r ? `<span class="reason" title="${esc(r.text)}"><em class="${r.points >= 0 ? "up" : "down"}">${esc(r.label)}</em>${esc(r.text)}</span>` : "<span></span>";
     const best = Object.entries(d.next_tyre || {}).sort((a, b) => b[1] - a[1])[0];
-    const rj = d.rejoin ? `<small class="dim" title="Where they'd rejoin if they pitted now">→ P${d.rejoin.position}</small>` : "";
+    const rj = d.rejoin ? `<small class="dim" title="Where they'd rejoin if they pitted now and the others stayed out${d.rejoin.likely && d.rejoin.likely !== d.rejoin.position ? `; about P${d.rejoin.likely} counting the other cars' own pit chances (the AI mostly pits in a wave)` : ""}">→ P${d.rejoin.position}${d.rejoin.likely && d.rejoin.likely !== d.rejoin.position ? ` <b class="rj-lk">≈P${d.rejoin.likely}</b>` : ""}</small>` : "";
     const next = best && !gone ? `<span class="r">${tyre(best[0])} <span class="ty-age">${pct(best[1])}</span>${rj}</span>` : "<span></span>";
     const lapped = d.lap < s.lap ? ` <span class="dim" title="Its latest finished lap">L${d.lap}</span>` : "";
     const o = d.outcome, fin = o ? `<span class="fin" title="Likely finish P${o.likely} (average P${o.expected}). Win ${pc(o.win)}, ` +
